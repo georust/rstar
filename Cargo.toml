@@ -1,0 +1,17 @@
+[package]
+name = "unnamed_rtree"
+version = "0.1.0"
+authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
+
+[dependencies]
+typenum = "1.9"
+generic-array = "0.9"
+num-traits = "*"
+smallvec = "*"
+
+[features]
+default = []
+debug = []
+
+[dev-dependencies]
+rand = "*"
