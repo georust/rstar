@@ -8,7 +8,16 @@ pub trait RTreeParams {
     type MaxSize: Unsigned;
     type ReinsertionCount: Unsigned;
     type DefaultInsertionStrategy: InsertionStrategy;
+
+    fn debug_output() -> String {
+        format!("MinSize: {}, MaxSize: {}, ReinsertionCount: {}", 
+                Self::MinSize::to_usize(), 
+                Self::MaxSize::to_usize(), 
+                Self::ReinsertionCount::to_usize())
+    }
 }
+
+
 
 enum Void {}
 

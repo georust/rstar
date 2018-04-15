@@ -3,9 +3,10 @@ use node::{ParentNodeData};
 use object::RTreeObject;
 use iterator::*;
 use num_traits::Bounded;
+use metrics::RTreeMetrics;
 
 pub trait InsertionStrategy {
-    fn insert<T, Params>(&mut RTree<T, Params>, t: T)
+    fn insert<T, Params>(&mut RTree<T, Params>, t: T, metrics: &mut RTreeMetrics)
         where Params: RTreeParams,
               T: RTreeObject;
 }
@@ -61,8 +62,15 @@ impl <T, Params> RTree<T, Params>
         self.height = new_height;
     }
 
+    #[cfg(not(feature="debug"))]
     pub fn insert(&mut self, t: T) {
-        Params::DefaultInsertionStrategy::insert(self, t);
+        Params::DefaultInsertionStrategy::insert(self, t, &mut RTreeMetrics {});
+        self.size += 1;
+    }
+
+    #[cfg(feature="debug")]
+    pub fn insert(&mut self, t: T, metrics: &mut RTreeMetrics) {
+        Params::DefaultInsertionStrategy::insert(self, t, metrics);
         self.size += 1;
     }
 
@@ -84,9 +92,12 @@ impl <T, Params> RTree<T, Params>
     where Params: RTreeParams,
           T: RTreeObject + PartialEq
 {
+    /*
     fn contains(&self, t: &T) -> bool {
         self.root.contains(t)
     }
+    */
+    
 }
 
 #[cfg(test)]

@@ -5,6 +5,7 @@ use params::RTreeParams;
 use object::RTreeObject;
 use num_traits::{Zero, Bounded};
 use typenum::Unsigned;
+use metrics::RTreeMetrics;
 
 pub enum RStarInsertionStrategy { }
 
@@ -18,10 +19,13 @@ enum InsertionResult<T, Params>
 }
 
 impl InsertionStrategy for RStarInsertionStrategy {
-    fn insert<T, Params>(tree: &mut RTree<T, Params>, t: T) 
+    fn insert<T, Params>(tree: &mut RTree<T, Params>,
+                         t: T,
+                         metrics: &mut RTreeMetrics) 
         where Params: RTreeParams,
               T: RTreeObject,
     {
+        metrics.increment_insertions();
         if tree.size() == 0 {
             // The root won't be split - adjust the height manually
             tree.set_height(1);
@@ -37,7 +41,8 @@ impl InsertionStrategy for RStarInsertionStrategy {
             match recursive_insert(tree.root_mut(),
                                    next,
                                    tree_height - node_height - 1,
-                                   can_reinsert) {
+                                   can_reinsert,
+                                   metrics) {
                 InsertionResult::Split(node) => {
                     // The root node was split, create a new root and increase height
                     tree_height += 1;
@@ -65,25 +70,28 @@ impl InsertionStrategy for RStarInsertionStrategy {
 fn recursive_insert<T, Params>(node: &mut ParentNodeData<T, Params>, 
                                t: RTreeNode<T, Params>, 
                                target_height: usize,
-                               allow_reinsert: bool) -> InsertionResult<T, Params>
+                               allow_reinsert: bool,
+                               metrics: &mut RTreeMetrics) -> InsertionResult<T, Params>
     where Params: RTreeParams,
           T: RTreeObject,
 {
+    metrics.increment_recursive_insertions();
     node.mbr.extend_with_mbr(&t.mbr());
     if target_height == 0 {
         // Force insertion into this node
         node.children.push(t);
-        return resolve_overflow(node, allow_reinsert);
+        return resolve_overflow(node, allow_reinsert, metrics);
     }
     let expand = { 
-        let follow = choose_subtree(node, &t);
-        recursive_insert(follow, t, target_height - 1, allow_reinsert)
+        let all_leaves = target_height == 1;
+        let follow = choose_subtree(node, &t, all_leaves, metrics);
+        recursive_insert(follow, t, target_height - 1, allow_reinsert, metrics)
     };
     match expand {
         InsertionResult::Split(child) => {
             node.mbr.extend_with_mbr(&child.mbr());
             node.children.push(child);
-            resolve_overflow(node, allow_reinsert)
+            resolve_overflow(node, allow_reinsert, metrics)
         },
         InsertionResult::Reinsert(reinsertion_nodes, height) => {
             node.mbr = mbr_for_children(&node.children);
@@ -94,11 +102,14 @@ fn recursive_insert<T, Params>(node: &mut ParentNodeData<T, Params>,
 }
 
 fn choose_subtree<'a, 'b, T, Params>(node: &'a mut ParentNodeData<T, Params>, 
-                                     to_insert: &'b RTreeNode<T, Params>) 
+                                     to_insert: &'b RTreeNode<T, Params>,
+                                     all_leaves: bool,
+                                     metrics: &mut RTreeMetrics) 
                                      -> &'a mut ParentNodeData<T, Params> 
     where T: RTreeObject,
           Params: RTreeParams,
 {
+    metrics.increment_choose_subtree();
     let zero: <T::Point as Point>::Scalar = Zero::zero();
     let insertion_mbr = to_insert.mbr();
     let mut inclusion_count = 0;
@@ -116,8 +127,12 @@ fn choose_subtree<'a, 'b, T, Params>(node: &'a mut ParentNodeData<T, Params>,
         }
     }
     if inclusion_count == 0 {
+
+        metrics.increment_choose_subtree_outsiders();
         // No inclusion found, subtree depends on overlap and area increase
-        let all_leaves = node.children.first().unwrap().is_leaf();
+        if all_leaves {
+            metrics.increment_choose_subtree_leaves();
+        }
         let mut min = (zero, zero, zero);
 
         for (index, child1) in node.children.iter().enumerate() {
@@ -159,19 +174,22 @@ fn choose_subtree<'a, 'b, T, Params>(node: &'a mut ParentNodeData<T, Params>,
 }
 
 fn resolve_overflow<T, Params>(node: &mut ParentNodeData<T, Params>,
-                               allow_reinsert: bool) -> InsertionResult<T, Params> 
+                               allow_reinsert: bool,
+                               metrics: &mut RTreeMetrics) -> InsertionResult<T, Params> 
     where T: RTreeObject,
           Params: RTreeParams
 {
+    metrics.increment_resolve_overflow();
     if node.children.len() > Params::MaxSize::to_usize() {
+        metrics.increment_resolve_overflow_overflows();
         let reinsertion_count = Params::ReinsertionCount::to_usize();
         if reinsertion_count == 0 || !allow_reinsert {
             // We did already reinsert on that level - split this node
-            let offsplit = split(node);
+            let offsplit = split(node, metrics);
             InsertionResult::Split(offsplit)
         } else {
             // We didn't attempt to reinsert yet - give it a try
-            let reinsertion_nodes = reinsert(node);
+            let reinsertion_nodes = reinsert(node, metrics);
             InsertionResult::Reinsert(reinsertion_nodes, 0)
         }
     } else {
@@ -179,10 +197,11 @@ fn resolve_overflow<T, Params>(node: &mut ParentNodeData<T, Params>,
     }
 }
 
-fn split<T, Params>(node: &mut ParentNodeData<T, Params>) -> RTreeNode<T, Params> 
+fn split<T, Params>(node: &mut ParentNodeData<T, Params>, metrics: &mut RTreeMetrics) -> RTreeNode<T, Params> 
     where T: RTreeObject,
           Params: RTreeParams
 {
+    metrics.increment_splits();
     let axis = get_split_axis(node);
     let zero = <T::Point as Point>::Scalar::zero();
     debug_assert!(node.children.len() >= 2);
@@ -252,10 +271,14 @@ fn get_split_axis<T, Params>(node: &mut ParentNodeData<T, Params>) -> usize
 
 
 #[inline(never)]
-fn reinsert<T, Params>(node: &mut ParentNodeData<T, Params>) -> Vec<RTreeNode<T, Params>> 
+fn reinsert<T, Params>(node: &mut ParentNodeData<T, Params>,
+                       metrics: &mut RTreeMetrics) -> Vec<RTreeNode<T, Params>> 
     where T: RTreeObject,
       Params: RTreeParams,
 {
+
+    metrics.increment_reinsertions();
+
     let lower = node.mbr.lower();
     // Sort with increasing order so we can use Vec::split_off
     node.children.sort_by(|l, r| {

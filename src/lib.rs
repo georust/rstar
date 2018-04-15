@@ -8,6 +8,10 @@ extern crate rand;
 
 #[allow(dead_code)]
 
+#[cfg(feature = "debug")]
+pub mod metrics;
+#[cfg(not(feature = "debug"))]
+mod metrics;
 
 mod rtree;
 mod rstar;
@@ -16,6 +20,8 @@ mod node;
 mod point;
 mod object;
 mod mbr;
+mod envelope;
+
 mod iterator;
 mod nearest_neighbor;
 
@@ -25,6 +31,8 @@ mod testutils;
 #[cfg(feature = "debug")]
 pub use node::RTreeNode;
 
+pub use params::{RTreeParams, CustomParams};
+pub use rstar::{RStarInsertionStrategy};
 pub use rtree::RTree;
 pub use iterator::RTreeIterator;
 pub use mbr::MBR;

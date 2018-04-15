@@ -1,5 +1,6 @@
 use point::{Point, PointExt, max_inline};
 use num_traits::{Bounded, One, Zero};
+use envelope::Envelope;
 
 #[derive(Clone, Debug, Copy, PartialEq)]
 pub struct MBR<P> where P: Point {
@@ -92,4 +93,33 @@ impl <P> MBR<P> where P: Point {
             self.min_point(point).sub(point).length_2()
         }
     }
+}
+
+impl <P> Envelope for MBR<P> 
+    where P: Point
+{
+    type PointType = P;
+
+    fn contains_point(&self, _point: &P) -> bool
+     {
+        unimplemented!();
+    }
+
+    fn contains_envelope(&self, _other: &Self) -> bool
+    {
+        unimplemented!();
+    }
+
+    fn merge(&mut self, _other: &Self) {
+        unimplemented!();
+    }
+
+    fn intersects(&self, _other: &Self) -> bool {
+        unimplemented!();
+    }
+
+    fn area(&self) -> <P as Point>::Scalar {
+        unimplemented!();
+    }
+
 }
