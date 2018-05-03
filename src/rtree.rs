@@ -92,12 +92,9 @@ impl <T, Params> RTree<T, Params>
     where Params: RTreeParams,
           T: RTreeObject + PartialEq
 {
-    /*
-    fn contains(&self, t: &T) -> bool {
+    pub fn contains(&self, t: &T) -> bool {
         self.root.contains(t)
     }
-    */
-    
 }
 
 #[cfg(test)]

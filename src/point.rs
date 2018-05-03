@@ -95,6 +95,10 @@ pub trait PointExt: Point {
         self.component_wise(other, |l, r| l - r)
     }
 
+    fn add(&self, other: &Self) -> Self {
+        self.component_wise(other, |l, r| l + r)
+    }
+
     fn distance_2(&self, other: &Self) -> Self::Scalar {
         self.sub(other).length_2()
     }

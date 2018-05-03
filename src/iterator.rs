@@ -18,6 +18,7 @@ impl <'a, T, Params> RTreeIterator<'a, T, Params>
     pub fn new(tree: &'a RTree<T, Params>) -> Self {
         let mut path = Vec::with_capacity(Params::MaxSize::to_usize() * 4);
         path.extend(tree.root().children.iter());
+        println!("path: {:?}", path);
         RTreeIterator {
             path: path,
         }
@@ -89,8 +90,9 @@ mod test {
 
     #[test]
     fn test_iteration() {
-        const NUM_POINTS: usize = 0;
-        let points = create_random_points(NUM_POINTS, [921545, 22305, 2004822, 142567]);
+        const NUM_POINTS: usize = 1000;
+        let points = create_random_points(NUM_POINTS,
+            [921545, 22305, 2004822, 142567]);
         let mut tree = RTree::new();
         for p in &points {
             tree.insert(*p);
@@ -104,6 +106,7 @@ mod test {
         count = 0;
         for p in tree.iter_mut() {
             assert!(points.iter().any(|q| q == p));
+            count += 1;
         }
         assert_eq!(count, NUM_POINTS);
         for p in &points {

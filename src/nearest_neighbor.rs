@@ -2,9 +2,9 @@ use smallvec::SmallVec;
 use node::{ParentNodeData, RTreeNode};
 use params::RTreeParams;
 use object::RTreeObject;
-use point::{Point, min_inline, PointExt};
-use num_traits::{Zero, Signed, Bounded};
-use mbr::MBR;
+use point::{Point, min_inline};
+use num_traits::{Bounded};
+use envelope::Envelope;
 
 pub fn nearest_neighbor<'a, T, Params> (
     node: &'a ParentNodeData<T, Params>,
@@ -18,7 +18,7 @@ pub fn nearest_neighbor<'a, T, Params> (
     // Calculate smallest minmax-distance
     let mut smallest_min_max: <T::Point as Point>::Scalar = Bounded::max_value();
     for child in node.children.iter() {
-        let new_min = min_max_dist_2(&child.mbr(), point);
+        let new_min = child.mbr().min_max_dist_2(point);
         smallest_min_max = min_inline(smallest_min_max, new_min);
     }
     let mut sorted: SmallVec<[_; 8]> = SmallVec::new();
@@ -51,34 +51,6 @@ pub fn nearest_neighbor<'a, T, Params> (
         }
     }
     nearest
-}
-
-pub fn min_max_dist_2<P>(mbr: &MBR<P>, point: &P) -> P::Scalar 
-    where P: Point
-{
-    let l = mbr.lower().sub(point);
-    let u = mbr.upper().sub(point);
-    let (mut min, mut max) = (P::new(), P::new());
-    for i in 0 .. P::dimensions() {
-        if l.nth(i).abs() < u.nth(i).abs() { 
-            *min.nth_mut(i) = l.nth(i);
-            *max.nth_mut(i) = u.nth(i);
-        } else {
-            *min.nth_mut(i) = u.nth(i);
-            *max.nth_mut(i) = l.nth(i);
-        }
-    }
-    let mut result = Zero::zero();
-    for i in 0 .. P::dimensions() {
-        let mut p = min;
-        // Only set one component to the maximum distance
-        *p.nth_mut(i) = max.nth(i);
-        let new_dist = p.length_2();
-        if new_dist < result || i == 0 {
-            result = new_dist
-        }
-    }
-    result
 }
 
 #[cfg(test)]

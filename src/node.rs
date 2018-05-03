@@ -1,8 +1,9 @@
 use std::marker::PhantomData;
+use std::fmt::{Debug, Formatter, Result};
 use params::RTreeParams;
 use object::RTreeObject;
-use mbr::MBR;
 use typenum::Unsigned;
+use envelope::Envelope;
 
 pub enum RTreeNode<T, Params> 
     where T: RTreeObject,
@@ -12,12 +13,34 @@ pub enum RTreeNode<T, Params>
     Parent(ParentNodeData<T, Params>),
 }
 
+impl <T, Params> Debug for RTreeNode<T, Params>
+    where T: RTreeObject + Debug, Params: RTreeParams
+{
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match self {
+            &RTreeNode::Leaf(ref t) => write!(f, "RTreeNode::Leaf({:?})", t),
+            &RTreeNode::Parent(ref data) => write!(f, "RTreeNode::Parent({:?})", data),
+        }
+    }
+}
+
+impl <T, Params> Debug for ParentNodeData<T, Params>
+    where T: RTreeObject + Debug, Params: RTreeParams
+{
+    fn fmt(&self, fmt: &mut Formatter) -> Result {
+        fmt.debug_struct("ParentNodeData")
+        .field("#children", &self.children.len())
+        .field("mbr", &self.mbr)
+        .finish()
+    }
+}
+
 pub struct ParentNodeData<T, Params>
 where T: RTreeObject,
       Params: RTreeParams,
 {
     pub children: Vec<RTreeNode<T, Params>>,
-    pub mbr: MBR<T::Point>,
+    pub mbr: T::Envelope,
     _params: PhantomData<Params>,
 
 }
@@ -26,7 +49,7 @@ impl <T, Params> RTreeNode<T, Params>
     where Params: RTreeParams,
           T: RTreeObject
 {
-    pub fn mbr(&self) -> MBR<T::Point> {
+    pub fn mbr(&self) -> T::Envelope {
         match self {
             &RTreeNode::Leaf(ref t) => t.mbr(),
             &RTreeNode::Parent(ref data) => data.mbr,
@@ -42,11 +65,11 @@ impl <T, Params> RTreeNode<T, Params>
 }
 
 #[cfg(feature = "debug")]
-impl <T, Params> ::std::fmt::Debug for ParentNodeData<T, Params> 
+impl <T, Params> ::std::Debug for ParentNodeData<T, Params> 
     where Params: RTreeParams,
           T: RTreeObject,
 {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+    fn fmt(&self, f: &mut ::std::Formatter) -> ::std::Result {
         write!(f, "Parent - {:?} - (", self.children.len())?;
         for child in &self.children {
             match child {
@@ -66,7 +89,7 @@ impl <T, Params> ParentNodeData<T, Params>
 {
     pub fn new_root() -> Self {
         ParentNodeData {
-            mbr: MBR::new_empty(),
+            mbr: Envelope::new_empty(),
             children: Vec::with_capacity(Params::MaxSize::to_usize() + 1),
             _params: Default::default(),
         }
@@ -96,12 +119,12 @@ impl <T, Params> ParentNodeData<T, Params>
             assert!(self.children.len() >= min_size);
         }
         let max_size = Params::MaxSize::to_usize();
-        let mut mbr = MBR::new_empty();
+        let mut mbr = T::Envelope::new_empty();
         assert!(self.children.len() <= max_size);
         for child in &self.children {
             match child {
                 &RTreeNode::Leaf(ref t) => {
-                    mbr.extend_with_mbr(&t.mbr());
+                    mbr.merge(&t.mbr());
                     if let &mut Some(leaf_height) = leaf_height {
                         assert_eq!(height, leaf_height);
                     } else {
@@ -109,7 +132,7 @@ impl <T, Params> ParentNodeData<T, Params>
                     }
                 },
                 &RTreeNode::Parent(ref data) => {
-                    mbr.extend_with_mbr(&data.mbr);
+                    mbr.merge(&data.mbr);
                     data.sanity_check_inner(height + 1, leaf_height);
                 }
             }
@@ -132,7 +155,7 @@ impl <T, Params> ParentNodeData<T, Params>
         todo_list.push(self);
         let t_mbr = t.mbr();
         while let Some(next) = todo_list.pop() {
-            if next.mbr.contains_mbr(&t_mbr) {
+            if next.mbr.contains_envelope(&t_mbr) {
                 for child in next.children.iter() {
                     match child {
                         &RTreeNode::Parent(ref data) => {
@@ -151,13 +174,13 @@ impl <T, Params> ParentNodeData<T, Params>
     }
 }
 
-pub fn mbr_for_children<T, Params>(children: &[RTreeNode<T, Params>]) -> MBR<T::Point>
+pub fn mbr_for_children<T, Params>(children: &[RTreeNode<T, Params>]) -> T::Envelope
     where T: RTreeObject,
           Params: RTreeParams
 {
-    let mut result = MBR::new_empty();
+    let mut result = T::Envelope::new_empty();
     for child in children {
-        result.extend_with_mbr(&child.mbr());
+        result.merge(&child.mbr());
     }
     result
 }
