@@ -6,7 +6,7 @@ pub trait Envelope : Clone + Copy + PartialEq + ::std::fmt::Debug {
     fn new_empty() -> Self;
 
     fn contains_point(&self, point: &Self::Point) -> bool;
-    fn contains_envelope(&self, mbr: &Self) -> bool;
+    fn contains_envelope(&self, aabb: &Self) -> bool;
 
     fn merge(&mut self, other: &Self);
     fn merged(&self, other: &Self) -> Self;

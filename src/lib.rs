@@ -19,7 +19,7 @@ mod params;
 mod node;
 mod point;
 mod object;
-mod mbr;
+mod aabb;
 mod envelope;
 
 mod iterator;
@@ -35,5 +35,5 @@ pub use params::{RTreeParams, CustomParams};
 pub use rstar::{RStarInsertionStrategy};
 pub use rtree::RTree;
 pub use iterator::RTreeIterator;
-pub use mbr::MBR;
+pub use aabb::AABB;
 pub use point::{Point, RTreeNum};

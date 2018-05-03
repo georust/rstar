@@ -3,14 +3,14 @@ use num_traits::{Bounded, One, Zero, Signed};
 use envelope::Envelope;
 
 #[derive(Clone, Debug, Copy, PartialEq)]
-pub struct MBR<P> where P: Point {
+pub struct AABB<P> where P: Point {
     lower: P,
     upper: P,
 }
 
-impl <P> MBR<P> where P: Point {
+impl <P> AABB<P> where P: Point {
     pub fn from_point(p: P) -> Self {
-        MBR {
+        AABB {
             lower: p,
             upper: p,
         }
@@ -19,7 +19,7 @@ impl <P> MBR<P> where P: Point {
     pub fn new_empty() -> Self {
         let max = P::Scalar::max_value();
         let min = P::Scalar::min_value();
-        MBR {
+        AABB {
             lower: P::from_value(max),
             upper: P::from_value(min),
         }
@@ -38,13 +38,13 @@ impl <P> MBR<P> where P: Point {
     }
 }
 
-impl <P> Envelope for MBR<P> 
+impl <P> Envelope for AABB<P> 
     where P: Point
 {
     type Point = P;
 
     fn new_empty() -> Self {
-        MBR::new_empty()
+        AABB::new_empty()
     }
 
     fn contains_point(&self, point: &P) -> bool
@@ -66,7 +66,7 @@ impl <P> Envelope for MBR<P>
 
     fn merged(&self, other: &Self) -> Self
     {
-        MBR {
+        AABB {
             lower: self.lower.min_point(&other.lower),
             upper: self.upper.max_point(&other.upper),
         }
@@ -123,7 +123,7 @@ impl <P> Envelope for MBR<P>
     }
 
     fn intersection_area(&self, other: &Self) -> <Self::Point as Point>::Scalar {
-        MBR {
+        AABB {
             lower: self.lower.max_point(&other.lower),
             upper: self.upper.min_point(&other.upper)
         }.area()

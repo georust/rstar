@@ -18,12 +18,12 @@ pub fn nearest_neighbor<'a, T, Params> (
     // Calculate smallest minmax-distance
     let mut smallest_min_max: <T::Point as Point>::Scalar = Bounded::max_value();
     for child in node.children.iter() {
-        let new_min = child.mbr().min_max_dist_2(point);
+        let new_min = child.aabb().min_max_dist_2(point);
         smallest_min_max = min_inline(smallest_min_max, new_min);
     }
     let mut sorted: SmallVec<[_; 8]> = SmallVec::new();
     for child in node.children.iter() {
-        let min_dist = child.mbr().distance_2(point);
+        let min_dist = child.aabb().distance_2(point);
         if min_dist <= smallest_min_max {
             sorted.push((child, min_dist));
         }

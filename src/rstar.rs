@@ -1,5 +1,5 @@
 use ::rtree::{InsertionStrategy, RTree};
-use ::node::{ParentNodeData, RTreeNode, mbr_for_children};
+use ::node::{ParentNodeData, RTreeNode, aabb_for_children};
 use point::{Point, PointExt};
 use params::RTreeParams;
 use object::RTreeObject;
@@ -50,8 +50,8 @@ impl InsertionStrategy for RStarInsertionStrategy {
                     let old_root = ::std::mem::replace(
                         tree.root_mut(), ParentNodeData::new_root());
                     tree.set_height(tree_height);
-                    let new_mbr = old_root.mbr.merged(&node.mbr());
-                    tree.root_mut().mbr = new_mbr;
+                    let new_aabb = old_root.aabb.merged(&node.aabb());
+                    tree.root_mut().aabb = new_aabb;
                     tree.root_mut().children.push(RTreeNode::Parent(old_root));
                     tree.root_mut().children.push(node);
                 },
@@ -77,7 +77,7 @@ fn recursive_insert<T, Params>(node: &mut ParentNodeData<T, Params>,
           T: RTreeObject,
 {
     metrics.increment_recursive_insertions();
-    node.mbr.merge(&t.mbr());
+    node.aabb.merge(&t.aabb());
     if target_height == 0 {
         // Force insertion into this node
         node.children.push(t);
@@ -90,12 +90,12 @@ fn recursive_insert<T, Params>(node: &mut ParentNodeData<T, Params>,
     };
     match expand {
         InsertionResult::Split(child) => {
-            node.mbr.merge(&child.mbr());
+            node.aabb.merge(&child.aabb());
             node.children.push(child);
             resolve_overflow(node, allow_reinsert, metrics)
         },
         InsertionResult::Reinsert(reinsertion_nodes, height) => {
-            node.mbr = mbr_for_children(&node.children);
+            node.aabb = aabb_for_children(&node.children);
             InsertionResult::Reinsert(reinsertion_nodes, height + 1)
         },
         InsertionResult::Complete => InsertionResult::Complete,
@@ -112,15 +112,15 @@ fn choose_subtree<'a, 'b, T, Params>(node: &'a mut ParentNodeData<T, Params>,
 {
     metrics.increment_choose_subtree();
     let zero: <T::Point as Point>::Scalar = Zero::zero();
-    let insertion_mbr = to_insert.mbr();
+    let insertion_aabb = to_insert.aabb();
     let mut inclusion_count = 0;
     let mut min_area = <T::Point as Point>::Scalar::max_value();
     let mut min_index = 0;
     for (index, child) in node.children.iter().enumerate() {
-        let mbr = child.mbr();
-        if mbr.contains_envelope(&insertion_mbr) {
+        let aabb = child.aabb();
+        if aabb.contains_envelope(&insertion_aabb) {
             inclusion_count += 1;
-            let area = mbr.area();
+            let area = aabb.area();
             if area < min_area {
                 min_area = area;
                 min_index = index;
@@ -137,18 +137,18 @@ fn choose_subtree<'a, 'b, T, Params>(node: &'a mut ParentNodeData<T, Params>,
         let mut min = (zero, zero, zero);
 
         for (index, child1) in node.children.iter().enumerate() {
-            let mbr = child1.mbr();
-            let mut new_mbr = mbr.clone();
-            new_mbr.merge(&insertion_mbr);
+            let aabb = child1.aabb();
+            let mut new_aabb = aabb.clone();
+            new_aabb.merge(&insertion_aabb);
             let overlap_increase = if all_leaves {
                 // Calculate minimal overlap increase
                 let mut overlap = zero;
                 let mut new_overlap = zero;
                 for child2 in node.children.iter() {
                     if child1 as *const _ != child2 as *const _ {
-                        let child_mbr = child2.mbr();
-                        overlap = overlap.clone() + mbr.intersection_area(&child_mbr);
-                        new_overlap = new_overlap.clone() + new_mbr.intersection_area(&child_mbr);
+                        let child_aabb = child2.aabb();
+                        overlap = overlap.clone() + aabb.intersection_area(&child_aabb);
+                        new_overlap = new_overlap.clone() + new_aabb.intersection_area(&child_aabb);
                     }
                 }
                 let overlap_increase = new_overlap - overlap;
@@ -158,8 +158,8 @@ fn choose_subtree<'a, 'b, T, Params>(node: &'a mut ParentNodeData<T, Params>,
                 zero
             };
             // Calculate area increase and area
-            let area = new_mbr.area();
-            let area_increase = area.clone() - mbr.area();
+            let area = new_aabb.area();
+            let area_increase = area.clone() - aabb.area();
             let new_min = (overlap_increase, area_increase, area);
             if new_min < min || index == 0 {
                 min = new_min;
@@ -207,24 +207,24 @@ fn split<T, Params>(node: &mut ParentNodeData<T, Params>, metrics: &mut RTreeMet
     let zero = <T::Point as Point>::Scalar::zero();
     debug_assert!(node.children.len() >= 2);
     // Sort along axis
-    T::Envelope::align_envelopes(axis, &mut node.children, |c| c.mbr());
+    T::Envelope::align_envelopes(axis, &mut node.children, |c| c.aabb());
     let mut best = (zero, zero);
     let min_size = Params::MinSize::to_usize();
     let mut best_index = min_size;
 
     for k in min_size .. node.children.len() - min_size + 1 {
-        let mut first_mbr = node.children[k - 1].mbr();
-        let mut second_mbr = node.children[k].mbr();
+        let mut first_aabb = node.children[k - 1].aabb();
+        let mut second_aabb = node.children[k].aabb();
         let (l, r) = node.children.split_at(k);
         for child in l {
-            first_mbr.merge(&child.mbr());
+            first_aabb.merge(&child.aabb());
         }
         for child in r {
-            second_mbr.merge(&child.mbr());
+            second_aabb.merge(&child.aabb());
         }
 
-        let overlap_value = first_mbr.intersection_area(&second_mbr);
-        let area_value = first_mbr.area() + second_mbr.area();
+        let overlap_value = first_aabb.intersection_area(&second_aabb);
+        let area_value = first_aabb.area() + second_aabb.area();
         let new_best = (overlap_value, area_value);
         if new_best < best || k == min_size {
             best = new_best;
@@ -232,7 +232,7 @@ fn split<T, Params>(node: &mut ParentNodeData<T, Params>, metrics: &mut RTreeMet
         }
     }
     let offsplit = node.children.split_off(best_index);
-    node.mbr = mbr_for_children(&node.children);
+    node.aabb = aabb_for_children(&node.children);
     let result = RTreeNode::Parent(ParentNodeData::new_parent(offsplit));
     
     result
@@ -247,19 +247,19 @@ fn get_split_axis<T, Params>(node: &mut ParentNodeData<T, Params>) -> usize
     let min_size = Params::MinSize::to_usize();
     for axis in 0 .. T::Point::dimensions() {
         // Sort children along the current axis
-        T::Envelope::align_envelopes(axis, &mut node.children, |c| c.mbr());
+        T::Envelope::align_envelopes(axis, &mut node.children, |c| c.aabb());
         for k in min_size .. node.children.len() - min_size + 1 {
-            let mut first_mbr = node.children[k - 1].mbr();
-            let mut second_mbr = node.children[k].mbr();
+            let mut first_aabb = node.children[k - 1].aabb();
+            let mut second_aabb = node.children[k].aabb();
             let (l, r) = node.children.split_at(k);
             for child in l {
-                first_mbr.merge(&child.mbr());
+                first_aabb.merge(&child.aabb());
             }
             for child in r {
-                second_mbr.merge(&child.mbr());
+                second_aabb.merge(&child.aabb());
             }
 
-            let margin_value = first_mbr.margin_value() + second_mbr.margin_value();
+            let margin_value = first_aabb.margin_value() + second_aabb.margin_value();
             if best_goodness > margin_value || axis == 0 {
                 best_axis = axis;
                 best_goodness = margin_value;
@@ -279,16 +279,16 @@ fn reinsert<T, Params>(node: &mut ParentNodeData<T, Params>,
 
     metrics.increment_reinsertions();
 
-    let center = node.mbr.center();
+    let center = node.aabb.center();
     // Sort with increasing order so we can use Vec::split_off
     node.children.sort_by(|l, r| {
-        let l_center = l.mbr().center();
-        let r_center = r.mbr().center();
+        let l_center = l.aabb().center();
+        let r_center = r.aabb().center();
         l_center.sub(&center).length_2()
             .partial_cmp(&(r_center.sub(&center)).length_2()).unwrap()
     });
     let num_children = node.children.len();
     let result = node.children.split_off(num_children - Params::ReinsertionCount::to_usize());
-    node.mbr = mbr_for_children(&node.children);
+    node.aabb = aabb_for_children(&node.children);
     result
 }
