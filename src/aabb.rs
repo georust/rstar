@@ -1,18 +1,37 @@
-use point::{Point, PointExt, max_inline};
-use num_traits::{Bounded, One, Zero, Signed};
+use point::{max_inline, Point, PointExt};
+use num_traits::{Bounded, One, Signed, Zero};
 use envelope::Envelope;
 
 #[derive(Clone, Debug, Copy, PartialEq)]
-pub struct AABB<P> where P: Point {
+pub struct AABB<P>
+where
+    P: Point,
+{
     lower: P,
     upper: P,
 }
 
-impl <P> AABB<P> where P: Point {
+impl<P> AABB<P>
+where
+    P: Point,
+{
     pub fn from_point(p: P) -> Self {
+        AABB { lower: p, upper: p }
+    }
+
+    pub fn from_points<'a, I>(i: I) -> Self
+    where
+        I: IntoIterator<Item = &'a P> + 'a,
+        P: 'a,
+    {
+        i.into_iter()
+            .fold(Self::new_empty(), |aabb, p| aabb.add_point(p))
+    }
+
+    fn add_point(&self, point: &P) -> Self {
         AABB {
-            lower: p,
-            upper: p,
+            lower: self.lower.min_point(point),
+            upper: self.upper.max_point(point),
         }
     }
 
@@ -38,8 +57,9 @@ impl <P> AABB<P> where P: Point {
     }
 }
 
-impl <P> Envelope for AABB<P> 
-    where P: Point
+impl<P> Envelope for AABB<P>
+where
+    P: Point,
 {
     type Point = P;
 
@@ -47,16 +67,14 @@ impl <P> Envelope for AABB<P>
         AABB::new_empty()
     }
 
-    fn contains_point(&self, point: &P) -> bool
-    {
-        self.lower.all_component_wise(point, |x, y| x <= y) &&
-        self.upper.all_component_wise(point, |x, y| x >= y)
+    fn contains_point(&self, point: &P) -> bool {
+        self.lower.all_component_wise(point, |x, y| x <= y)
+            && self.upper.all_component_wise(point, |x, y| x >= y)
     }
 
-    fn contains_envelope(&self, other: &Self) -> bool
-    {
-        self.lower.all_component_wise(&other.lower, |l, r| l <= r) &&
-        self.upper.all_component_wise(&other.upper, |l, r| l >= r)
+    fn contains_envelope(&self, other: &Self) -> bool {
+        self.lower.all_component_wise(&other.lower, |l, r| l <= r)
+            && self.upper.all_component_wise(&other.upper, |l, r| l >= r)
     }
 
     fn merge(&mut self, other: &Self) {
@@ -64,17 +82,15 @@ impl <P> Envelope for AABB<P>
         self.upper = self.upper.max_point(&other.upper);
     }
 
-    fn merged(&self, other: &Self) -> Self
-    {
+    fn merged(&self, other: &Self) -> Self {
         AABB {
             lower: self.lower.min_point(&other.lower),
             upper: self.upper.max_point(&other.upper),
         }
     }
 
-    fn intersects(&self, other: &Self) -> bool
-    {
-        self.lower.all_component_wise(&other.upper, |l, r| l <= r) 
+    fn intersects(&self, other: &Self) -> bool {
+        self.lower.all_component_wise(&other.upper, |l, r| l <= r)
             && self.upper.all_component_wise(&other.lower, |l, r| l >= r)
     }
 
@@ -89,13 +105,12 @@ impl <P> Envelope for AABB<P>
         self.distance_2(point)
     }
 
-    fn min_max_dist_2(&self, point: &P) -> <P as Point>::Scalar
-    {
+    fn min_max_dist_2(&self, point: &P) -> <P as Point>::Scalar {
         let l = self.lower.sub(point);
         let u = self.upper.sub(point);
         let (mut min, mut max) = (P::new(), P::new());
-        for i in 0 .. P::dimensions() {
-            if l.nth(i).abs() < u.nth(i).abs() { 
+        for i in 0..P::dimensions() {
+            if l.nth(i).abs() < u.nth(i).abs() {
                 *min.nth_mut(i) = l.nth(i);
                 *max.nth_mut(i) = u.nth(i);
             } else {
@@ -104,7 +119,7 @@ impl <P> Envelope for AABB<P>
             }
         }
         let mut result = Zero::zero();
-        for i in 0 .. P::dimensions() {
+        for i in 0..P::dimensions() {
             let mut p = min;
             // Only set one component to the maximum distance
             *p.nth_mut(i) = max.nth(i);
@@ -125,20 +140,25 @@ impl <P> Envelope for AABB<P>
     fn intersection_area(&self, other: &Self) -> <Self::Point as Point>::Scalar {
         AABB {
             lower: self.lower.max_point(&other.lower),
-            upper: self.upper.min_point(&other.upper)
+            upper: self.upper.min_point(&other.upper),
         }.area()
     }
 
     fn margin_value(&self) -> P::Scalar {
         let diag = self.upper.sub(&self.lower);
         let zero = P::Scalar::zero();
-        max_inline(diag.fold(zero, |acc, value| acc + value), zero)       
+        max_inline(diag.fold(zero, |acc, value| acc + value), zero)
     }
 
     fn align_envelopes<T, F>(axis: usize, envelopes: &mut [T], f: F)
-        where F: Fn(&T) -> Self
+    where
+        F: Fn(&T) -> Self,
     {
-        envelopes.sort_by(|l, r| f(l).lower.nth(axis).partial_cmp(
-            &f(r).lower.nth(axis)).unwrap());
+        envelopes.sort_by(|l, r| {
+            f(l).lower
+                .nth(axis)
+                .partial_cmp(&f(r).lower.nth(axis))
+                .unwrap()
+        });
     }
 }

@@ -18,7 +18,6 @@ impl <'a, T, Params> RTreeIterator<'a, T, Params>
     pub fn new(tree: &'a RTree<T, Params>) -> Self {
         let mut path = Vec::with_capacity(Params::MaxSize::to_usize() * 4);
         path.extend(tree.root().children.iter());
-        println!("path: {:?}", path);
         RTreeIterator {
             path: path,
         }

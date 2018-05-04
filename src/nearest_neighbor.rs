@@ -1,29 +1,30 @@
 use smallvec::SmallVec;
 use node::{ParentNodeData, RTreeNode};
 use params::RTreeParams;
-use object::RTreeObject;
+use object::{RTreeObject, PointDistance};
 use point::{Point, min_inline};
 use num_traits::{Bounded};
 use envelope::Envelope;
 
-pub fn nearest_neighbor<'a, T, Params> (
+pub fn nearest_neighbor<'a, T, Params, P> (
     node: &'a ParentNodeData<T, Params>,
-    point: &T::Point,
-    nearest_distance: &mut <T::Point as Point>::Scalar)
+    point: &P,
+    nearest_distance: &mut P::Scalar)
     -> Option<&'a T>
     where Params: RTreeParams,
-          T: RTreeObject
+          T: RTreeObject<Point=P> + PointDistance<Point=P>,
+          P: Point
 {
     let mut nearest = None;
     // Calculate smallest minmax-distance
-    let mut smallest_min_max: <T::Point as Point>::Scalar = Bounded::max_value();
+    let mut smallest_min_max: P::Scalar = Bounded::max_value();
     for child in node.children.iter() {
-        let new_min = child.aabb().min_max_dist_2(point);
+        let new_min = child.envelope().min_max_dist_2(point);
         smallest_min_max = min_inline(smallest_min_max, new_min);
     }
     let mut sorted: SmallVec<[_; 8]> = SmallVec::new();
     for child in node.children.iter() {
-        let min_dist = child.aabb().distance_2(point);
+        let min_dist = child.envelope().distance_2(point);
         if min_dist <= smallest_min_max {
             sorted.push((child, min_dist));
         }
@@ -74,7 +75,7 @@ mod test {
         let sample_points = create_random_points(100, [66, 123, 12345, 112]);
         for sample_point in &sample_points {
             let mut nearest = None;
-            let mut closest_dist = ::std::f32::INFINITY;
+            let mut closest_dist = ::std::f64::INFINITY;
             for point in &points {
                 let delta = [point[0] - sample_point[0], point[1] - sample_point[1]];
                 let new_dist = delta[0] * delta[0] + delta[1] * delta[1];

@@ -21,6 +21,7 @@ mod point;
 mod object;
 mod aabb;
 mod envelope;
+mod locate;
 
 mod iterator;
 mod nearest_neighbor;

@@ -30,7 +30,7 @@ impl <T, Params> Debug for ParentNodeData<T, Params>
     fn fmt(&self, fmt: &mut Formatter) -> Result {
         fmt.debug_struct("ParentNodeData")
         .field("#children", &self.children.len())
-        .field("aabb", &self.aabb)
+        .field("envelope", &self.envelope)
         .finish()
     }
 }
@@ -40,7 +40,7 @@ where T: RTreeObject,
       Params: RTreeParams,
 {
     pub children: Vec<RTreeNode<T, Params>>,
-    pub aabb: T::Envelope,
+    pub envelope: T::Envelope,
     _params: PhantomData<Params>,
 
 }
@@ -49,10 +49,10 @@ impl <T, Params> RTreeNode<T, Params>
     where Params: RTreeParams,
           T: RTreeObject
 {
-    pub fn aabb(&self) -> T::Envelope {
+    pub fn envelope(&self) -> T::Envelope {
         match self {
-            &RTreeNode::Leaf(ref t) => t.aabb(),
-            &RTreeNode::Parent(ref data) => data.aabb,
+            &RTreeNode::Leaf(ref t) => t.envelope(),
+            &RTreeNode::Parent(ref data) => data.envelope,
         }
     }
 
@@ -89,17 +89,17 @@ impl <T, Params> ParentNodeData<T, Params>
 {
     pub fn new_root() -> Self {
         ParentNodeData {
-            aabb: Envelope::new_empty(),
+            envelope: Envelope::new_empty(),
             children: Vec::with_capacity(Params::MaxSize::to_usize() + 1),
             _params: Default::default(),
         }
     }
 
     pub fn new_parent(children: Vec<RTreeNode<T, Params>>) -> Self {
-        let aabb = aabb_for_children(&children);
+        let envelope = envelope_for_children(&children);
         
         ParentNodeData {
-            aabb: aabb,
+            envelope: envelope,
             children: children,
             _params: Default::default(),
         }
@@ -119,12 +119,12 @@ impl <T, Params> ParentNodeData<T, Params>
             assert!(self.children.len() >= min_size);
         }
         let max_size = Params::MaxSize::to_usize();
-        let mut aabb = T::Envelope::new_empty();
+        let mut envelope = T::Envelope::new_empty();
         assert!(self.children.len() <= max_size);
         for child in &self.children {
             match child {
                 &RTreeNode::Leaf(ref t) => {
-                    aabb.merge(&t.aabb());
+                    envelope.merge(&t.envelope());
                     if let &mut Some(leaf_height) = leaf_height {
                         assert_eq!(height, leaf_height);
                     } else {
@@ -132,12 +132,12 @@ impl <T, Params> ParentNodeData<T, Params>
                     }
                 },
                 &RTreeNode::Parent(ref data) => {
-                    aabb.merge(&data.aabb);
+                    envelope.merge(&data.envelope);
                     data.sanity_check_inner(height + 1, leaf_height);
                 }
             }
         }
-        assert_eq!(self.aabb, aabb);
+        assert_eq!(self.envelope, envelope);
     }
 }
 
@@ -145,17 +145,17 @@ impl <T, Params> ParentNodeData<T, Params>
         where Params: RTreeParams,
               T: RTreeObject + PartialEq {
 
-    // pub fn update_aabb(&mut self) {
-    //     let aabb = aabb_for_children(&self.children);
-    //     self.aabb = aabb;
+    // pub fn update_envelope(&mut self) {
+    //     let envelope = envelope_for_children(&self.children);
+    //     self.envelope = envelope;
     // }
     
     pub fn contains(&self, t: &T) -> bool {
         let mut todo_list = Vec::with_capacity(20);
         todo_list.push(self);
-        let t_aabb = t.aabb();
+        let t_envelope = t.envelope();
         while let Some(next) = todo_list.pop() {
-            if next.aabb.contains_envelope(&t_aabb) {
+            if next.envelope.contains_envelope(&t_envelope) {
                 for child in next.children.iter() {
                     match child {
                         &RTreeNode::Parent(ref data) => {
@@ -174,13 +174,13 @@ impl <T, Params> ParentNodeData<T, Params>
     }
 }
 
-pub fn aabb_for_children<T, Params>(children: &[RTreeNode<T, Params>]) -> T::Envelope
+pub fn envelope_for_children<T, Params>(children: &[RTreeNode<T, Params>]) -> T::Envelope
     where T: RTreeObject,
           Params: RTreeParams
 {
     let mut result = T::Envelope::new_empty();
     for child in children {
-        result.merge(&child.aabb());
+        result.merge(&child.envelope());
     }
     result
 }
