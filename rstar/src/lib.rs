@@ -16,7 +16,7 @@ mod metrics;
 mod rtree;
 mod rstar;
 mod params;
-mod node;
+pub mod node;
 mod point;
 mod object;
 mod aabb;

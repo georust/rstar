@@ -1,0 +1,12 @@
+[package]
+name = "rstar-demo"
+version = "0.1.0"
+
+[dependencies]
+num-traits = "*"
+glfw = "0.8.*"
+glium = "0.15.*"
+rand = "0.*"
+
+[dependencies.rstar]
+path = "../rstar"

@@ -19,6 +19,14 @@ where
         AABB { lower: p, upper: p }
     }
 
+    pub fn lower(&self) -> P {
+        self.lower
+    }
+
+    pub fn upper(&self) -> P {
+        self.upper
+    }
+
     pub fn from_points<'a, I>(i: I) -> Self
     where
         I: IntoIterator<Item = &'a P> + 'a,

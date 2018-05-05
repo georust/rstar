@@ -64,25 +64,6 @@ impl <T, Params> RTreeNode<T, Params>
     }
 }
 
-#[cfg(feature = "debug")]
-impl <T, Params> ::std::Debug for ParentNodeData<T, Params> 
-    where Params: RTreeParams,
-          T: RTreeObject,
-{
-    fn fmt(&self, f: &mut ::std::Formatter) -> ::std::Result {
-        write!(f, "Parent - {:?} - (", self.children.len())?;
-        for child in &self.children {
-            match child {
-                &RTreeNode::Parent(ref data) => {
-                    write!(f, "{:?}, ", data)?;
-                }
-                _ => {}
-            }
-        }
-        write!(f, ")")
-    }
-}
-
 impl <T, Params> ParentNodeData<T, Params> 
     where Params: RTreeParams,
           T: RTreeObject,
