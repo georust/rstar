@@ -1,10 +1,10 @@
 use params::{DefaultParams, RTreeParams};
 use node::ParentNodeData;
 use object::{PointDistance, RTreeObject};
-use iterator::*;
 use num_traits::Bounded;
 use metrics::RTreeMetrics;
-use locate::{LocateAll, LocateAllMut, LocateInEnvelope, LocateInEnvelopeMut};
+use iterators::{LocateAllAtPoint, LocateAllAtPointMut, LocateInEnvelope, LocateInEnvelopeMut,
+                RTreeIterator, RTreeIteratorMut};
 use point::Point;
 
 pub trait InsertionStrategy {
@@ -79,27 +79,27 @@ where
     }
 
     pub fn iter(&self) -> RTreeIterator<T, Params> {
-        RTreeIterator::new(self)
+        RTreeIterator::new(self, ())
     }
 
     pub fn iter_mut(&mut self) -> RTreeIteratorMut<T, Params> {
-        RTreeIteratorMut::new(self)
+        RTreeIteratorMut::new(self, ())
     }
 
-    pub fn locate(&self, point: &T::Point) -> Option<&T> {
-        self.locate_all(point).next()
+    pub fn locate_at_point(&self, point: &T::Point) -> Option<&T> {
+        self.locate_all_at_point(point).next()
     }
 
-    pub fn locate_mut(&mut self, point: &T::Point) -> Option<&mut T> {
-        self.locate_all_mut(point).next()
+    pub fn locate_at_point_mut(&mut self, point: &T::Point) -> Option<&mut T> {
+        self.locate_all_at_point_mut(point).next()
     }
 
-    pub fn locate_all(&self, point: &T::Point) -> LocateAll<T, Params> {
-        LocateAll::new(self, *point)
+    pub fn locate_all_at_point(&self, point: &T::Point) -> LocateAllAtPoint<T, Params> {
+        LocateAllAtPoint::new(self, *point)
     }
 
-    pub fn locate_all_mut(&mut self, point: &T::Point) -> LocateAllMut<T, Params> {
-        LocateAllMut::new(self, *point)
+    pub fn locate_all_at_point_mut(&mut self, point: &T::Point) -> LocateAllAtPointMut<T, Params> {
+        LocateAllAtPointMut::new(self, *point)
     }
 
     pub fn locate_in_envelope(&self, envelope: &T::Envelope) -> LocateInEnvelope<T, Params> {

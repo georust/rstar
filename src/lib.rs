@@ -21,10 +21,11 @@ mod point;
 mod object;
 mod aabb;
 mod envelope;
-mod locate;
+mod iterators;
 
-mod iterator;
 mod nearest_neighbor;
+mod selection_funcs;
+
 
 #[cfg(test)]
 mod testutils;
@@ -35,6 +36,5 @@ pub use node::RTreeNode;
 pub use params::{RTreeParams, CustomParams};
 pub use rstar::{RStarInsertionStrategy};
 pub use rtree::RTree;
-pub use iterator::RTreeIterator;
 pub use aabb::AABB;
 pub use point::{Point, RTreeNum};
