@@ -66,9 +66,9 @@ pub trait PointExt: Point {
     }
 
     fn fold<T, F: Fn(T, Self::Scalar) -> T>(&self, mut acc: T, f: F) -> T {
-        // TODO: Maybe di this by proper iteration
+        // TODO: Maybe do this by proper iteration
         for i in 0 .. Self::dimensions() {
-            acc = f(acc, self.nth(i).clone());
+            acc = f(acc, self.nth(i));
         }
         acc
     }

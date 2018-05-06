@@ -86,14 +86,12 @@ impl <T, Params> ParentNodeData<T, Params>
         }
     }
 
-    #[cfg(any(feature = "debug", test))]
     pub fn sanity_check(&self) -> Option<usize> {
         let mut result = None;
         self.sanity_check_inner(1, &mut result);
         result
     }
 
-    #[cfg(any(feature = "debug", test))]
     fn sanity_check_inner(&self, height: usize, leaf_height: &mut Option<usize>) {
         if height > 1 {
             let min_size = Params::MinSize::to_usize();

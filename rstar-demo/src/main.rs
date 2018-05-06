@@ -11,22 +11,22 @@
  * triangulation and R-Tree. Press h for help.
  */
 
-extern crate rstar;
 extern crate rand;
+extern crate rstar;
 #[macro_use]
 extern crate glium;
 extern crate num_traits;
 
 mod graphics;
 
-use graphics::{RenderData};
-use rstar::{RTree};
+use graphics::RenderData;
+use rstar::RTree;
 use rstar::RTreeNum;
-use glium::{DisplayBuild};
-use glium::glutin::{Event, ElementState, MouseButton};
+use glium::DisplayBuild;
+use glium::glutin::{ElementState, Event, MouseButton};
 use glium::glutin::VirtualKeyCode;
-use rand::{Rand, Rng, XorShiftRng, SeedableRng};
-use rand::distributions::{Range, IndependentSample};
+use rand::{Rand, Rng, SeedableRng, XorShiftRng};
+use rand::distributions::{IndependentSample, Range};
 use rand::distributions::range::SampleRange;
 
 pub type Point = [f64; 2];
@@ -38,14 +38,17 @@ pub enum LookupMode {
 
 impl ::std::fmt::Display for LookupMode {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "{}", match self {
-            &LookupMode::Nearest => "Nearest neighbor",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                &LookupMode::Nearest => "Nearest neighbor",
+            }
+        )
     }
 }
 
 pub fn main() {
-
     let display = ::glium::glutin::WindowBuilder::new()
         .with_dimensions(800, 800)
         .with_title("Interactive Demo".to_string())
@@ -53,6 +56,7 @@ pub fn main() {
         .unwrap();
 
     let mut rtree: RTree<Point> = RTree::new();
+
     let mut render_data = RenderData::new(&display);
     render_data.update_rtree_buffers(&display, &rtree);
 
@@ -77,34 +81,41 @@ pub fn main() {
                         VirtualKeyCode::Escape => return,
                         VirtualKeyCode::H => {
                             print_help();
-                        },
+                        }
                         VirtualKeyCode::F => {
                             render_data.update_rtree_buffers(&display, &rtree);
                             dirty = true;
-                        },
+                        }
                         VirtualKeyCode::A | VirtualKeyCode::B => {
                             // Insert some random points
-                            let num = if key == VirtualKeyCode::A { 2usize } else { 100 };
+                            let num = if key == VirtualKeyCode::A {
+                                10usize
+                            } else {
+                                100
+                            };
                             // let seed = ::rand::thread_rng().gen();
                             let mut seed = rng.gen();
-                            for _ in 0 .. 100 {
+                            for _ in 0..num {
                                 seed = rng.gen();
                             }
                             let new_points = ::random_points_with_seed(num, seed);
                             for point in new_points.into_iter() {
                                 rtree.insert(point);
+                                println!("{:?}", point);
                             }
+                            rtree.root().sanity_check();
                             render_data.update_rtree_buffers(&display, &rtree);
                             dirty = true;
-                        },
+                        }
                         _ => (),
                     }
-                },
+                }
                 Event::MouseInput(ElementState::Pressed, MouseButton::Left) => {
                     rtree.insert(last_point);
+                    println!("{:?}", last_point);
                     render_data.update_rtree_buffers(&display, &rtree);
                     dirty = true;
-                },
+                }
                 // Event::MouseInput(ElementState::Pressed, MouseButton::Right) => {
                 //     let nn = rtree.nearest_neighbor(&last_point).cloned();
                 //     if let Some(p) = nn {
@@ -114,8 +125,7 @@ pub fn main() {
                 //         render_data.update_selection(&display, &selection);
                 //         dirty = true;
                 //     }
-                // },   
-                
+                // },
                 Event::MouseMoved(x, y) => {
                     let (w, h) = display.get_framebuffer_dimensions();
                     // Transform x, y into the range [-1 , 1]
@@ -126,7 +136,7 @@ pub fn main() {
                     let selection = get_selected_vertices(&rtree, last_point, lookup_mode);
                     render_data.update_selection(&display, &selection);
                     dirty = true;
-                },
+                }
                 _ => (),
             }
         }
@@ -136,15 +146,12 @@ pub fn main() {
     }
 }
 
-fn get_selected_vertices(tree: &RTree<Point>, point: Point,
-                         lookup_mode: LookupMode) -> Vec<Point> {
-    
+fn get_selected_vertices(tree: &RTree<Point>, point: Point, lookup_mode: LookupMode) -> Vec<Point> {
     let mut points = Vec::new();
     match lookup_mode {
         LookupMode::Nearest => {
-            points.extend(
-                tree.nearest_neighbor(&point).iter().cloned());
-        },
+            points.extend(tree.nearest_neighbor(&point).iter().cloned());
+        }
     }
     points
 }
@@ -159,11 +166,15 @@ fn print_help() {
     println!("Right click: Delete closest point.");
 }
 
-fn random_points_in_range<S: RTreeNum + Rand + SampleRange>(range: S, size: usize, seed: [u32; 4]) -> Vec<[S; 2]> {
+fn random_points_in_range<S: RTreeNum + Rand + SampleRange>(
+    range: S,
+    size: usize,
+    seed: [u32; 4],
+) -> Vec<[S; 2]> {
     let mut rng = XorShiftRng::from_seed(seed);
     let range = Range::new(-range.clone(), range.clone());
     let mut points = Vec::with_capacity(size);
-    for _ in 0 .. size {
+    for _ in 0..size {
         let x = range.ind_sample(&mut rng);
         let y = range.ind_sample(&mut rng);
         points.push([x, y]);
@@ -171,7 +182,9 @@ fn random_points_in_range<S: RTreeNum + Rand + SampleRange>(range: S, size: usiz
     points
 }
 
-fn random_points_with_seed<S: RTreeNum + Rand + SampleRange>(size: usize, seed: [u32; 4]) -> 
-    Vec<[S; 2]> {
+fn random_points_with_seed<S: RTreeNum + Rand + SampleRange>(
+    size: usize,
+    seed: [u32; 4],
+) -> Vec<[S; 2]> {
     random_points_in_range(S::one(), size, seed)
 }

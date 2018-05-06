@@ -1,4 +1,4 @@
-use typenum::{Unsigned, U3, U6, U2};
+use typenum::{Unsigned, U3, U6, U1};
 use rtree::InsertionStrategy;
 use ::std::marker::PhantomData;
 use rstar::RStarInsertionStrategy;
@@ -46,4 +46,4 @@ impl <MinSize, MaxSize, ReinsertionCount, DefaultInsertionStrategy> RTreeParams
     type DefaultInsertionStrategy = DefaultInsertionStrategy;
 }
 
-pub type DefaultParams = CustomParams<U3, U6, U2, RStarInsertionStrategy>;
+pub type DefaultParams = CustomParams<U3, U6, U1, RStarInsertionStrategy>;

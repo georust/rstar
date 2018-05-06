@@ -106,7 +106,7 @@ where
         let zero = P::Scalar::zero();
         let one = P::Scalar::one();
         let diag = self.upper.sub(&self.lower);
-        diag.fold(one, |acc, cur| max_inline(acc, zero) * cur)
+        diag.fold(one, |acc, cur| max_inline(cur, zero) * acc)
     }
 
     fn distance_2(&self, point: &P) -> P::Scalar {
