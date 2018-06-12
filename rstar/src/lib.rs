@@ -1,7 +1,5 @@
-extern crate generic_array;
 extern crate num_traits;
 extern crate smallvec;
-extern crate typenum;
 
 #[cfg(test)]
 extern crate rand;
@@ -31,7 +29,7 @@ mod testutils;
 #[cfg(feature = "debug")]
 pub use node::RTreeNode;
 
-pub use params::{CustomParams, RTreeParams};
+pub use params::{RTreeParams};
 pub use rstar::RStarInsertionStrategy;
 pub use rtree::RTree;
 pub use aabb::AABB;

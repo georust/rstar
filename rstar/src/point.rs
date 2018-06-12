@@ -1,5 +1,4 @@
-use num_traits::{Bounded, Num, Signed, Zero};
-use generic_array::{ArrayLength, GenericArray};
+use num_traits::{Bounded, Num, Signed, Zero, One};
 use ::std::fmt::Debug;
 
 pub trait RTreeNum: Bounded + Num + Clone + Copy + Signed + PartialOrd + Debug { }
@@ -9,35 +8,17 @@ impl <S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + Partial
 pub trait Point: Copy + Clone + PartialEq + Debug {
     type Scalar: RTreeNum;
 
+    const DIMENSIONS: usize;
+
     fn generate<F>(f: F) -> Self where F: Fn(usize) -> Self::Scalar;
-    fn dimensions() -> usize;
+    
     fn nth(&self, index: usize) -> Self::Scalar;
     fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar;
 }
 
-impl <S, N> Point for GenericArray<S, N>
-    where S: RTreeNum,
-          N: ArrayLength<S>,
-          N::ArrayType: Copy {
+pub trait EuclideanPoint: Point {}
 
-    type Scalar = S;
-
-    fn nth(&self, index: usize) -> Self::Scalar {
-        self[index]
-    }
-
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        &mut self[index]
-    }
-
-    fn generate<F>(f: F) -> Self where F: Fn(usize) -> Self::Scalar {
-        GenericArray::generate(f)
-    }
-
-    fn dimensions() -> usize {
-        N::to_usize()
-    }
-}
+pub trait PeriodicPoint: Point {}
 
 impl <T> PointExt for T where T: Point { }
 
@@ -57,7 +38,7 @@ pub trait PointExt: Point {
         where F: Fn(Self::Scalar, Self::Scalar) -> bool
     {
         // TODO: Maybe do this by proper iteration
-        for i in 0 .. Self::dimensions() {
+        for i in 0 .. Self::DIMENSIONS {
             if !f(self.nth(i), other.nth(i)) {
                 return false;
             }
@@ -67,7 +48,7 @@ pub trait PointExt: Point {
 
     fn fold<T, F: Fn(T, Self::Scalar) -> T>(&self, mut acc: T, f: F) -> T {
         // TODO: Maybe do this by proper iteration
-        for i in 0 .. Self::dimensions() {
+        for i in 0 .. Self::DIMENSIONS {
             acc = f(acc, self.nth(i));
         }
         acc
@@ -99,6 +80,10 @@ pub trait PointExt: Point {
         self.component_wise(other, |l, r| l + r)
     }
 
+    fn map<F>(&self, f: F) -> Self where F: Fn(Self::Scalar) -> Self::Scalar {
+        Self::generate(|i| f(self.nth(i)))
+    }
+
     fn distance_2(&self, other: &Self) -> Self::Scalar {
         self.sub(other).length_2()
     }
@@ -122,9 +107,12 @@ pub fn max_inline<S>(a: S, b: S) -> S where S: RTreeNum {
     }
 }
 
+impl <S> EuclideanPoint for [S; 2] where S: RTreeNum {}
 impl <S> Point for [S; 2]
     where S: RTreeNum {
     type Scalar = S;
+
+    const DIMENSIONS: usize = 2;
 
     fn generate<F>(generator: F) -> Self
         where F: Fn(usize) -> Self::Scalar
@@ -138,9 +126,5 @@ impl <S> Point for [S; 2]
 
     fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
         &mut self[index]
-    }
-
-    fn dimensions() -> usize {
-        2
     }
 }

@@ -133,7 +133,6 @@ mod test {
     }
 
     impl RTreeObject for TestRectangle {
-        type Point = [f64; 2];
         type Envelope = AABB<[f64; 2]>;
 
         fn envelope(&self) -> Self::Envelope {

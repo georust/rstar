@@ -1,49 +1,27 @@
-use typenum::{Unsigned, U3, U6, U1};
 use rtree::InsertionStrategy;
-use ::std::marker::PhantomData;
 use rstar::RStarInsertionStrategy;
 
 pub trait RTreeParams {
-    type MinSize: Unsigned;
-    type MaxSize: Unsigned;
-    type ReinsertionCount: Unsigned;
+    const MIN_SIZE: usize;
+    const MAX_SIZE: usize;
+    const REINSERTION_COUNT: usize;
     type DefaultInsertionStrategy: InsertionStrategy;
 
     fn debug_output() -> String {
-        format!("MinSize: {}, MaxSize: {}, ReinsertionCount: {}", 
-                Self::MinSize::to_usize(), 
-                Self::MaxSize::to_usize(), 
-                Self::ReinsertionCount::to_usize())
+        format!(
+            "MinSize: {}, MaxSize: {}, ReinsertionCount: {}",
+            Self::MIN_SIZE,
+            Self::MAX_SIZE,
+            Self::REINSERTION_COUNT
+        )
     }
 }
 
+pub struct DefaultParams;
 
-
-enum Void {}
-
-pub struct CustomParams<MinSize, MaxSize, ReinsertionCount, DefaultInsertionStrategy> where
-    MinSize: Unsigned,
-    MaxSize: Unsigned,
-    ReinsertionCount: Unsigned,
-    DefaultInsertionStrategy: InsertionStrategy {
-    _min_size: PhantomData<MinSize>,
-    _max_size: PhantomData<MaxSize>,
-    _reinsertion_count: PhantomData<ReinsertionCount>,
-    _default_insertion_strategy: PhantomData<DefaultInsertionStrategy>,
-    _void: Void,
+impl RTreeParams for DefaultParams {
+    const MIN_SIZE: usize = 3;
+    const MAX_SIZE: usize = 6;
+    const REINSERTION_COUNT: usize = 1;
+    type DefaultInsertionStrategy = RStarInsertionStrategy;
 }
-
-impl <MinSize, MaxSize, ReinsertionCount, DefaultInsertionStrategy> RTreeParams
-    for CustomParams<MinSize, MaxSize, ReinsertionCount, DefaultInsertionStrategy> where
-    MinSize: Unsigned,
-    MaxSize: Unsigned,
-    ReinsertionCount: Unsigned,
-    DefaultInsertionStrategy: InsertionStrategy,
-{
-    type MinSize = MinSize;
-    type MaxSize = MaxSize;
-    type ReinsertionCount = ReinsertionCount;
-    type DefaultInsertionStrategy = DefaultInsertionStrategy;
-}
-
-pub type DefaultParams = CustomParams<U3, U6, U1, RStarInsertionStrategy>;

@@ -4,7 +4,6 @@ use point::{Point, PointExt};
 use params::RTreeParams;
 use object::RTreeObject;
 use num_traits::{Bounded, Zero};
-use typenum::Unsigned;
 use metrics::RTreeMetrics;
 use envelope::Envelope;
 
@@ -119,10 +118,10 @@ where
     Params: RTreeParams,
 {
     metrics.increment_choose_subtree();
-    let zero: <T::Point as Point>::Scalar = Zero::zero();
+    let zero: <<T::Envelope as Envelope>::Point as Point>::Scalar = Zero::zero();
     let insertion_envelope = to_insert.envelope();
     let mut inclusion_count = 0;
-    let mut min_area = <T::Point as Point>::Scalar::max_value();
+    let mut min_area = <<T::Envelope as Envelope>::Point as Point>::Scalar::max_value();
     let mut min_index = 0;
     for (index, child) in node.children.iter().enumerate() {
         let envelope = child.envelope();
@@ -193,9 +192,9 @@ where
     Params: RTreeParams,
 {
     metrics.increment_resolve_overflow();
-    if node.children.len() > Params::MaxSize::to_usize() {
+    if node.children.len() > Params::MAX_SIZE {
         metrics.increment_resolve_overflow_overflows();
-        let reinsertion_count = Params::ReinsertionCount::to_usize();
+        let reinsertion_count = Params::REINSERTION_COUNT;
         if reinsertion_count == 0 || !allow_reinsert {
             // We did already reinsert on that level - split this node
             let offsplit = split(node, metrics);
@@ -220,12 +219,12 @@ where
 {
     metrics.increment_splits();
     let axis = get_split_axis(node);
-    let zero = <T::Point as Point>::Scalar::zero();
+    let zero = <<T::Envelope as Envelope>::Point as Point>::Scalar::zero();
     debug_assert!(node.children.len() >= 2);
     // Sort along axis
     T::Envelope::align_envelopes(axis, &mut node.children, |c| c.envelope());
     let mut best = (zero, zero);
-    let min_size = Params::MinSize::to_usize();
+    let min_size = Params::MIN_SIZE;
     let mut best_index = min_size;
 
     for k in min_size..node.children.len() - min_size + 1 {
@@ -259,11 +258,11 @@ where
     T: RTreeObject,
     Params: RTreeParams,
 {
-    let mut best_goodness = <T::Point as Point>::Scalar::max_value();
+    let mut best_goodness = <<T::Envelope as Envelope>::Point as Point>::Scalar::max_value();
     let mut best_axis = 0;
-    let min_size = Params::MinSize::to_usize();
+    let min_size = Params::MIN_SIZE;
     let until = node.children.len() - min_size + 1;
-    for axis in 0..T::Point::dimensions() {
+    for axis in 0.. <T::Envelope as Envelope>::Point::DIMENSIONS {
         // Sort children along the current axis
         T::Envelope::align_envelopes(axis, &mut node.children, |c| c.envelope());
         let mut first_envelope = T::Envelope::new_empty();
@@ -319,7 +318,7 @@ where
     });
     let num_children = node.children.len();
     let result = node.children
-        .split_off(num_children - Params::ReinsertionCount::to_usize());
+        .split_off(num_children - Params::REINSERTION_COUNT);
     node.envelope = envelope_for_children(&node.children);
     result
 }

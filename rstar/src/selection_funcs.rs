@@ -49,7 +49,7 @@ pub struct SelectAtPointFunc<T>
 where
     T: RTreeObject,
 {
-    point: T::Point,
+    point: <T::Envelope as Envelope>::Point,
 }
 
 impl<T> Clone for SelectAtPointFunc<T>
@@ -67,9 +67,9 @@ impl<T> SelectionFunc<T> for SelectAtPointFunc<T>
 where
     T: RTreeObject,
 {
-    type ContainmentUnit = T::Point;
+    type ContainmentUnit = <T::Envelope as Envelope>::Point;
 
-    fn new(containment_unit: T::Point) -> Self {
+    fn new(containment_unit: <T::Envelope as Envelope>::Point) -> Self {
         SelectAtPointFunc {
             point: containment_unit,
         }

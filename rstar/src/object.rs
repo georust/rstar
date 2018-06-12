@@ -1,10 +1,9 @@
-use point::{Point, PointExt};
+use point::{Point, PointExt, EuclideanPoint};
 use envelope::Envelope;
 use aabb::AABB;
 
 pub trait RTreeObject {
-    type Point: Point;
-    type Envelope: Envelope<Point = Self::Point>;
+    type Envelope: Envelope;
 
     fn envelope(&self) -> Self::Envelope;
 }
@@ -17,12 +16,11 @@ pub trait PointDistance {
 
 impl<P> RTreeObject for P
 where
-    P: Point,
+    P: EuclideanPoint,
 {
-    type Point = P;
     type Envelope = AABB<P>;
 
-    fn envelope(&self) -> AABB<Self::Point> {
+    fn envelope(&self) -> AABB<P> {
         AABB::from_point(*self)
     }
 }

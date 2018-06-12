@@ -1,6 +1,6 @@
 use point::Point;
 
-pub trait Envelope : Clone + Copy + PartialEq + ::std::fmt::Debug {
+pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
     type Point: Point;
 
     fn new_empty() -> Self;
@@ -13,7 +13,6 @@ pub trait Envelope : Clone + Copy + PartialEq + ::std::fmt::Debug {
     fn intersects(&self, other: &Self) -> bool;
     fn intersection_area(&self, other: &Self) -> <Self::Point as Point>::Scalar;
 
-
     fn area(&self) -> <Self::Point as Point>::Scalar;
 
     fn distance_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
@@ -21,9 +20,7 @@ pub trait Envelope : Clone + Copy + PartialEq + ::std::fmt::Debug {
     fn center(&self) -> Self::Point;
     fn margin_value(&self) -> <Self::Point as Point>::Scalar;
 
-    fn align_envelopes<T, F>(
-        axis: usize,
-        envelopes: &mut [T],
-        f: F)
-        where F: Fn(&T) -> Self;
+    fn align_envelopes<T, F>(axis: usize, envelopes: &mut [T], f: F)
+    where
+        F: Fn(&T) -> Self;
 }

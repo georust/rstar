@@ -5,7 +5,7 @@ use num_traits::Bounded;
 use metrics::RTreeMetrics;
 use iterators::{LocateAllAtPoint, LocateAllAtPointMut, LocateInEnvelope, LocateInEnvelopeMut,
                 RTreeIterator, RTreeIteratorMut};
-use point::Point;
+use envelope::Envelope;
 
 pub trait InsertionStrategy {
     fn insert<T, Params>(&mut RTree<T, Params>, t: T, metrics: &mut RTreeMetrics)
@@ -86,19 +86,28 @@ where
         RTreeIteratorMut::new(self, ())
     }
 
-    pub fn locate_at_point(&self, point: &T::Point) -> Option<&T> {
+    pub fn locate_at_point(&self, point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
         self.locate_all_at_point(point).next()
     }
 
-    pub fn locate_at_point_mut(&mut self, point: &T::Point) -> Option<&mut T> {
+    pub fn locate_at_point_mut(
+        &mut self,
+        point: &<T::Envelope as Envelope>::Point,
+    ) -> Option<&mut T> {
         self.locate_all_at_point_mut(point).next()
     }
 
-    pub fn locate_all_at_point(&self, point: &T::Point) -> LocateAllAtPoint<T, Params> {
+    pub fn locate_all_at_point(
+        &self,
+        point: &<T::Envelope as Envelope>::Point,
+    ) -> LocateAllAtPoint<T, Params> {
         LocateAllAtPoint::new(self, *point)
     }
 
-    pub fn locate_all_at_point_mut(&mut self, point: &T::Point) -> LocateAllAtPointMut<T, Params> {
+    pub fn locate_all_at_point_mut(
+        &mut self,
+        point: &<T::Envelope as Envelope>::Point,
+    ) -> LocateAllAtPointMut<T, Params> {
         LocateAllAtPointMut::new(self, *point)
     }
 
@@ -132,13 +141,13 @@ where
     }
 }
 
-impl<T, Params, P> RTree<T, Params>
+impl<T, Params, E> RTree<T, Params>
 where
     Params: RTreeParams,
-    T: RTreeObject<Point = P> + PointDistance<Point = P>,
-    P: Point,
+    T: RTreeObject<Envelope = E> + PointDistance<Point = E::Point>,
+    E: Envelope,
 {
-    pub fn nearest_neighbor(&self, query_point: &P) -> Option<&T> {
+    pub fn nearest_neighbor(&self, query_point: &E::Point) -> Option<&T> {
         let mut max_value = Bounded::max_value();
         ::nearest_neighbor::nearest_neighbor(self.root(), query_point, &mut max_value)
     }
@@ -146,22 +155,23 @@ where
 
 #[cfg(test)]
 mod test {
-    use typenum::{U1, U5, U7};
     use super::RTree;
-    use params::{CustomParams, DefaultParams};
     use rstar::RStarInsertionStrategy;
-    use generic_array::GenericArray;
     use testutils::create_random_points;
+    use params::RTreeParams;
+
+    struct TestParams;
+    impl RTreeParams for TestParams {
+        const MIN_SIZE: usize = 10;
+        const MAX_SIZE: usize = 20;
+        const REINSERTION_COUNT: usize = 0;
+        type DefaultInsertionStrategy = RStarInsertionStrategy;
+    }
 
     #[test]
     fn test_create_rtree_with_parameters() {
-        let tree: RTree<GenericArray<i32, U5>, DefaultParams> = RTree::new();
-        let other_tree: RTree<
-            GenericArray<f32, U7>,
-            CustomParams<U5, U7, U1, RStarInsertionStrategy>,
-        > = RTree::new_with_params();
+        let tree: RTree<[f32; 2], TestParams> = RTree::new_with_params();
         assert_eq!(tree.size(), 0);
-        assert_eq!(other_tree.size(), 0);
     }
 
     #[test]

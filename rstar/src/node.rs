@@ -2,7 +2,6 @@ use std::marker::PhantomData;
 use std::fmt::{Debug, Formatter, Result};
 use params::RTreeParams;
 use object::RTreeObject;
-use typenum::Unsigned;
 use envelope::Envelope;
 
 pub enum RTreeNode<T, Params> 
@@ -71,7 +70,7 @@ impl <T, Params> ParentNodeData<T, Params>
     pub fn new_root() -> Self {
         ParentNodeData {
             envelope: Envelope::new_empty(),
-            children: Vec::with_capacity(Params::MaxSize::to_usize() + 1),
+            children: Vec::with_capacity(Params::MAX_SIZE + 1),
             _params: Default::default(),
         }
     }
@@ -94,10 +93,10 @@ impl <T, Params> ParentNodeData<T, Params>
 
     fn sanity_check_inner(&self, height: usize, leaf_height: &mut Option<usize>) {
         if height > 1 {
-            let min_size = Params::MinSize::to_usize();
+            let min_size = Params::MIN_SIZE;
             assert!(self.children.len() >= min_size);
         }
-        let max_size = Params::MaxSize::to_usize();
+        let max_size = Params::MAX_SIZE;
         let mut envelope = T::Envelope::new_empty();
         assert!(self.children.len() <= max_size);
         for child in &self.children {

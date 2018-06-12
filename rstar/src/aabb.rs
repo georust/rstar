@@ -1,4 +1,4 @@
-use point::{max_inline, Point, PointExt};
+use point::{max_inline, EuclideanPoint, Point, PointExt};
 use num_traits::{Bounded, One, Signed, Zero};
 use envelope::Envelope;
 
@@ -13,7 +13,7 @@ where
 
 impl<P> AABB<P>
 where
-    P: Point,
+    P: EuclideanPoint,
 {
     pub fn from_point(p: P) -> Self {
         AABB { lower: p, upper: p }
@@ -67,7 +67,7 @@ where
 
 impl<P> Envelope for AABB<P>
 where
-    P: Point,
+    P: EuclideanPoint,
 {
     type Point = P;
 
@@ -117,7 +117,7 @@ where
         let l = self.lower.sub(point);
         let u = self.upper.sub(point);
         let (mut min, mut max) = (P::new(), P::new());
-        for i in 0..P::dimensions() {
+        for i in 0..P::DIMENSIONS {
             if l.nth(i).abs() < u.nth(i).abs() {
                 *min.nth_mut(i) = l.nth(i);
                 *max.nth_mut(i) = u.nth(i);
@@ -127,7 +127,7 @@ where
             }
         }
         let mut result = Zero::zero();
-        for i in 0..P::dimensions() {
+        for i in 0..P::DIMENSIONS {
             let mut p = min;
             // Only set one component to the maximum distance
             *p.nth_mut(i) = max.nth(i);

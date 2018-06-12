@@ -6,18 +6,18 @@ use point::{Point, min_inline};
 use num_traits::{Bounded};
 use envelope::Envelope;
 
-pub fn nearest_neighbor<'a, T, Params, P> (
+pub fn nearest_neighbor<'a, T, Params, E> (
     node: &'a ParentNodeData<T, Params>,
-    point: &P,
-    nearest_distance: &mut P::Scalar)
+    point: &E::Point,
+    nearest_distance: &mut <E::Point as Point>::Scalar)
     -> Option<&'a T>
     where Params: RTreeParams,
-          T: RTreeObject<Point=P> + PointDistance<Point=P>,
-          P: Point
+          T: RTreeObject<Envelope = E> + PointDistance<Point=E::Point>,
+          E: Envelope
 {
     let mut nearest = None;
     // Calculate smallest minmax-distance
-    let mut smallest_min_max: P::Scalar = Bounded::max_value();
+    let mut smallest_min_max: <E::Point as Point>::Scalar = Bounded::max_value();
     for child in node.children.iter() {
         let new_min = child.envelope().min_max_dist_2(point);
         smallest_min_max = min_inline(smallest_min_max, new_min);
