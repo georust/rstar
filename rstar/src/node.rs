@@ -17,8 +17,8 @@ impl <T, Params> Debug for RTreeNode<T, Params>
 {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
-            &RTreeNode::Leaf(ref t) => write!(f, "RTreeNode::Leaf({:?})", t),
-            &RTreeNode::Parent(ref data) => write!(f, "RTreeNode::Parent({:?})", data),
+            RTreeNode::Leaf(ref t) => write!(f, "RTreeNode::Leaf({:?})", t),
+            RTreeNode::Parent(ref data) => write!(f, "RTreeNode::Parent({:?})", data),
         }
     }
 }
@@ -50,15 +50,15 @@ impl <T, Params> RTreeNode<T, Params>
 {
     pub fn envelope(&self) -> T::Envelope {
         match self {
-            &RTreeNode::Leaf(ref t) => t.envelope(),
-            &RTreeNode::Parent(ref data) => data.envelope,
+            RTreeNode::Leaf(ref t) => t.envelope(),
+            RTreeNode::Parent(ref data) => data.envelope,
         }
     }
 
     pub fn is_leaf(&self) -> bool {
         match self {
-            &RTreeNode::Leaf(..) => true,
-            &RTreeNode::Parent(..) => false,
+            RTreeNode::Leaf(..) => true,
+            RTreeNode::Parent(..) => false,
         }
     }
 }
@@ -79,8 +79,8 @@ impl <T, Params> ParentNodeData<T, Params>
         let envelope = envelope_for_children(&children);
         
         ParentNodeData {
-            envelope: envelope,
-            children: children,
+            envelope,
+            children,
             _params: Default::default(),
         }
     }
@@ -101,15 +101,15 @@ impl <T, Params> ParentNodeData<T, Params>
         assert!(self.children.len() <= max_size);
         for child in &self.children {
             match child {
-                &RTreeNode::Leaf(ref t) => {
+                RTreeNode::Leaf(ref t) => {
                     envelope.merge(&t.envelope());
-                    if let &mut Some(leaf_height) = leaf_height {
-                        assert_eq!(height, leaf_height);
+                    if let Some(ref leaf_height) = leaf_height {
+                        assert_eq!(height, *leaf_height);
                     } else {
                         *leaf_height = Some(height);
                     }
                 },
-                &RTreeNode::Parent(ref data) => {
+                RTreeNode::Parent(ref data) => {
                     envelope.merge(&data.envelope);
                     data.sanity_check_inner(height + 1, leaf_height);
                 }
@@ -134,12 +134,12 @@ impl <T, Params> ParentNodeData<T, Params>
         let t_envelope = t.envelope();
         while let Some(next) = todo_list.pop() {
             if next.envelope.contains_envelope(&t_envelope) {
-                for child in next.children.iter() {
+                for child in &next.children {
                     match child {
-                        &RTreeNode::Parent(ref data) => {
+                        RTreeNode::Parent(ref data) => {
                             todo_list.push(data);
                         },
-                        &RTreeNode::Leaf(ref obj) => {
+                        RTreeNode::Leaf(ref obj) => {
                             if obj == t {
                                 return true;
                             }

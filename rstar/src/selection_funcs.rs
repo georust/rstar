@@ -23,7 +23,7 @@ where
 {
     fn clone(&self) -> Self {
         SelectInEnvelopeFunc {
-            envelope: self.envelope.clone(),
+            envelope: self.envelope,
         }
     }
 }
@@ -58,7 +58,7 @@ where
 {
     fn clone(&self) -> Self {
         SelectAtPointFunc {
-            point: self.point.clone(),
+            point: self.point,
         }
     }
 }

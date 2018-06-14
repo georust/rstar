@@ -64,7 +64,7 @@ where
     ) -> Self {
         let mut result = NearestNeighborIterator {
             nodes: BinaryHeap::with_capacity(20),
-            query_point: query_point,
+            query_point,
         };
         result.extend_heap(&root.children);
         result
@@ -83,7 +83,7 @@ where
 
             RTreeNodeDistanceWrapper {
                 node: child,
-                distance: distance,
+                distance,
             }
         }));
     }
@@ -155,7 +155,7 @@ where
                 );
                 nodes.push(RTreeNodeDistanceWrapper {
                     node: child,
-                    distance: distance,
+                    distance,
                 });
             }
         }

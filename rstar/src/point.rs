@@ -61,11 +61,11 @@ pub trait PointExt: Point {
 
 
     fn min_point(&self, other: &Self) -> Self {
-        self.component_wise(other, |l, r| min_inline(l, r))
+        self.component_wise(other, min_inline)
     }
 
     fn max_point(&self, other: &Self) -> Self {
-        self.component_wise(other, |l, r| max_inline(l, r))
+        self.component_wise(other, max_inline)
     }
 
     fn length_2(&self) -> Self::Scalar {

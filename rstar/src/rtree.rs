@@ -15,6 +15,15 @@ pub trait InsertionStrategy {
         T: RTreeObject;
 }
 
+impl<T> Default for RTree<T>
+where
+    T: RTreeObject,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct RTree<T, Params = DefaultParams>
 where
     Params: RTreeParams,

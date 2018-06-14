@@ -150,7 +150,7 @@ where
                 // Calculate minimal overlap increase
                 let mut overlap = zero;
                 let mut new_overlap = zero;
-                for child2 in node.children.iter() {
+                for child2 in &node.children {
                     if child1 as *const _ != child2 as *const _ {
                         let child_envelope = child2.envelope();
                         let temp1 = envelope.intersection_area(&child_envelope);
@@ -159,8 +159,7 @@ where
                         new_overlap = new_overlap + temp2;
                     }
                 }
-                let overlap_increase = new_overlap - overlap;
-                overlap_increase
+                new_overlap - overlap
             } else {
                 // Don't calculate overlap increase if not all children are leaves
                 zero
@@ -248,9 +247,7 @@ where
     }
     let offsplit = node.children.split_off(best_index);
     node.envelope = envelope_for_children(&node.children);
-    let result = RTreeNode::Parent(ParentNodeData::new_parent(offsplit));
-
-    result
+    RTreeNode::Parent(ParentNodeData::new_parent(offsplit))
 }
 
 fn get_split_axis<T, Params>(node: &mut ParentNodeData<T, Params>) -> usize

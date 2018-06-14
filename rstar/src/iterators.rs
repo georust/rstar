@@ -54,12 +54,12 @@ where
         while let Some(next) = self.current_nodes.pop() {
             if self.func.is_contained_in(&next.envelope()) {
                 match next {
-                    &RTreeNode::Leaf(ref t) => return Some(t),
-                    &RTreeNode::Parent(ref data) => self.current_nodes.extend(&data.children),
+                    RTreeNode::Leaf(ref t) => return Some(t),
+                    RTreeNode::Parent(ref data) => self.current_nodes.extend(&data.children),
                 }
             }
         }
-        return None;
+        None
     }
 }
 
@@ -103,8 +103,8 @@ where
         let func = self.func.clone();
         if let Some(next) = self.current_nodes.pop() {
             match next {
-                &mut RTreeNode::Leaf(ref mut t) => Some(t),
-                &mut RTreeNode::Parent(ref mut data) => {
+                RTreeNode::Leaf(ref mut t) => Some(t),
+                RTreeNode::Parent(ref mut data) => {
                     self.current_nodes.extend(
                         data.children
                             .iter_mut()
