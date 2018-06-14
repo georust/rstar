@@ -1,4 +1,4 @@
-use num_traits::{Bounded, Num, Signed, Zero, One};
+use num_traits::{Bounded, Num, Signed, Zero};
 use ::std::fmt::Debug;
 
 pub trait RTreeNum: Bounded + Num + Clone + Copy + Signed + PartialOrd + Debug { }

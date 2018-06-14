@@ -143,7 +143,7 @@ mod test {
     #[test]
     fn test_locate_all() {
         const NUM_POINTS: usize = 400;
-        let points = create_random_points(NUM_POINTS, [231, 22912, 399939, 922931]);
+        let points = create_random_points(NUM_POINTS, *b"pterylOgraPHical");
         let mut tree = RTree::new();
         let mut aabb_list = Vec::new();
         for ps in points.as_slice().windows(2) {
@@ -154,7 +154,7 @@ mod test {
             aabb_list.push(rectangle)
         }
 
-        let query_points = create_random_points(10, [59123, 312331, 23235, 123678]);
+        let query_points = create_random_points(10, *b"pO5tparoxysMa1!y");
         for p in &query_points {
             let mut contained_sequential: Vec<_> = aabb_list
                 .iter()
@@ -185,7 +185,7 @@ mod test {
     #[test]
     fn test_iteration() {
         const NUM_POINTS: usize = 1000;
-        let points = create_random_points(NUM_POINTS, [921545, 22305, 2004822, 142567]);
+        let points = create_random_points(NUM_POINTS, *b"di5syMmeTriCa1ly");
         let mut tree = RTree::new();
         for p in &points {
             tree.insert(*p);

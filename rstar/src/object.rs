@@ -8,10 +8,10 @@ pub trait RTreeObject {
     fn envelope(&self) -> Self::Envelope;
 }
 
-pub trait PointDistance {
-    type Point: Point;
+pub trait PointDistance: RTreeObject {
 
-    fn distance_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
+    fn distance_2(&self, point: &<Self::Envelope as Envelope>::Point) -> 
+    <<Self::Envelope as Envelope>::Point as Point>::Scalar;
 }
 
 impl<P> RTreeObject for P
@@ -26,11 +26,8 @@ where
 }
 
 impl<P> PointDistance for P
-where
-    P: Point,
+where P:  EuclideanPoint
 {
-    type Point = P;
-
     fn distance_2(&self, point: &P) -> P::Scalar {
         <Self as PointExt>::distance_2(self, point)
     }

@@ -1,11 +1,13 @@
-use params::{DefaultParams, RTreeParams};
-use node::ParentNodeData;
-use object::{PointDistance, RTreeObject};
-use num_traits::Bounded;
-use metrics::RTreeMetrics;
-use iterators::{LocateAllAtPoint, LocateAllAtPointMut, LocateInEnvelope, LocateInEnvelopeMut,
-                RTreeIterator, RTreeIteratorMut};
 use envelope::Envelope;
+use iterators::{
+    LocateAllAtPoint, LocateAllAtPointMut, LocateInEnvelope, LocateInEnvelopeMut, RTreeIterator,
+    RTreeIteratorMut,
+};
+use metrics::RTreeMetrics;
+use node::ParentNodeData;
+use num_traits::Bounded;
+use object::{PointDistance, RTreeObject};
+use params::{DefaultParams, RTreeParams};
 
 pub trait InsertionStrategy {
     fn insert<T, Params>(&mut RTree<T, Params>, t: T, metrics: &mut RTreeMetrics)
@@ -141,24 +143,33 @@ where
     }
 }
 
-impl<T, Params, E> RTree<T, Params>
+impl<T, Params> RTree<T, Params>
 where
     Params: RTreeParams,
-    T: RTreeObject<Envelope = E> + PointDistance<Point = E::Point>,
-    E: Envelope,
+    T: PointDistance,
 {
-    pub fn nearest_neighbor(&self, query_point: &E::Point) -> Option<&T> {
+    pub fn nearest_neighbor(&self, query_point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
         let mut max_value = Bounded::max_value();
         ::nearest_neighbor::nearest_neighbor(self.root(), query_point, &mut max_value)
+    }
+
+    pub fn nearest_neighbor_iter<'a, 'b>(
+        &'a self,
+        query_point: &'b <T::Envelope as Envelope>::Point,
+    ) -> impl Iterator<Item = &'a T>
+    where
+        'b: 'a,
+    {
+        ::nearest_neighbor::NearestNeighborIterator::new(self.root(), query_point)
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::RTree;
+    use params::RTreeParams;
     use rstar::RStarInsertionStrategy;
     use testutils::create_random_points;
-    use params::RTreeParams;
 
     struct TestParams;
     impl RTreeParams for TestParams {
@@ -187,7 +198,7 @@ mod test {
     #[test]
     fn test_insert_many() {
         const NUM_POINTS: usize = 1000;
-        let points = create_random_points(NUM_POINTS, [231, 22912, 399939, 922931]);
+        let points = create_random_points(NUM_POINTS, *b"c0unter1nfl4tion");
         let mut tree = RTree::new();
         for p in &points {
             tree.insert(*p);

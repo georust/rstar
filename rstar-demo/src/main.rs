@@ -25,9 +25,9 @@ use rstar::RTreeNum;
 use glium::DisplayBuild;
 use glium::glutin::{ElementState, Event, MouseButton};
 use glium::glutin::VirtualKeyCode;
-use rand::{Rand, Rng, SeedableRng, XorShiftRng};
-use rand::distributions::{IndependentSample, Range};
-use rand::distributions::range::SampleRange;
+use rand::{Rng, SeedableRng, XorShiftRng};
+use rand::distributions::{Range, Distribution};
+use rand::distributions::range::{SampleRange};
 
 pub type Point = [f64; 2];
 
@@ -63,8 +63,8 @@ pub fn main() {
     let mut last_point = [0.0, 0.0];
     let lookup_mode = LookupMode::Nearest;
 
-    let seed = [1022291, 22133, 1001197, 4921112];
-    let mut rng = XorShiftRng::from_seed(seed);
+    let seed = b"criminalisations";
+    let mut rng = XorShiftRng::from_seed(*seed);
 
     println!("Interactive Demo");
     print_help();
@@ -166,25 +166,25 @@ fn print_help() {
     println!("Right click: Delete closest point.");
 }
 
-fn random_points_in_range<S: RTreeNum + Rand + SampleRange>(
+fn random_points_in_range<S: RTreeNum + SampleRange>(
     range: S,
     size: usize,
-    seed: [u32; 4],
+    seed: [u8; 16],
 ) -> Vec<[S; 2]> {
     let mut rng = XorShiftRng::from_seed(seed);
-    let range = Range::new(-range.clone(), range.clone());
+    let range = Range::new(-range, range);
     let mut points = Vec::with_capacity(size);
     for _ in 0..size {
-        let x = range.ind_sample(&mut rng);
-        let y = range.ind_sample(&mut rng);
+        let x = range.sample(&mut rng);
+        let y = range.sample(&mut rng);
         points.push([x, y]);
     }
     points
 }
 
-fn random_points_with_seed<S: RTreeNum + Rand + SampleRange>(
+fn random_points_with_seed<S: RTreeNum + SampleRange>(
     size: usize,
-    seed: [u32; 4],
+    seed: [u8; 16],
 ) -> Vec<[S; 2]> {
     random_points_in_range(S::one(), size, seed)
 }

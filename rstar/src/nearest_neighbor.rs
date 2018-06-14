@@ -1,19 +1,138 @@
-use smallvec::SmallVec;
-use node::{ParentNodeData, RTreeNode};
-use params::RTreeParams;
-use object::{RTreeObject, PointDistance};
-use point::{Point, min_inline};
-use num_traits::{Bounded};
 use envelope::Envelope;
+use node::{ParentNodeData, RTreeNode};
+use num_traits::Bounded;
+use object::PointDistance;
+use params::RTreeParams;
+use point::{min_inline, Point};
+use smallvec::SmallVec;
+use std::collections::binary_heap::BinaryHeap;
 
-pub fn nearest_neighbor<'a, T, Params, E> (
+struct RTreeNodeDistanceWrapper<'a, T, Params>
+where
+    T: PointDistance + 'a,
+    Params: RTreeParams + 'a,
+{
+    node: &'a RTreeNode<T, Params>,
+    distance: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+}
+
+impl<'a, T, Params> PartialEq for RTreeNodeDistanceWrapper<'a, T, Params>
+where
+    T: PointDistance,
+    Params: RTreeParams,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.distance == other.distance
+    }
+}
+
+impl<'a, T, Params> PartialOrd for RTreeNodeDistanceWrapper<'a, T, Params>
+where
+    T: PointDistance,
+    Params: RTreeParams,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
+        // Inverse comparison creates a min heap
+        other.distance.partial_cmp(&self.distance)
+    }
+}
+
+impl<'a, T, Params> Eq for RTreeNodeDistanceWrapper<'a, T, Params>
+where
+    T: PointDistance,
+    Params: RTreeParams,
+{
+}
+
+impl<'a, T, Params> Ord for RTreeNodeDistanceWrapper<'a, T, Params>
+where
+    T: PointDistance,
+    Params: RTreeParams,
+{
+    fn cmp(&self, other: &Self) -> ::std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+impl<'a, 'b, T, Params> NearestNeighborIterator<'a, 'b, T, Params>
+where
+    T: PointDistance,
+    Params: RTreeParams,
+{
+    pub fn new(
+        root: &'a ParentNodeData<T, Params>,
+        query_point: &'b <T::Envelope as Envelope>::Point,
+    ) -> Self {
+        let mut result = NearestNeighborIterator {
+            nodes: Default::default(),
+            query_point: query_point,
+        };
+        result.extend_heap(&root.children);
+        result
+    }
+
+    fn extend_heap(&mut self, children: &'a [RTreeNode<T, Params>]) {
+        let query_point = self.query_point.clone();
+        self.nodes.extend(children.iter().map(|child| {
+            let distance = match child {
+                RTreeNode::Parent(ref data) => data.envelope.distance_2(&query_point),
+                RTreeNode::Leaf(ref t) => t.distance_2(&query_point),
+            };
+
+            RTreeNodeDistanceWrapper {
+                node: child,
+                distance: distance,
+            }
+        }));
+    }
+}
+
+impl<'a, 'b, T, Params> Iterator for NearestNeighborIterator<'a, 'b, T, Params>
+where
+    T: PointDistance,
+    Params: RTreeParams,
+{
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(current) = self.nodes.pop() {
+            match current {
+                RTreeNodeDistanceWrapper {
+                    node: RTreeNode::Parent(ref data),
+                    ..
+                } => {
+                    self.extend_heap(&data.children);
+                }
+                RTreeNodeDistanceWrapper {
+                    node: RTreeNode::Leaf(ref t),
+                    ..
+                } => {
+                    return Some(t);
+                }
+            }
+        }
+        None
+    }
+}
+
+pub struct NearestNeighborIterator<'a, 'b, T, Params>
+where
+    T: PointDistance + 'a + 'b,
+    Params: RTreeParams + 'a + 'b,
+{
+    nodes: BinaryHeap<RTreeNodeDistanceWrapper<'a, T, Params>>,
+    query_point: &'b <T::Envelope as Envelope>::Point,
+}
+
+pub fn nearest_neighbor<'a, T, Params, E>(
     node: &'a ParentNodeData<T, Params>,
     point: &E::Point,
-    nearest_distance: &mut <E::Point as Point>::Scalar)
-    -> Option<&'a T>
-    where Params: RTreeParams,
-          T: RTreeObject<Envelope = E> + PointDistance<Point=E::Point>,
-          E: Envelope
+    nearest_distance: &mut <E::Point as Point>::Scalar,
+) -> Option<&'a T>
+where
+    Params: RTreeParams,
+    T: PointDistance<Envelope = E>,
+    E: Envelope,
 {
     let mut nearest = None;
     // Calculate smallest minmax-distance
@@ -41,7 +160,7 @@ pub fn nearest_neighbor<'a, T, Params, E> (
                 if let Some(t) = nearest_neighbor(data, point, nearest_distance) {
                     nearest = Some(t);
                 }
-            },
+            }
             &RTreeNode::Leaf(ref t) => {
                 let distance = t.distance_2(point);
                 if distance < *nearest_distance {
@@ -56,8 +175,9 @@ pub fn nearest_neighbor<'a, T, Params, E> (
 
 #[cfg(test)]
 mod test {
-    use testutils::create_random_points;
+    use object::PointDistance;
     use rtree::RTree;
+    use testutils::create_random_points;
 
     #[test]
     fn test_nearest_neighbor_empty() {
@@ -67,12 +187,12 @@ mod test {
 
     #[test]
     fn test_nearest_neighbor() {
-        let points = create_random_points(1000, [10, 233, 588812, 411112]);
+        let points = create_random_points(1000, *b"syst3mAtisatioNs");
         let mut tree = RTree::new();
         for p in &points {
             tree.insert(*p);
         }
-        let sample_points = create_random_points(100, [66, 123, 12345, 112]);
+        let sample_points = create_random_points(100, *b"wholEh3artednE5s");
         for sample_point in &sample_points {
             let mut nearest = None;
             let mut closest_dist = ::std::f64::INFINITY;
@@ -84,7 +204,27 @@ mod test {
                     nearest = Some(point);
                 }
             }
-            assert!(nearest == tree.nearest_neighbor(sample_point));
+            assert_eq!(nearest, tree.nearest_neighbor(sample_point));
+        }
+    }
+
+    #[test]
+    fn test_nearest_neighbor_iterator() {
+        let mut points = create_random_points(1000, *b"pseudo4gGressive");
+        let mut tree = RTree::new();
+        for p in &points {
+            tree.insert(*p);
+        }
+
+        let sample_points = create_random_points(50, *b"1ntraMolecularly");
+        for sample_point in sample_points {
+            points.sort_by(|r, l| {
+                r.distance_2(&sample_point)
+                    .partial_cmp(&l.distance_2(&sample_point))
+                    .unwrap()
+            });
+            let collected: Vec<_> = tree.nearest_neighbor_iter(&sample_point).cloned().collect();
+            assert_eq!(points, collected);
         }
     }
 }
