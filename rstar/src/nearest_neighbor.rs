@@ -4,7 +4,6 @@ use num_traits::Bounded;
 use object::PointDistance;
 use params::RTreeParams;
 use point::{min_inline, Point};
-use smallvec::SmallVec;
 use std::collections::binary_heap::BinaryHeap;
 
 struct RTreeNodeDistanceWrapper<'a, T, Params>
@@ -64,7 +63,7 @@ where
         query_point: &'b <T::Envelope as Envelope>::Point,
     ) -> Self {
         let mut result = NearestNeighborIterator {
-            nodes: Default::default(),
+            nodes: BinaryHeap::with_capacity(20),
             query_point: query_point,
         };
         result.extend_heap(&root.children);
@@ -72,11 +71,14 @@ where
     }
 
     fn extend_heap(&mut self, children: &'a [RTreeNode<T, Params>]) {
-        let query_point = self.query_point.clone();
-        self.nodes.extend(children.iter().map(|child| {
+        let &mut NearestNeighborIterator {
+            ref mut nodes,
+            ref query_point,
+        } = self;
+        nodes.extend(children.iter().map(|child| {
             let distance = match child {
-                RTreeNode::Parent(ref data) => data.envelope.distance_2(&query_point),
-                RTreeNode::Leaf(ref t) => t.distance_2(&query_point),
+                RTreeNode::Parent(ref data) => data.envelope.distance_2(query_point),
+                RTreeNode::Leaf(ref t) => t.distance_2(query_point),
             };
 
             RTreeNodeDistanceWrapper {
@@ -124,53 +126,63 @@ where
     query_point: &'b <T::Envelope as Envelope>::Point,
 }
 
-pub fn nearest_neighbor<'a, T, Params, E>(
+pub fn nearest_neighbor<'a, 'b, T, Params>(
     node: &'a ParentNodeData<T, Params>,
-    point: &E::Point,
-    nearest_distance: &mut <E::Point as Point>::Scalar,
+    query_point: &'b <T::Envelope as Envelope>::Point,
 ) -> Option<&'a T>
 where
     Params: RTreeParams,
-    T: PointDistance<Envelope = E>,
-    E: Envelope,
+    T: PointDistance,
 {
-    let mut nearest = None;
-    // Calculate smallest minmax-distance
-    let mut smallest_min_max: <E::Point as Point>::Scalar = Bounded::max_value();
-    for child in node.children.iter() {
-        let new_min = child.envelope().min_max_dist_2(point);
-        smallest_min_max = min_inline(smallest_min_max, new_min);
-    }
-    let mut sorted: SmallVec<[_; 8]> = SmallVec::new();
-    for child in node.children.iter() {
-        let min_dist = child.envelope().distance_2(point);
-        if min_dist <= smallest_min_max {
-            sorted.push((child, min_dist));
+    fn extend_heap<'a, 'b, T, Params>(
+        nodes: &mut BinaryHeap<RTreeNodeDistanceWrapper<'a, T, Params>>,
+        node: &'a ParentNodeData<T, Params>,
+        query_point: &'b <T::Envelope as Envelope>::Point,
+        min_max_distance: &mut <<T::Envelope as Envelope>::Point as Point>::Scalar,
+    ) where
+        T: PointDistance + 'a,
+        Params: RTreeParams,
+    {
+        for child in &node.children {
+            let distance = match child {
+                RTreeNode::Parent(ref data) => data.envelope.distance_2(query_point),
+                RTreeNode::Leaf(ref t) => t.distance_2(query_point),
+            };
+            if &distance <= min_max_distance {
+                *min_max_distance = min_inline(
+                    *min_max_distance,
+                    child.envelope().min_max_dist_2(query_point),
+                );
+                nodes.push(RTreeNodeDistanceWrapper {
+                    node: child,
+                    distance: distance,
+                });
+            }
         }
     }
-    sorted.sort_by(|l, r| l.1.partial_cmp(&r.1).unwrap());
 
-    for &(child, min_dist) in sorted.iter() {
-        if min_dist > *nearest_distance {
-            // Prune this element
-            break;
-        }
-        match child {
-            &RTreeNode::Parent(ref data) => {
-                if let Some(t) = nearest_neighbor(data, point, nearest_distance) {
-                    nearest = Some(t);
-                }
+    // Calculate smallest minmax-distance
+    let mut smallest_min_max: <<T::Envelope as Envelope>::Point as Point>::Scalar =
+        Bounded::max_value();
+    let mut nodes = BinaryHeap::with_capacity(20);
+    extend_heap(&mut nodes, node, query_point, &mut smallest_min_max);
+    while let Some(current) = nodes.pop() {
+        match current {
+            RTreeNodeDistanceWrapper {
+                node: RTreeNode::Parent(ref data),
+                ..
+            } => {
+                extend_heap(&mut nodes, data, query_point, &mut smallest_min_max);
             }
-            &RTreeNode::Leaf(ref t) => {
-                let distance = t.distance_2(point);
-                if distance < *nearest_distance {
-                    nearest = Some(t);
-                    *nearest_distance = distance;
-                }
+            RTreeNodeDistanceWrapper {
+                node: RTreeNode::Leaf(ref t),
+                ..
+            } => {
+                return Some(t);
             }
         }
     }
-    nearest
+    None
 }
 
 #[cfg(test)]

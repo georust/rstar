@@ -1,5 +1,4 @@
 extern crate num_traits;
-extern crate smallvec;
 
 #[cfg(test)]
 extern crate rand;

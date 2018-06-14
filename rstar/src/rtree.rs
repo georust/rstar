@@ -5,7 +5,6 @@ use iterators::{
 };
 use metrics::RTreeMetrics;
 use node::ParentNodeData;
-use num_traits::Bounded;
 use object::{PointDistance, RTreeObject};
 use params::{DefaultParams, RTreeParams};
 
@@ -149,8 +148,7 @@ where
     T: PointDistance,
 {
     pub fn nearest_neighbor(&self, query_point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
-        let mut max_value = Bounded::max_value();
-        ::nearest_neighbor::nearest_neighbor(self.root(), query_point, &mut max_value)
+        ::nearest_neighbor::nearest_neighbor(self.root(), query_point)
     }
 
     pub fn nearest_neighbor_iter<'a, 'b>(

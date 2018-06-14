@@ -101,7 +101,6 @@ pub fn main() {
                             let new_points = ::random_points_with_seed(num, seed);
                             for point in new_points.into_iter() {
                                 rtree.insert(point);
-                                println!("{:?}", point);
                             }
                             rtree.root().sanity_check();
                             render_data.update_rtree_buffers(&display, &rtree);
@@ -112,7 +111,6 @@ pub fn main() {
                 }
                 Event::MouseInput(ElementState::Pressed, MouseButton::Left) => {
                     rtree.insert(last_point);
-                    println!("{:?}", last_point);
                     render_data.update_rtree_buffers(&display, &rtree);
                     dirty = true;
                 }
