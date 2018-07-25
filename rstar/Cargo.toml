@@ -5,6 +5,7 @@ authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
 
 [dependencies]
 num-traits = "*"
+pdqselect = "*"
 
 [features]
 default = []

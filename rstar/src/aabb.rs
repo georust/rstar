@@ -27,6 +27,13 @@ where
         self.upper
     }
 
+    pub fn from_corners(p1: &P, p2: &P) -> Self {
+        AABB {
+            lower: p1.min_point(p2),
+            upper: p2.max_point(p2),
+        }
+    }
+
     pub fn from_points<'a, I>(i: I) -> Self
     where
         I: IntoIterator<Item = &'a P> + 'a,

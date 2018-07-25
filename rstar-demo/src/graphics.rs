@@ -12,7 +12,7 @@ use ::Point;
 use glium::{Surface, VertexBuffer, Program, Display, DrawParameters};
 use glium;
 
-const VERTEX_SHADER_SRC: &'static str = r#"
+const VERTEX_SHADER_SRC: &str = r#"
     #version 140
     in vec2 pos;
     in vec3 color;
@@ -24,7 +24,7 @@ const VERTEX_SHADER_SRC: &'static str = r#"
         }
     "#;
 
-const FRAGMENT_SHADER_SRC: &'static str = r#"
+const FRAGMENT_SHADER_SRC: &str = r#"
     #version 140
     out vec4 out_color;
     in vec3 fragment_color;
@@ -50,11 +50,11 @@ impl RenderData {
         let selection_buffer = VertexBuffer::new(display, &[]).unwrap();
         let selection_lines_buffer = VertexBuffer::new(display, &[]).unwrap();
         RenderData {
-            program: program,
-            edges_buffer: edges_buffer,
-            vertices_buffer: vertices_buffer,
-            selection_buffer: selection_buffer,
-            selection_lines_buffer: selection_lines_buffer,
+            program,
+            edges_buffer,
+            vertices_buffer,
+            selection_buffer,
+            selection_lines_buffer,
         }
     }
 
@@ -98,7 +98,7 @@ impl RenderData {
         self.vertices_buffer = VertexBuffer::new(display, &vertices).unwrap();
     }
 
-    pub fn update_selection(&mut self, display: &Display, points: &Vec<Point>) {
+    pub fn update_selection(&mut self, display: &Display, points: &[Point]) {
         let color = [1.0, 0.0, 0.0];
         let mut vertices = Vec::new();
         for point in points {
@@ -117,7 +117,7 @@ pub struct Vertex {
 implement_vertex!(Vertex, pos, color);
 impl Vertex {
     pub fn new(pos: [f32; 2], color: [f32; 3]) -> Vertex {
-        Vertex { pos: pos, color: color }
+        Vertex { pos, color }
     }
 }
 
@@ -158,11 +158,11 @@ fn get_tree_edges(tree: &RTree<Point>, buffer: &mut Vec<Vertex>) -> Vec<Vertex> 
     let mut to_visit = vec![(tree.root(), 0)];
     while let Some((cur, depth)) = to_visit.pop() {
         push_rectangle(buffer, &cur.envelope, get_color_for_depth(depth));
-        for child in cur.children.iter() {
+        for child in &cur.children {
             match child {
-                &RTreeNode::Leaf(point) => vertices.push(
+                RTreeNode::Leaf(point) => vertices.push(
                     Vertex::new([point[0] as f32, point[1] as f32], vertex_color)),
-                &RTreeNode::Parent(ref data) => {
+                RTreeNode::Parent(ref data) => {
                     to_visit.push((data, depth + 1));
                 }                
             }

@@ -42,7 +42,7 @@ impl ::std::fmt::Display for LookupMode {
             f,
             "{}",
             match self {
-                &LookupMode::Nearest => "Nearest neighbor",
+                LookupMode::Nearest => "Nearest neighbor",
             }
         )
     }
@@ -55,7 +55,8 @@ pub fn main() {
         .build_glium()
         .unwrap();
 
-    let mut rtree: RTree<Point> = RTree::new();
+    let mut points = random_points_with_seed(24, *b"abcdefghijklm1+n");
+    let mut rtree: RTree<Point> = RTree::bulk_load(&mut points);
 
     let mut render_data = RenderData::new(&display);
     render_data.update_rtree_buffers(&display, &rtree);
@@ -72,7 +73,7 @@ pub fn main() {
         let events: Vec<_> = display.poll_events().collect();
 
         let mut dirty = false;
-        for event in events.into_iter() {
+        for event in events {
             match event {
                 Event::Refresh => render_data.draw(&display),
                 Event::Closed => return,
@@ -99,7 +100,7 @@ pub fn main() {
                                 seed = rng.gen();
                             }
                             let new_points = ::random_points_with_seed(num, seed);
-                            for point in new_points.into_iter() {
+                            for point in new_points {
                                 rtree.insert(point);
                             }
                             rtree.root().sanity_check();
@@ -130,7 +131,7 @@ pub fn main() {
                     let y = h as i32 - y;
                     let x = (x as f32 / w as f32) * 2. - 1.;
                     let y = (y as f32 / h as f32) * 2. - 1.;
-                    last_point = [x as f64, y as f64];
+                    last_point = [f64::from(x), f64::from(y)];
                     let selection = get_selected_vertices(&rtree, last_point, lookup_mode);
                     render_data.update_selection(&display, &selection);
                     dirty = true;

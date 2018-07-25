@@ -86,9 +86,13 @@ impl <T, Params> ParentNodeData<T, Params>
     }
 
     pub fn sanity_check(&self) -> Option<usize> {
-        let mut result = None;
-        self.sanity_check_inner(1, &mut result);
-        result
+        if self.children.is_empty() {
+            Some(0)
+        } else {
+            let mut result = None;
+            self.sanity_check_inner(1, &mut result);
+            result
+        }
     }
 
     fn sanity_check_inner(&self, height: usize, leaf_height: &mut Option<usize>) {
@@ -123,11 +127,6 @@ impl <T, Params> ParentNodeData<T, Params>
         where Params: RTreeParams,
               T: RTreeObject + PartialEq {
 
-    // pub fn update_envelope(&mut self) {
-    //     let envelope = envelope_for_children(&self.children);
-    //     self.envelope = envelope;
-    // }
-    
     pub fn contains(&self, t: &T) -> bool {
         let mut todo_list = Vec::with_capacity(20);
         todo_list.push(self);

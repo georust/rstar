@@ -7,6 +7,7 @@ use metrics::RTreeMetrics;
 use node::ParentNodeData;
 use object::{PointDistance, RTreeObject};
 use params::{DefaultParams, RTreeParams};
+use point::EuclideanPoint;
 
 pub trait InsertionStrategy {
     fn insert<T, Params>(&mut RTree<T, Params>, t: T, metrics: &mut RTreeMetrics)
@@ -156,8 +157,15 @@ where
     Params: RTreeParams,
     T: PointDistance,
 {
-    pub fn nearest_neighbor(&self, query_point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
-        ::nearest_neighbor::nearest_neighbor(self.root(), query_point)
+    pub fn nearest_neighbor<'a, 'b>(&'a self, query_point: &'b<T::Envelope as Envelope>::Point) -> Option<&'a T> 
+        where 'b: 'a
+    {
+        if self.size > 0 {
+            ::nearest_neighbor::nearest_neighbor(self.root(), query_point)
+                .or_else(|| self.nearest_neighbor_iter(query_point).next())
+        } else {
+            None
+        }
     }
 
     pub fn nearest_neighbor_iter<'a, 'b>(
@@ -168,6 +176,37 @@ where
         'b: 'a,
     {
         ::nearest_neighbor::NearestNeighborIterator::new(self.root(), query_point)
+    }
+}
+
+impl<T, Params> RTree<T, Params>
+where
+    T: RTreeObject + Clone,
+    <T::Envelope as Envelope>::Point: EuclideanPoint,
+    Params: RTreeParams,
+{
+    pub fn bulk_load_with_params(elements: &mut Vec<T>) -> Self {
+        let (root, height) = ::bulk_load::bulk_load_with_params(elements);
+        RTree {
+            root,
+            size: elements.len(),
+            height,
+        }
+    }
+}
+
+impl<T> RTree<T>
+where
+    T: RTreeObject + Clone,
+    <T::Envelope as Envelope>::Point: EuclideanPoint,
+{
+    pub fn bulk_load(elements: &mut Vec<T>) -> Self {
+        let (root, height) = ::bulk_load::bulk_load_with_params(elements);
+        RTree {
+            root,
+            size: elements.len(),
+            height,
+        }
     }
 }
 

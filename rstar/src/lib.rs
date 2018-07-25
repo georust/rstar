@@ -1,4 +1,5 @@
 extern crate num_traits;
+extern crate pdqselect;
 
 #[cfg(test)]
 extern crate rand;
@@ -9,6 +10,7 @@ pub mod metrics;
 #[cfg(not(feature = "debug"))]
 mod metrics;
 
+mod bulk_load;
 mod rtree;
 mod rstar;
 mod params;
@@ -32,4 +34,5 @@ pub use params::{RTreeParams};
 pub use rstar::RStarInsertionStrategy;
 pub use rtree::RTree;
 pub use aabb::AABB;
-pub use point::{Point, RTreeNum};
+pub use point::{Point, EuclideanPoint, RTreeNum};
+pub use object::{RTreeObject, PointDistance};
