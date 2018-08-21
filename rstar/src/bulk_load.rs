@@ -71,7 +71,6 @@ where
     <T::Envelope as Envelope>::Point: EuclideanPoint,
     Params: RTreeParams,
 {
-
     let max_node_size = Params::MAX_SIZE;
     if elements.len() <= max_node_size {
         let children = elements.iter().cloned().map(RTreeNode::Leaf).collect();
@@ -79,8 +78,7 @@ where
     }
 
     let dimensions = <T::Envelope as Envelope>::Point::DIMENSIONS;
-    let partition_information =
-        LevelPartitioning::new(elements.len(), max_node_size, dimensions);
+    let partition_information = LevelPartitioning::new(elements.len(), max_node_size, dimensions);
 
     // TODO: Generalize this to more than two dimensions
     let d0 = partition_information.dimension_sizes[0];

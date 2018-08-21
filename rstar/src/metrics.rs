@@ -1,5 +1,4 @@
-
-#[cfg(feature="debug")]
+#[cfg(feature = "debug")]
 #[derive(Debug, Default)]
 pub struct RTreeMetrics {
     insertions: u64,
@@ -13,30 +12,28 @@ pub struct RTreeMetrics {
     resolve_overflow_overflows: u64,
 }
 
-#[cfg(not(feature="debug"))]
-pub struct RTreeMetrics { }
+#[cfg(not(feature = "debug"))]
+pub struct RTreeMetrics {}
 
-#[cfg(not(feature="debug"))]
+#[cfg(not(feature = "debug"))]
 impl RTreeMetrics {
-    
-    pub fn increment_insertions(&mut self) { }
+    pub fn increment_insertions(&mut self) {}
 
-    pub fn increment_reinsertions(&mut self) { }
+    pub fn increment_reinsertions(&mut self) {}
 
-    pub fn increment_choose_subtree(&mut self) { }
-    pub fn increment_choose_subtree_outsiders(&mut self) { }
-    pub fn increment_choose_subtree_leaves(&mut self) { }
+    pub fn increment_choose_subtree(&mut self) {}
+    pub fn increment_choose_subtree_outsiders(&mut self) {}
+    pub fn increment_choose_subtree_leaves(&mut self) {}
 
-    pub fn increment_splits(&mut self) { }
+    pub fn increment_splits(&mut self) {}
 
-    pub fn increment_recursive_insertions(&mut self) { }
-    
-    pub fn increment_resolve_overflow(&mut self) { }
-    pub fn increment_resolve_overflow_overflows(&mut self) { }
+    pub fn increment_recursive_insertions(&mut self) {}
+
+    pub fn increment_resolve_overflow(&mut self) {}
+    pub fn increment_resolve_overflow_overflows(&mut self) {}
 }
 
-
-#[cfg(feature="debug")] 
+#[cfg(feature = "debug")]
 impl RTreeMetrics {
     pub fn print_stats(&self) {
         let stats = [
@@ -48,13 +45,20 @@ impl RTreeMetrics {
             ("recursive_insertions", self.recursive_insertions),
             ("splits", self.splits),
             ("resolve_overflow", self.resolve_overflow),
-            ("resolve_overflow_overflows", self.resolve_overflow_overflows)
+            (
+                "resolve_overflow_overflows",
+                self.resolve_overflow_overflows,
+            ),
         ];
-
 
         println!("RTree Metrics");
         for &(ref description, value) in &stats {
-            println!("{}: {} ({:.1}%)", description, value, value as f32 * 100. / self.insertions as f32);
+            println!(
+                "{}: {} ({:.1}%)",
+                description,
+                value,
+                value as f32 * 100. / self.insertions as f32
+            );
         }
     }
 
@@ -74,7 +78,7 @@ impl RTreeMetrics {
         self.choose_subtree_outsiders += 1;
     }
 
-    pub fn increment_choose_subtree_leaves(&mut self) { 
+    pub fn increment_choose_subtree_leaves(&mut self) {
         self.choose_subtree_leaves += 1;
     }
 
@@ -94,4 +98,3 @@ impl RTreeMetrics {
         self.resolve_overflow_overflows += 1;
     }
 }
-

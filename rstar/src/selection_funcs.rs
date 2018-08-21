@@ -1,5 +1,5 @@
-use object::RTreeObject;
 use envelope::Envelope;
+use object::RTreeObject;
 
 pub trait SelectionFunc<T>: Clone
 where
@@ -57,9 +57,7 @@ where
     T: RTreeObject,
 {
     fn clone(&self) -> Self {
-        SelectAtPointFunc {
-            point: self.point,
-        }
+        SelectAtPointFunc { point: self.point }
     }
 }
 

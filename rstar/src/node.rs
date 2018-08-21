@@ -1,19 +1,22 @@
-use std::marker::PhantomData;
-use std::fmt::{Debug, Formatter, Result};
-use params::RTreeParams;
-use object::RTreeObject;
 use envelope::Envelope;
+use object::RTreeObject;
+use params::RTreeParams;
+use std::fmt::{Debug, Formatter, Result};
+use std::marker::PhantomData;
 
-pub enum RTreeNode<T, Params> 
-    where T: RTreeObject,
-          Params: RTreeParams,
+pub enum RTreeNode<T, Params>
+where
+    T: RTreeObject,
+    Params: RTreeParams,
 {
     Leaf(T),
     Parent(ParentNodeData<T, Params>),
 }
 
-impl <T, Params> Debug for RTreeNode<T, Params>
-    where T: RTreeObject + Debug, Params: RTreeParams
+impl<T, Params> Debug for RTreeNode<T, Params>
+where
+    T: RTreeObject + Debug,
+    Params: RTreeParams,
 {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
@@ -23,30 +26,33 @@ impl <T, Params> Debug for RTreeNode<T, Params>
     }
 }
 
-impl <T, Params> Debug for ParentNodeData<T, Params>
-    where T: RTreeObject + Debug, Params: RTreeParams
+impl<T, Params> Debug for ParentNodeData<T, Params>
+where
+    T: RTreeObject + Debug,
+    Params: RTreeParams,
 {
     fn fmt(&self, fmt: &mut Formatter) -> Result {
         fmt.debug_struct("ParentNodeData")
-        .field("#children", &self.children.len())
-        .field("envelope", &self.envelope)
-        .finish()
+            .field("#children", &self.children.len())
+            .field("envelope", &self.envelope)
+            .finish()
     }
 }
 
 pub struct ParentNodeData<T, Params>
-where T: RTreeObject,
-      Params: RTreeParams,
+where
+    T: RTreeObject,
+    Params: RTreeParams,
 {
     pub children: Vec<RTreeNode<T, Params>>,
     pub envelope: T::Envelope,
     _params: PhantomData<Params>,
-
 }
 
-impl <T, Params> RTreeNode<T, Params> 
-    where Params: RTreeParams,
-          T: RTreeObject
+impl<T, Params> RTreeNode<T, Params>
+where
+    Params: RTreeParams,
+    T: RTreeObject,
 {
     pub fn envelope(&self) -> T::Envelope {
         match self {
@@ -63,9 +69,10 @@ impl <T, Params> RTreeNode<T, Params>
     }
 }
 
-impl <T, Params> ParentNodeData<T, Params> 
-    where Params: RTreeParams,
-          T: RTreeObject,
+impl<T, Params> ParentNodeData<T, Params>
+where
+    Params: RTreeParams,
+    T: RTreeObject,
 {
     pub fn new_root() -> Self {
         ParentNodeData {
@@ -77,7 +84,7 @@ impl <T, Params> ParentNodeData<T, Params>
 
     pub fn new_parent(children: Vec<RTreeNode<T, Params>>) -> Self {
         let envelope = envelope_for_children(&children);
-        
+
         ParentNodeData {
             envelope,
             children,
@@ -112,7 +119,7 @@ impl <T, Params> ParentNodeData<T, Params>
                     } else {
                         *leaf_height = Some(height);
                     }
-                },
+                }
                 RTreeNode::Parent(ref data) => {
                     envelope.merge(&data.envelope);
                     data.sanity_check_inner(height + 1, leaf_height);
@@ -123,10 +130,11 @@ impl <T, Params> ParentNodeData<T, Params>
     }
 }
 
-impl <T, Params> ParentNodeData<T, Params>
-        where Params: RTreeParams,
-              T: RTreeObject + PartialEq {
-
+impl<T, Params> ParentNodeData<T, Params>
+where
+    Params: RTreeParams,
+    T: RTreeObject + PartialEq,
+{
     pub fn contains(&self, t: &T) -> bool {
         let mut todo_list = Vec::with_capacity(20);
         todo_list.push(self);
@@ -137,12 +145,12 @@ impl <T, Params> ParentNodeData<T, Params>
                     match child {
                         RTreeNode::Parent(ref data) => {
                             todo_list.push(data);
-                        },
+                        }
                         RTreeNode::Leaf(ref obj) => {
                             if obj == t {
                                 return true;
                             }
-                        },
+                        }
                     }
                 }
             }
@@ -152,8 +160,9 @@ impl <T, Params> ParentNodeData<T, Params>
 }
 
 pub fn envelope_for_children<T, Params>(children: &[RTreeNode<T, Params>]) -> T::Envelope
-    where T: RTreeObject,
-          Params: RTreeParams
+where
+    T: RTreeObject,
+    Params: RTreeParams,
 {
     let mut result = T::Envelope::new_empty();
     for child in children {

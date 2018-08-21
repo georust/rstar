@@ -1,5 +1,5 @@
-use rtree::InsertionStrategy;
 use rstar::RStarInsertionStrategy;
+use rtree::InsertionStrategy;
 
 pub trait RTreeParams {
     const MIN_SIZE: usize;

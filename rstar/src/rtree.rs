@@ -8,6 +8,7 @@ use node::ParentNodeData;
 use object::{PointDistance, RTreeObject};
 use params::{DefaultParams, RTreeParams};
 use point::EuclideanPoint;
+use selection_funcs::SelectionFunc;
 
 pub trait InsertionStrategy {
     fn insert<T, Params>(&mut RTree<T, Params>, t: T, metrics: &mut RTreeMetrics)
@@ -133,9 +134,14 @@ where
         LocateInEnvelopeMut::new(self, *envelope)
     }
 
-    /*     checked_insert(&T) -> bool T: PartialEq
-    checked_insert_mut(&T) -> Option<&mut T>
- */
+    pub fn remove_at_point(&mut self, point: &<T::Envelope as Envelope>::Point) -> Option<T> {
+        let removal_function = ::removal::RemoveAtPointFunction::new(*point);
+        let result = ::removal::remove(self.root_mut(), &removal_function);
+        if result.is_some() {
+            self.size -= 1;
+        }
+        result
+    }
 }
 
 impl<T, Params> RTree<T, Params>
@@ -150,6 +156,15 @@ where
     pub fn contains_mut(&mut self, t: &T) -> Option<&mut T> {
         self.locate_in_envelope_mut(&t.envelope()).find(|e| e == &t)
     }
+
+    pub fn remove(&mut self, t: &T) -> Option<T> {
+        let removal_function = ::removal::RemoveEqualsFunction::new(t);
+        let result = ::removal::remove(self.root_mut(), &removal_function);
+        if result.is_some() {
+            self.size -= 1;
+        }
+        result
+    }
 }
 
 impl<T, Params> RTree<T, Params>
@@ -157,8 +172,12 @@ where
     Params: RTreeParams,
     T: PointDistance,
 {
-    pub fn nearest_neighbor<'a, 'b>(&'a self, query_point: &'b<T::Envelope as Envelope>::Point) -> Option<&'a T> 
-        where 'b: 'a
+    pub fn nearest_neighbor<'a, 'b>(
+        &'a self,
+        query_point: &'b <T::Envelope as Envelope>::Point,
+    ) -> Option<&'a T>
+    where
+        'b: 'a,
     {
         if self.size > 0 {
             ::nearest_neighbor::nearest_neighbor(self.root(), query_point)
@@ -200,7 +219,7 @@ where
     T: RTreeObject + Clone,
     <T::Envelope as Envelope>::Point: EuclideanPoint,
 {
-    pub fn bulk_load(elements: &mut Vec<T>) -> Self {
+    pub fn bulk_load(elements: &mut [T]) -> Self {
         let (root, height) = ::bulk_load::bulk_load_with_params(elements);
         RTree {
             root,

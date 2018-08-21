@@ -1,14 +1,13 @@
-use rtree::{InsertionStrategy, RTree};
-use node::{envelope_for_children, ParentNodeData, RTreeNode};
-use point::{Point, PointExt};
-use params::RTreeParams;
-use object::RTreeObject;
-use num_traits::{Bounded, Zero};
-use metrics::RTreeMetrics;
 use envelope::Envelope;
+use metrics::RTreeMetrics;
+use node::{envelope_for_children, ParentNodeData, RTreeNode};
+use num_traits::{Bounded, Zero};
+use object::RTreeObject;
+use params::RTreeParams;
+use point::{Point, PointExt};
+use rtree::{InsertionStrategy, RTree};
 
-pub enum RStarInsertionStrategy {
-}
+pub enum RStarInsertionStrategy {}
 
 enum InsertionResult<T, Params>
 where
@@ -259,7 +258,7 @@ where
     let mut best_axis = 0;
     let min_size = Params::MIN_SIZE;
     let until = node.children.len() - min_size + 1;
-    for axis in 0.. <T::Envelope as Envelope>::Point::DIMENSIONS {
+    for axis in 0..<T::Envelope as Envelope>::Point::DIMENSIONS {
         // Sort children along the current axis
         T::Envelope::align_envelopes(axis, &mut node.children, |c| c.envelope());
         let mut first_envelope = T::Envelope::new_empty();
@@ -314,7 +313,8 @@ where
             .unwrap()
     });
     let num_children = node.children.len();
-    let result = node.children
+    let result = node
+        .children
         .split_off(num_children - Params::REINSERTION_COUNT);
     node.envelope = envelope_for_children(&node.children);
     result

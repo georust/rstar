@@ -19,15 +19,15 @@ extern crate num_traits;
 
 mod graphics;
 
+use glium::glutin::VirtualKeyCode;
+use glium::glutin::{ElementState, Event, MouseButton};
+use glium::DisplayBuild;
 use graphics::RenderData;
+use rand::distributions::range::SampleRange;
+use rand::distributions::{Distribution, Range};
+use rand::{Rng, SeedableRng, XorShiftRng};
 use rstar::RTree;
 use rstar::RTreeNum;
-use glium::DisplayBuild;
-use glium::glutin::{ElementState, Event, MouseButton};
-use glium::glutin::VirtualKeyCode;
-use rand::{Rng, SeedableRng, XorShiftRng};
-use rand::distributions::{Range, Distribution};
-use rand::distributions::range::{SampleRange};
 
 pub type Point = [f64; 2];
 
@@ -181,9 +181,6 @@ fn random_points_in_range<S: RTreeNum + SampleRange>(
     points
 }
 
-fn random_points_with_seed<S: RTreeNum + SampleRange>(
-    size: usize,
-    seed: [u8; 16],
-) -> Vec<[S; 2]> {
+fn random_points_with_seed<S: RTreeNum + SampleRange>(size: usize, seed: [u8; 16]) -> Vec<[S; 2]> {
     random_points_in_range(S::one(), size, seed)
 }

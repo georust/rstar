@@ -40,8 +40,7 @@ impl<'a, T, Params> Eq for RTreeNodeDistanceWrapper<'a, T, Params>
 where
     T: PointDistance,
     Params: RTreeParams,
-{
-}
+{}
 
 impl<'a, T, Params> Ord for RTreeNodeDistanceWrapper<'a, T, Params>
 where

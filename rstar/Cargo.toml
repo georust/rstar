@@ -13,3 +13,4 @@ debug = []
 
 [dev-dependencies]
 rand = "*"
+approx = "*"

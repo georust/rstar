@@ -1,8 +1,8 @@
-use point::{max_inline, EuclideanPoint, Point, PointExt};
-use num_traits::{Bounded, One, Signed, Zero};
 use envelope::Envelope;
+use num_traits::{Bounded, One, Signed, Zero};
+use point::{max_inline, EuclideanPoint, Point, PointExt};
 
-#[derive(Clone, Debug, Copy, PartialEq)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub struct AABB<P>
 where
     P: Point,

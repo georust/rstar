@@ -1,0 +1,14 @@
+[package]
+name = "rstar-benches"
+version = "0.1.0"
+authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
+
+[dev-dependencies]
+rand = "*"
+criterion = "*"
+spade = "*"
+rstar = { path = "../rstar" }
+
+[[bench]]
+name = "benchmarks"
+harness = false

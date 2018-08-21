@@ -1,8 +1,8 @@
-use params::RTreeParams;
-use object::RTreeObject;
-use rtree::RTree;
 use node::RTreeNode;
-use selection_funcs::{SelectAllFunc, SelectAtPointFunc, SelectionFunc, SelectInEnvelopeFunc};
+use object::RTreeObject;
+use params::RTreeParams;
+use rtree::RTree;
+use selection_funcs::{SelectAllFunc, SelectAtPointFunc, SelectInEnvelopeFunc, SelectionFunc};
 
 pub type LocateAllAtPoint<'a, T, Params> = SelectionIterator<'a, T, Params, SelectAtPointFunc<T>>;
 pub type LocateAllAtPointMut<'a, T, Params> =
@@ -33,7 +33,8 @@ where
         let func = Func::new(containment_unit);
         SelectionIterator {
             func: func.clone(),
-            current_nodes: tree.root()
+            current_nodes: tree
+                .root()
                 .children
                 .iter()
                 .filter(|c| func.is_contained_in(&c.envelope()))
@@ -83,7 +84,8 @@ where
         let func = Func::new(containment_unit);
         SelectionIteratorMut {
             func: func.clone(),
-            current_nodes: tree.root_mut()
+            current_nodes: tree
+                .root_mut()
                 .children
                 .iter_mut()
                 .filter(|c| func.is_contained_in(&c.envelope()))
@@ -121,11 +123,11 @@ where
 
 #[cfg(test)]
 mod test {
-    use testutils::create_random_points;
     use aabb::AABB;
-    use rtree::RTree;
     use envelope::Envelope;
     use object::RTreeObject;
+    use rtree::RTree;
+    use testutils::create_random_points;
 
     #[derive(PartialEq, Clone)]
     struct TestRectangle {

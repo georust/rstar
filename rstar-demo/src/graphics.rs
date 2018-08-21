@@ -6,11 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use rstar::{AABB, RTree};
-use rstar::node::RTreeNode;
-use ::Point;
-use glium::{Surface, VertexBuffer, Program, Display, DrawParameters};
 use glium;
+use glium::{Display, DrawParameters, Program, Surface, VertexBuffer};
+use rstar::node::RTreeNode;
+use rstar::{RTree, AABB};
+use Point;
 
 const VERTEX_SHADER_SRC: &str = r#"
     #version 140
@@ -43,8 +43,8 @@ pub struct RenderData {
 
 impl RenderData {
     pub fn new(display: &Display) -> RenderData {
-        let program = Program::from_source(display, VERTEX_SHADER_SRC,
-                                           FRAGMENT_SHADER_SRC, None).unwrap();
+        let program =
+            Program::from_source(display, VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC, None).unwrap();
         let edges_buffer = VertexBuffer::new(display, &[]).unwrap();
         let vertices_buffer = VertexBuffer::new(display, &[]).unwrap();
         let selection_buffer = VertexBuffer::new(display, &[]).unwrap();
@@ -64,34 +64,60 @@ impl RenderData {
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
         let parameters = DrawParameters {
             line_width: Some(1.0),
-            .. Default::default()
+            ..Default::default()
         };
 
-
-        target.draw(&self.edges_buffer, &indices, &self.program, 
-                    &glium::uniforms::EmptyUniforms, &parameters).unwrap();
+        target
+            .draw(
+                &self.edges_buffer,
+                &indices,
+                &self.program,
+                &glium::uniforms::EmptyUniforms,
+                &parameters,
+            )
+            .unwrap();
 
         let parameters = DrawParameters {
             point_size: Some(3.0),
             line_width: Some(2.0),
-            .. Default::default()
+            ..Default::default()
         };
 
-        target.draw(&self.selection_buffer, &indices, &self.program,
-                    &glium::uniforms::EmptyUniforms, &parameters).unwrap();
+        target
+            .draw(
+                &self.selection_buffer,
+                &indices,
+                &self.program,
+                &glium::uniforms::EmptyUniforms,
+                &parameters,
+            )
+            .unwrap();
 
-        target.draw(&self.selection_lines_buffer, &indices, &self.program,
-                    &glium::uniforms::EmptyUniforms, &parameters).unwrap();
+        target
+            .draw(
+                &self.selection_lines_buffer,
+                &indices,
+                &self.program,
+                &glium::uniforms::EmptyUniforms,
+                &parameters,
+            )
+            .unwrap();
 
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::Points);
-        target.draw(&self.vertices_buffer, &indices, &self.program,
-                    &glium::uniforms::EmptyUniforms, &parameters).unwrap();
+        target
+            .draw(
+                &self.vertices_buffer,
+                &indices,
+                &self.program,
+                &glium::uniforms::EmptyUniforms,
+                &parameters,
+            )
+            .unwrap();
 
         target.finish().unwrap();
     }
 
     pub fn update_rtree_buffers(&mut self, display: &Display, tree: &RTree<Point>) {
-
         let mut edges = Vec::new();
         let vertices = get_tree_edges(&tree, &mut edges);
         self.edges_buffer = VertexBuffer::new(display, &edges).unwrap();
@@ -121,24 +147,31 @@ impl Vertex {
     }
 }
 
-pub fn push_rectangle(vec: &mut Vec<Vertex>, rect: &AABB<Point>, 
-                      color: [f32; 3]) {
+pub fn push_rectangle(vec: &mut Vec<Vertex>, rect: &AABB<Point>, color: [f32; 3]) {
     let v0 = [rect.lower()[0] as f32, rect.lower()[1] as f32];
     let v2 = [rect.upper()[0] as f32, rect.upper()[1] as f32];;
     let v1 = [v2[0] as f32, v0[1] as f32];
     let v3 = [v0[0] as f32, v2[1] as f32];
-    vec.extend([v0, v1, v1, v2, v2, v3, v3, v0].iter().cloned().map(
-        |v| Vertex::new(v, color)));
+    vec.extend(
+        [v0, v1, v1, v2, v2, v3, v3, v0]
+            .iter()
+            .cloned()
+            .map(|v| Vertex::new(v, color)),
+    );
 }
 
 pub fn push_cross(vec: &mut Vec<Vertex>, pos: &Point, color: [f32; 3]) {
-    let delta =  0.015;
+    let delta = 0.015;
     let v0 = [pos[0] as f32 + delta, pos[1] as f32 + delta];
     let v1 = [pos[0] as f32 - delta, pos[1] as f32 - delta];
     let v2 = [pos[0] as f32 + delta, pos[1] as f32 - delta];
     let v3 = [pos[0] as f32 - delta, pos[1] as f32 + delta];
-    vec.extend([v0, v1, v2, v3].iter().cloned().map(
-        |v| Vertex::new(v, color)));
+    vec.extend(
+        [v0, v1, v2, v3]
+            .iter()
+            .cloned()
+            .map(|v| Vertex::new(v, color)),
+    );
 }
 
 pub fn get_color_for_depth(depth: usize) -> [f32; 3] {
@@ -160,11 +193,13 @@ fn get_tree_edges(tree: &RTree<Point>, buffer: &mut Vec<Vertex>) -> Vec<Vertex> 
         push_rectangle(buffer, &cur.envelope, get_color_for_depth(depth));
         for child in &cur.children {
             match child {
-                RTreeNode::Leaf(point) => vertices.push(
-                    Vertex::new([point[0] as f32, point[1] as f32], vertex_color)),
+                RTreeNode::Leaf(point) => vertices.push(Vertex::new(
+                    [point[0] as f32, point[1] as f32],
+                    vertex_color,
+                )),
                 RTreeNode::Parent(ref data) => {
                     to_visit.push((data, depth + 1));
-                }                
+                }
             }
         }
     }

@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[macro_use]
+extern crate approx;
+
 extern crate num_traits;
 extern crate pdqselect;
 
@@ -10,16 +14,18 @@ pub mod metrics;
 #[cfg(not(feature = "debug"))]
 mod metrics;
 
-mod bulk_load;
-mod rtree;
-mod rstar;
-mod params;
-pub mod node;
-mod point;
-mod object;
 mod aabb;
+mod bulk_load;
 mod envelope;
 mod iterators;
+pub mod node;
+mod object;
+mod params;
+mod point;
+mod rstar;
+mod rtree;
+mod removal;
+pub mod primitives;
 
 mod nearest_neighbor;
 mod selection_funcs;
@@ -30,9 +36,9 @@ mod testutils;
 #[cfg(feature = "debug")]
 pub use node::RTreeNode;
 
-pub use params::{RTreeParams};
+pub use aabb::AABB;
+pub use object::{PointDistance, RTreeObject};
+pub use params::RTreeParams;
+pub use point::{EuclideanPoint, Point, RTreeNum};
 pub use rstar::RStarInsertionStrategy;
 pub use rtree::RTree;
-pub use aabb::AABB;
-pub use point::{Point, EuclideanPoint, RTreeNum};
-pub use object::{RTreeObject, PointDistance};
