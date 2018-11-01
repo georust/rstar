@@ -125,27 +125,46 @@ where
     }
 }
 
-impl<S> EuclideanPoint for [S; 2] where S: RTreeNum {}
-impl<S> Point for [S; 2]
-where
-    S: RTreeNum,
-{
-    type Scalar = S;
-
-    const DIMENSIONS: usize = 2;
-
-    fn generate<F>(generator: F) -> Self
-    where
-        F: Fn(usize) -> Self::Scalar,
-    {
-        [generator(0), generator(1)]
-    }
-
-    fn nth(&self, index: usize) -> Self::Scalar {
-        self[index]
-    }
-
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        &mut self[index]
-    }
+macro_rules! count_exprs {
+    () => (0);
+    ($head:expr) => (1);
+    ($head:expr, $($tail:expr),*) => (1 + count_exprs!($($tail),*));
 }
+
+macro_rules! implement_point_for_array {
+    ($($index:expr),*) => {
+        impl<S> EuclideanPoint for [S; count_exprs!($($index),*)] where S: RTreeNum {}
+        impl<S> Point for [S; count_exprs!($($index),*)]
+        where
+            S: RTreeNum,
+        {
+            type Scalar = S;
+
+            const DIMENSIONS: usize = count_exprs!($($index),*);
+
+            fn generate<F>(generator: F) -> Self
+            where
+                F: Fn(usize) -> Self::Scalar,
+            {
+                [$(generator($index)),*]
+            }
+
+            fn nth(&self, index: usize) -> Self::Scalar {
+                self[index]
+            }
+
+            fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
+                &mut self[index]
+            }
+        }
+    };
+}
+
+implement_point_for_array!(0, 1);
+implement_point_for_array!(0, 1, 2);
+implement_point_for_array!(0, 1, 2, 3);
+implement_point_for_array!(0, 1, 2, 3, 4);
+implement_point_for_array!(0, 1, 2, 3, 4, 5);
+implement_point_for_array!(0, 1, 2, 3, 4, 5, 6);
+implement_point_for_array!(0, 1, 2, 3, 4, 5, 6, 7);
+implement_point_for_array!(0, 1, 2, 3, 4, 5, 6, 7, 8);

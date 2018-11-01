@@ -2,33 +2,29 @@ use envelope::Envelope;
 use node::{ParentNodeData, RTreeNode};
 use num_traits::Bounded;
 use object::PointDistance;
-use params::RTreeParams;
 use point::{min_inline, Point};
 use std::collections::binary_heap::BinaryHeap;
 
-struct RTreeNodeDistanceWrapper<'a, T, Params>
+struct RTreeNodeDistanceWrapper<'a, T>
 where
     T: PointDistance + 'a,
-    Params: RTreeParams + 'a,
 {
-    node: &'a RTreeNode<T, Params>,
+    node: &'a RTreeNode<T>,
     distance: <<T::Envelope as Envelope>::Point as Point>::Scalar,
 }
 
-impl<'a, T, Params> PartialEq for RTreeNodeDistanceWrapper<'a, T, Params>
+impl<'a, T> PartialEq for RTreeNodeDistanceWrapper<'a, T>
 where
     T: PointDistance,
-    Params: RTreeParams,
 {
     fn eq(&self, other: &Self) -> bool {
         self.distance == other.distance
     }
 }
 
-impl<'a, T, Params> PartialOrd for RTreeNodeDistanceWrapper<'a, T, Params>
+impl<'a, T> PartialOrd for RTreeNodeDistanceWrapper<'a, T>
 where
     T: PointDistance,
-    Params: RTreeParams,
 {
     fn partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
         // Inverse comparison creates a min heap
@@ -36,29 +32,23 @@ where
     }
 }
 
-impl<'a, T, Params> Eq for RTreeNodeDistanceWrapper<'a, T, Params>
-where
-    T: PointDistance,
-    Params: RTreeParams,
-{}
+impl<'a, T> Eq for RTreeNodeDistanceWrapper<'a, T> where T: PointDistance {}
 
-impl<'a, T, Params> Ord for RTreeNodeDistanceWrapper<'a, T, Params>
+impl<'a, T> Ord for RTreeNodeDistanceWrapper<'a, T>
 where
     T: PointDistance,
-    Params: RTreeParams,
 {
     fn cmp(&self, other: &Self) -> ::std::cmp::Ordering {
         self.partial_cmp(other).unwrap()
     }
 }
 
-impl<'a, 'b, T, Params> NearestNeighborIterator<'a, 'b, T, Params>
+impl<'a, 'b, T> NearestNeighborIterator<'a, 'b, T>
 where
     T: PointDistance,
-    Params: RTreeParams,
 {
     pub fn new(
-        root: &'a ParentNodeData<T, Params>,
+        root: &'a ParentNodeData<T>,
         query_point: &'b <T::Envelope as Envelope>::Point,
     ) -> Self {
         let mut result = NearestNeighborIterator {
@@ -69,7 +59,7 @@ where
         result
     }
 
-    fn extend_heap(&mut self, children: &'a [RTreeNode<T, Params>]) {
+    fn extend_heap(&mut self, children: &'a [RTreeNode<T>]) {
         let &mut NearestNeighborIterator {
             ref mut nodes,
             ref query_point,
@@ -88,10 +78,9 @@ where
     }
 }
 
-impl<'a, 'b, T, Params> Iterator for NearestNeighborIterator<'a, 'b, T, Params>
+impl<'a, 'b, T> Iterator for NearestNeighborIterator<'a, 'b, T>
 where
     T: PointDistance,
-    Params: RTreeParams,
 {
     type Item = &'a T;
 
@@ -116,31 +105,28 @@ where
     }
 }
 
-pub struct NearestNeighborIterator<'a, 'b, T, Params>
+pub struct NearestNeighborIterator<'a, 'b, T>
 where
     T: PointDistance + 'a + 'b,
-    Params: RTreeParams + 'a + 'b,
 {
-    nodes: BinaryHeap<RTreeNodeDistanceWrapper<'a, T, Params>>,
+    nodes: BinaryHeap<RTreeNodeDistanceWrapper<'a, T>>,
     query_point: &'b <T::Envelope as Envelope>::Point,
 }
 
-pub fn nearest_neighbor<'a, 'b, T, Params>(
-    node: &'a ParentNodeData<T, Params>,
+pub fn nearest_neighbor<'a, 'b, T>(
+    node: &'a ParentNodeData<T>,
     query_point: &'b <T::Envelope as Envelope>::Point,
 ) -> Option<&'a T>
 where
-    Params: RTreeParams,
     T: PointDistance,
 {
-    fn extend_heap<'a, 'b, T, Params>(
-        nodes: &mut BinaryHeap<RTreeNodeDistanceWrapper<'a, T, Params>>,
-        node: &'a ParentNodeData<T, Params>,
+    fn extend_heap<'a, 'b, T>(
+        nodes: &mut BinaryHeap<RTreeNodeDistanceWrapper<'a, T>>,
+        node: &'a ParentNodeData<T>,
         query_point: &'b <T::Envelope as Envelope>::Point,
         min_max_distance: &mut <<T::Envelope as Envelope>::Point as Point>::Scalar,
     ) where
         T: PointDistance + 'a,
-        Params: RTreeParams,
     {
         for child in &node.children {
             let distance = match child {
@@ -188,7 +174,7 @@ where
 mod test {
     use object::PointDistance;
     use rtree::RTree;
-    use testutils::create_random_points;
+    use test_utilities::create_random_points;
 
     #[test]
     fn test_nearest_neighbor_empty() {
@@ -198,12 +184,12 @@ mod test {
 
     #[test]
     fn test_nearest_neighbor() {
-        let points = create_random_points(1000, *b"syst3mAtisatioNs");
+        let points = create_random_points(1000, *b"sy*t3mAti_a?ioNs");
         let mut tree = RTree::new();
         for p in &points {
             tree.insert(*p);
         }
-        let sample_points = create_random_points(100, *b"wholEh3artednE5s");
+        let sample_points = create_random_points(100, *b"w\\olEh3a\"'e(nE5s");
         for sample_point in &sample_points {
             let mut nearest = None;
             let mut closest_dist = ::std::f64::INFINITY;
@@ -221,13 +207,13 @@ mod test {
 
     #[test]
     fn test_nearest_neighbor_iterator() {
-        let mut points = create_random_points(1000, *b"pseudo4gGressive");
+        let mut points = create_random_points(1000, *b"pseudo4gGr+ss|ve");
         let mut tree = RTree::new();
         for p in &points {
             tree.insert(*p);
         }
 
-        let sample_points = create_random_points(50, *b"1ntraMolecularly");
+        let sample_points = create_random_points(50, *b"1n&raMolecularly");
         for sample_point in sample_points {
             points.sort_by(|r, l| {
                 r.distance_2(&sample_point)

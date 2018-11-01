@@ -1,57 +1,27 @@
 use envelope::Envelope;
 use object::RTreeObject;
 use params::RTreeParams;
-use std::fmt::{Debug, Formatter, Result};
-use std::marker::PhantomData;
 
-pub enum RTreeNode<T, Params>
+#[derive(Debug)]
+pub enum RTreeNode<T>
 where
     T: RTreeObject,
-    Params: RTreeParams,
 {
     Leaf(T),
-    Parent(ParentNodeData<T, Params>),
+    Parent(ParentNodeData<T>),
 }
 
-impl<T, Params> Debug for RTreeNode<T, Params>
-where
-    T: RTreeObject + Debug,
-    Params: RTreeParams,
-{
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        match self {
-            RTreeNode::Leaf(ref t) => write!(f, "RTreeNode::Leaf({:?})", t),
-            RTreeNode::Parent(ref data) => write!(f, "RTreeNode::Parent({:?})", data),
-        }
-    }
-}
-
-impl<T, Params> Debug for ParentNodeData<T, Params>
-where
-    T: RTreeObject + Debug,
-    Params: RTreeParams,
-{
-    fn fmt(&self, fmt: &mut Formatter) -> Result {
-        fmt.debug_struct("ParentNodeData")
-            .field("#children", &self.children.len())
-            .field("envelope", &self.envelope)
-            .finish()
-    }
-}
-
-pub struct ParentNodeData<T, Params>
+#[derive(Debug)]
+pub struct ParentNodeData<T>
 where
     T: RTreeObject,
-    Params: RTreeParams,
 {
-    pub children: Vec<RTreeNode<T, Params>>,
+    pub children: Vec<RTreeNode<T>>,
     pub envelope: T::Envelope,
-    _params: PhantomData<Params>,
 }
 
-impl<T, Params> RTreeNode<T, Params>
+impl<T> RTreeNode<T>
 where
-    Params: RTreeParams,
     T: RTreeObject,
 {
     pub fn envelope(&self) -> T::Envelope {
@@ -69,40 +39,43 @@ where
     }
 }
 
-impl<T, Params> ParentNodeData<T, Params>
+impl<T> ParentNodeData<T>
 where
-    Params: RTreeParams,
     T: RTreeObject,
 {
-    pub fn new_root() -> Self {
+    pub fn new_root<Params>() -> Self
+    where
+        Params: RTreeParams,
+    {
         ParentNodeData {
             envelope: Envelope::new_empty(),
             children: Vec::with_capacity(Params::MAX_SIZE + 1),
-            _params: Default::default(),
         }
     }
 
-    pub fn new_parent(children: Vec<RTreeNode<T, Params>>) -> Self {
+    pub fn new_parent(children: Vec<RTreeNode<T>>) -> Self {
         let envelope = envelope_for_children(&children);
 
-        ParentNodeData {
-            envelope,
-            children,
-            _params: Default::default(),
-        }
+        ParentNodeData { envelope, children }
     }
 
-    pub fn sanity_check(&self) -> Option<usize> {
+    pub fn sanity_check<Params>(&self) -> Option<usize>
+    where
+        Params: RTreeParams,
+    {
         if self.children.is_empty() {
             Some(0)
         } else {
             let mut result = None;
-            self.sanity_check_inner(1, &mut result);
+            self.sanity_check_inner::<Params>(1, &mut result);
             result
         }
     }
 
-    fn sanity_check_inner(&self, height: usize, leaf_height: &mut Option<usize>) {
+    fn sanity_check_inner<Params>(&self, height: usize, leaf_height: &mut Option<usize>)
+    where
+        Params: RTreeParams,
+    {
         if height > 1 {
             let min_size = Params::MIN_SIZE;
             assert!(self.children.len() >= min_size);
@@ -122,7 +95,7 @@ where
                 }
                 RTreeNode::Parent(ref data) => {
                     envelope.merge(&data.envelope);
-                    data.sanity_check_inner(height + 1, leaf_height);
+                    data.sanity_check_inner::<Params>(height + 1, leaf_height);
                 }
             }
         }
@@ -130,9 +103,8 @@ where
     }
 }
 
-impl<T, Params> ParentNodeData<T, Params>
+impl<T> ParentNodeData<T>
 where
-    Params: RTreeParams,
     T: RTreeObject + PartialEq,
 {
     pub fn contains(&self, t: &T) -> bool {
@@ -159,10 +131,9 @@ where
     }
 }
 
-pub fn envelope_for_children<T, Params>(children: &[RTreeNode<T, Params>]) -> T::Envelope
+pub fn envelope_for_children<T>(children: &[RTreeNode<T>]) -> T::Envelope
 where
     T: RTreeObject,
-    Params: RTreeParams,
 {
     let mut result = T::Envelope::new_empty();
     for child in children {

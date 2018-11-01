@@ -2,34 +2,32 @@ use node::RTreeNode;
 use object::RTreeObject;
 use params::RTreeParams;
 use rtree::RTree;
-use selection_funcs::{SelectAllFunc, SelectAtPointFunc, SelectInEnvelopeFunc, SelectionFunc};
+use selection_functions::{SelectAllFunc, SelectAtPointFunc, SelectInEnvelopeFunc, SelectionFunc};
 
-pub type LocateAllAtPoint<'a, T, Params> = SelectionIterator<'a, T, Params, SelectAtPointFunc<T>>;
-pub type LocateAllAtPointMut<'a, T, Params> =
-    SelectionIteratorMut<'a, T, Params, SelectAtPointFunc<T>>;
-pub type LocateInEnvelope<'a, T, Params> =
-    SelectionIterator<'a, T, Params, SelectInEnvelopeFunc<T>>;
-pub type LocateInEnvelopeMut<'a, T, Params> =
-    SelectionIteratorMut<'a, T, Params, SelectInEnvelopeFunc<T>>;
-pub type RTreeIterator<'a, T, Params> = SelectionIterator<'a, T, Params, SelectAllFunc>;
-pub type RTreeIteratorMut<'a, T, Params> = SelectionIteratorMut<'a, T, Params, SelectAllFunc>;
+pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunc<T>>;
+pub type LocateAllAtPointMut<'a, T> = SelectionIteratorMut<'a, T, SelectAtPointFunc<T>>;
+pub type LocateInEnvelope<'a, T> = SelectionIterator<'a, T, SelectInEnvelopeFunc<T>>;
+pub type LocateInEnvelopeMut<'a, T> = SelectionIteratorMut<'a, T, SelectInEnvelopeFunc<T>>;
+pub type RTreeIterator<'a, T> = SelectionIterator<'a, T, SelectAllFunc>;
+pub type RTreeIteratorMut<'a, T> = SelectionIteratorMut<'a, T, SelectAllFunc>;
 
-pub struct SelectionIterator<'a, T, Params, Func>
+pub struct SelectionIterator<'a, T, Func>
 where
     T: RTreeObject + 'a,
-    Params: RTreeParams + 'a,
     Func: SelectionFunc<T>,
 {
     func: Func,
-    current_nodes: Vec<&'a RTreeNode<T, Params>>,
+    current_nodes: Vec<&'a RTreeNode<T>>,
 }
-impl<'a, T, Params, Func> SelectionIterator<'a, T, Params, Func>
+impl<'a, T, Func> SelectionIterator<'a, T, Func>
 where
     T: RTreeObject,
-    Params: RTreeParams,
     Func: SelectionFunc<T>,
 {
-    pub fn new(tree: &'a RTree<T, Params>, containment_unit: Func::ContainmentUnit) -> Self {
+    pub fn new<Params>(tree: &'a RTree<T, Params>, containment_unit: Func::ContainmentUnit) -> Self
+    where
+        Params: RTreeParams,
+    {
         let func = Func::new(containment_unit);
         SelectionIterator {
             func: func.clone(),
@@ -43,10 +41,10 @@ where
     }
 }
 
-impl<'a, T, Params, Func> Iterator for SelectionIterator<'a, T, Params, Func>
+impl<'a, T, Func> Iterator for SelectionIterator<'a, T, Func>
 where
     T: RTreeObject,
-    Params: RTreeParams,
+
     Func: SelectionFunc<T>,
 {
     type Item = &'a T;
@@ -64,23 +62,24 @@ where
     }
 }
 
-pub struct SelectionIteratorMut<'a, T, Params, Func>
+pub struct SelectionIteratorMut<'a, T, Func>
 where
     T: RTreeObject + 'a,
-    Params: RTreeParams + 'a,
     Func: SelectionFunc<T>,
 {
     func: Func,
-    current_nodes: Vec<&'a mut RTreeNode<T, Params>>,
+    current_nodes: Vec<&'a mut RTreeNode<T>>,
 }
 
-impl<'a, T, Params, Func> SelectionIteratorMut<'a, T, Params, Func>
+impl<'a, T, Func> SelectionIteratorMut<'a, T, Func>
 where
     T: RTreeObject,
-    Params: RTreeParams,
     Func: SelectionFunc<T>,
 {
-    pub fn new(tree: &'a mut RTree<T, Params>, containment_unit: Func::ContainmentUnit) -> Self {
+    pub fn new<Params>(tree: &'a mut RTree<T, Params>, containment_unit: Func::ContainmentUnit) -> Self
+    where
+        Params: RTreeParams,
+    {
         let func = Func::new(containment_unit);
         SelectionIteratorMut {
             func: func.clone(),
@@ -94,10 +93,10 @@ where
     }
 }
 
-impl<'a, T, Params, Func> Iterator for SelectionIteratorMut<'a, T, Params, Func>
+impl<'a, T, Func> Iterator for SelectionIteratorMut<'a, T, Func>
 where
     T: RTreeObject,
-    Params: RTreeParams,
+
     Func: SelectionFunc<T>,
 {
     type Item = &'a mut T;
@@ -127,7 +126,7 @@ mod test {
     use envelope::Envelope;
     use object::RTreeObject;
     use rtree::RTree;
-    use testutils::create_random_points;
+    use test_utilities::create_random_points;
 
     #[derive(PartialEq, Clone)]
     struct TestRectangle {
@@ -145,7 +144,7 @@ mod test {
     #[test]
     fn test_locate_all() {
         const NUM_POINTS: usize = 400;
-        let points = create_random_points(NUM_POINTS, *b"pterylOgraPHical");
+        let points = create_random_points(NUM_POINTS, *b"pt=rylOgr/PHi,al");
         let mut tree = RTree::new();
         let mut aabb_list = Vec::new();
         for ps in points.as_slice().windows(2) {
@@ -156,7 +155,7 @@ mod test {
             aabb_list.push(rectangle)
         }
 
-        let query_points = create_random_points(10, *b"pO5tparoxysMa1!y");
+        let query_points = create_random_points(10, *b"pO5tp2r;xysMa1!y");
         for p in &query_points {
             let mut contained_sequential: Vec<_> = aabb_list
                 .iter()
@@ -165,8 +164,8 @@ mod test {
                 .collect();
             {
                 let contained_rtree: Vec<_> = tree.locate_all_at_point(p).collect();
-                for rect in &contained_rtree {
-                    assert!(&contained_sequential.contains(rect));
+                for rectangle in &contained_rtree {
+                    assert!(&contained_sequential.contains(rectangle));
                 }
                 assert_eq!(contained_sequential.len(), contained_rtree.len());
             }
@@ -175,11 +174,11 @@ mod test {
 
             assert_eq!(contained_sequential.len(), contained_rtree_mut.len());
 
-            for rect in &contained_rtree_mut {
-                assert!(&contained_sequential.contains(rect));
+            for rectangle in &contained_rtree_mut {
+                assert!(&contained_sequential.contains(rectangle));
             }
-            for rect in &mut contained_sequential {
-                assert!(&contained_rtree_mut.contains(&rect));
+            for rectangle in &mut contained_sequential {
+                assert!(&contained_rtree_mut.contains(&rectangle));
             }
         }
     }

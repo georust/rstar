@@ -40,32 +40,18 @@ impl LevelPartitioning {
         }
         number_of_elements
     }
-
-    fn calculate_tree_height(mut number_of_elements: usize, max_node_size: usize) -> usize {
-        if number_of_elements == 0 {
-            0
-        } else {
-            let mut height = 1;
-            while number_of_elements > max_node_size {
-                number_of_elements = div_up(number_of_elements, max_node_size);
-                height += 1;
-            }
-            height
-        }
-    }
 }
 
-pub fn bulk_load_with_params<T, Params>(elements: &mut [T]) -> (ParentNodeData<T, Params>, usize)
+pub fn bulk_load_with_params<T, Params>(elements: &mut [T]) -> ParentNodeData<T>
 where
     T: RTreeObject + Clone,
     <T::Envelope as Envelope>::Point: EuclideanPoint,
     Params: RTreeParams,
 {
-    let height = LevelPartitioning::calculate_tree_height(elements.len(), Params::MAX_SIZE);
-    (bulk_load_recursive::<_, Params>(elements), height)
+    bulk_load_recursive::<_, Params>(elements)
 }
 
-fn bulk_load_recursive<T, Params>(mut elements: &mut [T]) -> ParentNodeData<T, Params>
+fn bulk_load_recursive<T, Params>(mut elements: &mut [T]) -> ParentNodeData<T>
 where
     T: RTreeObject + Clone,
     <T::Envelope as Envelope>::Point: EuclideanPoint,
@@ -114,7 +100,7 @@ where
             let temp2 = ::std::mem::replace(&mut current_cluster, &mut []);
             let (cell, remaining_segment) = create_cluster(temp2, inner_cell_size, 1);
             current_cluster = remaining_segment;
-            children.push(RTreeNode::Parent(bulk_load_recursive(cell)));
+            children.push(RTreeNode::Parent(bulk_load_recursive::<_, Params>(cell)));
         }
     }
     ParentNodeData::new_parent(children)
@@ -149,7 +135,7 @@ mod test {
     use super::{div_up, LevelPartitioning};
     use rtree::RTree;
     use std::collections::HashSet;
-    use testutils::create_random_integers;
+    use test_utilities::create_random_integers;
 
     #[test]
     fn test_bulk_load() {
@@ -165,9 +151,7 @@ mod test {
     fn test_bulk_load_with_different_sizes() {
         for i in 0..100 {
             let mut random_points = create_random_integers(i * 7, *b"h=Xak|s0CtAh3dr4");
-            let tree = RTree::bulk_load(&mut random_points);
-            println!("i: {}", i);
-            assert_eq!(tree.root().sanity_check(), Some(tree.height()));
+            RTree::bulk_load(&mut random_points);
         }
     }
 
@@ -206,23 +190,6 @@ mod test {
                 LevelPartitioning::calculate_root_size(num_elements, m),
                 div_up(num_elements, sqr)
             );
-        }
-    }
-
-    #[test]
-    fn test_calculate_tree_height() {
-        let m = 6;
-        let sqr = 36usize;
-        let cube = sqr * m;
-        assert_eq!(LevelPartitioning::calculate_tree_height(0, m), 0);
-        for num_elements in 1..=m {
-            assert_eq!(LevelPartitioning::calculate_tree_height(num_elements, m), 1);
-        }
-        for num_elements in m + 1..=sqr {
-            assert_eq!(LevelPartitioning::calculate_tree_height(num_elements, m), 2);
-        }
-        for num_elements in sqr + 1..=cube {
-            assert_eq!(LevelPartitioning::calculate_tree_height(num_elements, m), 3);
         }
     }
 }

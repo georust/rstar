@@ -11,8 +11,6 @@ extern crate rand;
 #[allow(dead_code)]
 #[cfg(feature = "debug")]
 pub mod metrics;
-#[cfg(not(feature = "debug"))]
-mod metrics;
 
 mod aabb;
 mod bulk_load;
@@ -28,17 +26,17 @@ mod removal;
 pub mod primitives;
 
 mod nearest_neighbor;
-mod selection_funcs;
+mod selection_functions;
 
 #[cfg(test)]
-mod testutils;
+mod test_utilities;
 
 #[cfg(feature = "debug")]
 pub use node::RTreeNode;
 
 pub use aabb::AABB;
 pub use object::{PointDistance, RTreeObject};
-pub use params::RTreeParams;
+pub use params::{RTreeParams, DefaultParams};
 pub use point::{EuclideanPoint, Point, RTreeNum};
 pub use rstar::RStarInsertionStrategy;
 pub use rtree::RTree;

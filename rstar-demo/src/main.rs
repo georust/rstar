@@ -27,7 +27,7 @@ use rand::distributions::range::SampleRange;
 use rand::distributions::{Distribution, Range};
 use rand::{Rng, SeedableRng, XorShiftRng};
 use rstar::RTree;
-use rstar::RTreeNum;
+use rstar::{RTreeNum, DefaultParams};
 
 pub type Point = [f64; 2];
 
@@ -103,7 +103,7 @@ pub fn main() {
                             for point in new_points {
                                 rtree.insert(point);
                             }
-                            rtree.root().sanity_check();
+                            rtree.root().sanity_check::<DefaultParams>();
                             render_data.update_rtree_buffers(&display, &rtree);
                             dirty = true;
                         }

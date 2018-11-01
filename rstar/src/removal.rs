@@ -2,7 +2,7 @@ use envelope::Envelope;
 use node::{ParentNodeData, RTreeNode};
 use object::RTreeObject;
 use params::RTreeParams;
-use selection_funcs::SelectionFunc;
+use selection_functions::SelectionFunc;
 
 pub trait RemovalFunction<T>: SelectionFunc<T>
 where
@@ -95,7 +95,7 @@ where
     }
 }
 
-pub fn remove<T, Params, R>(node: &mut ParentNodeData<T, Params>, removal_function: &R) -> Option<T>
+pub fn remove<T, Params, R>(node: &mut ParentNodeData<T>, removal_function: &R) -> Option<T>
 where
     T: RTreeObject,
     Params: RTreeParams,
@@ -107,7 +107,7 @@ where
         for (index, child) in node.children.iter_mut().enumerate() {
             match child {
                 RTreeNode::Parent(ref mut data) => {
-                    result = remove(data, removal_function);
+                    result = remove::<_, Params, _>(data, removal_function);
                     if result.is_some() {
                         if data.children.is_empty() {
                             removal_index = Some(index);
@@ -146,7 +146,7 @@ mod test {
     use point::PointExt;
     use primitives::SimpleEdge;
     use rtree::RTree;
-    use testutils::create_random_points;
+    use test_utilities::create_random_points;
 
     #[test]
     fn test_remove_and_insert() {
@@ -169,7 +169,7 @@ mod test {
 
     #[test]
     fn test_remove_at_point() {
-        let mut points = create_random_points(1000, *b"0v3rmasc)l|nIsed");
+        let mut points = create_random_points(1000, *b"0v3rS?sc)l|nI'-d");
         let mut tree = RTree::bulk_load(&mut points);
         for point in &points {
             let size_before_removal = tree.size();
@@ -182,7 +182,7 @@ mod test {
     #[test]
     fn test_remove() {
         let points = create_random_points(1000, *b"rem0T3Cont)o|:ng");
-        let offsets = create_random_points(1000, *b"h?eMota7hom3te)5");
+        let offsets = create_random_points(1000, *b"h?eMot-7hom3te)5");
         let scaled = offsets.iter().map(|p| p.mul(0.05));
         let mut edges: Vec<_> = points
             .iter()
