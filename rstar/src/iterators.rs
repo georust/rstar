@@ -1,8 +1,8 @@
-use node::RTreeNode;
-use object::RTreeObject;
-use params::RTreeParams;
-use rtree::RTree;
-use selection_functions::{SelectAllFunc, SelectAtPointFunc, SelectInEnvelopeFunc, SelectionFunc};
+use crate::node::RTreeNode;
+use crate::object::RTreeObject;
+use crate::params::RTreeParams;
+use crate::rtree::RTree;
+use crate::selection_functions::{SelectAllFunc, SelectAtPointFunc, SelectInEnvelopeFunc, SelectionFunc};
 
 pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunc<T>>;
 pub type LocateAllAtPointMut<'a, T> = SelectionIteratorMut<'a, T, SelectAtPointFunc<T>>;
@@ -122,11 +122,11 @@ where
 
 #[cfg(test)]
 mod test {
-    use aabb::AABB;
-    use envelope::Envelope;
-    use object::RTreeObject;
-    use rtree::RTree;
-    use test_utilities::create_random_points;
+    use crate::aabb::AABB;
+    use crate::envelope::Envelope;
+    use crate::object::RTreeObject;
+    use crate::rtree::RTree;
+    use crate::test_utilities::create_random_points;
 
     #[derive(PartialEq, Clone)]
     struct TestRectangle {

@@ -1,10 +1,10 @@
-use envelope::Envelope;
-use node::{envelope_for_children, ParentNodeData, RTreeNode};
+use crate::envelope::Envelope;
+use crate::node::{envelope_for_children, ParentNodeData, RTreeNode};
 use num_traits::{Bounded, Zero};
-use object::RTreeObject;
-use params::RTreeParams;
-use point::{Point};
-use rtree::{InsertionStrategy, RTree};
+use crate::object::RTreeObject;
+use crate::params::RTreeParams;
+use crate::point::{Point};
+use crate::rtree::{InsertionStrategy, RTree};
 
 pub enum RStarInsertionStrategy {}
 

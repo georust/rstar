@@ -1,7 +1,7 @@
-use aabb::AABB;
-use envelope::Envelope;
-use object::{RTreeObject, PointDistance};
-use point::{EuclideanPoint, Point, PointExt};
+use crate::aabb::AABB;
+use crate::envelope::Envelope;
+use crate::object::{RTreeObject, PointDistance};
+use crate::point::{EuclideanPoint, Point, PointExt};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 pub struct SimpleRectangle<P>
@@ -55,7 +55,7 @@ where
 #[cfg(test)]
 mod test {
     use super::SimpleRectangle;
-    use object::PointDistance;
+    use crate::object::PointDistance;
 
     #[test]
     fn rectangle_distance() {

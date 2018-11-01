@@ -10,7 +10,7 @@ use glium;
 use glium::{Display, DrawParameters, Program, Surface, VertexBuffer};
 use rstar::node::RTreeNode;
 use rstar::{RTree, AABB};
-use Point;
+use crate::Point;
 
 const VERTEX_SHADER_SRC: &str = r#"
     #version 140

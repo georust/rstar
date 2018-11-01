@@ -34,9 +34,9 @@ mod test_utilities;
 #[cfg(feature = "debug")]
 pub use node::RTreeNode;
 
-pub use aabb::AABB;
-pub use object::{PointDistance, RTreeObject};
-pub use params::{RTreeParams, DefaultParams};
-pub use point::{EuclideanPoint, Point, RTreeNum};
-pub use rstar::RStarInsertionStrategy;
-pub use rtree::RTree;
+pub use crate::aabb::AABB;
+pub use crate::object::{PointDistance, RTreeObject};
+pub use crate::params::{RTreeParams, DefaultParams};
+pub use crate::point::{EuclideanPoint, Point, RTreeNum};
+pub use crate::rstar::RStarInsertionStrategy;
+pub use crate::rtree::RTree;

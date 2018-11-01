@@ -22,7 +22,7 @@ mod graphics;
 use glium::glutin::VirtualKeyCode;
 use glium::glutin::{ElementState, Event, MouseButton};
 use glium::DisplayBuild;
-use graphics::RenderData;
+use crate::graphics::RenderData;
 use rand::distributions::range::SampleRange;
 use rand::distributions::{Distribution, Range};
 use rand::{Rng, SeedableRng, XorShiftRng};
@@ -99,7 +99,7 @@ pub fn main() {
                             for _ in 0..num {
                                 seed = rng.gen();
                             }
-                            let new_points = ::random_points_with_seed(num, seed);
+                            let new_points = crate::random_points_with_seed(num, seed);
                             for point in new_points {
                                 rtree.insert(point);
                             }

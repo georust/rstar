@@ -1,9 +1,9 @@
-use aabb::AABB;
-use envelope::Envelope;
+use crate::aabb::AABB;
+use crate::envelope::Envelope;
 use num_traits::{One, Zero};
-use object::PointDistance;
-use object::RTreeObject;
-use point::{EuclideanPoint, Point, PointExt};
+use crate::object::PointDistance;
+use crate::object::RTreeObject;
+use crate::point::{EuclideanPoint, Point, PointExt};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 pub struct SimpleEdge<P>
@@ -73,7 +73,7 @@ where
 #[cfg(test)]
 mod test {
     use super::SimpleEdge;
-    use object::PointDistance;
+    use crate::object::PointDistance;
 
     #[test]
     fn edge_distance() {

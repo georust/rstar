@@ -1,8 +1,8 @@
-use envelope::Envelope;
-use node::{ParentNodeData, RTreeNode};
-use object::RTreeObject;
-use params::RTreeParams;
-use selection_functions::SelectionFunc;
+use crate::envelope::Envelope;
+use crate::node::{ParentNodeData, RTreeNode};
+use crate::object::RTreeObject;
+use crate::params::RTreeParams;
+use crate::selection_functions::SelectionFunc;
 
 pub trait RemovalFunction<T>: SelectionFunc<T>
 where
@@ -136,17 +136,17 @@ where
         }
     }
     if result.is_some() {
-        node.envelope = ::node::envelope_for_children(&node.children);
+        node.envelope = crate::node::envelope_for_children(&node.children);
     }
     result
 }
 
 #[cfg(test)]
 mod test {
-    use point::PointExt;
-    use primitives::SimpleEdge;
-    use rtree::RTree;
-    use test_utilities::create_random_points;
+    use crate::point::PointExt;
+    use crate::primitives::SimpleEdge;
+    use crate::rtree::RTree;
+    use crate::test_utilities::create_random_points;
 
     #[test]
     fn test_remove_and_insert() {

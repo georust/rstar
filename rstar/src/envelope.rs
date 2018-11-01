@@ -1,4 +1,4 @@
-use point::Point;
+use crate::point::Point;
 
 pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
     type Point: Point;

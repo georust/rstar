@@ -1,5 +1,5 @@
-use envelope::Envelope;
-use object::RTreeObject;
+use crate::envelope::Envelope;
+use crate::object::RTreeObject;
 
 pub trait SelectionFunc<T>: Clone
 where

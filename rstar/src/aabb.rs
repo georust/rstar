@@ -1,6 +1,6 @@
-use envelope::Envelope;
+use crate::envelope::Envelope;
 use num_traits::{Bounded, One, Signed, Zero};
-use point::{max_inline, EuclideanPoint, Point, PointExt};
+use crate::point::{max_inline, EuclideanPoint, Point, PointExt};
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub struct AABB<P>

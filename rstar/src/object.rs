@@ -1,6 +1,6 @@
-use aabb::AABB;
-use envelope::Envelope;
-use point::{EuclideanPoint, Point, PointExt};
+use crate::aabb::AABB;
+use crate::envelope::Envelope;
+use crate::point::{EuclideanPoint, Point, PointExt};
 
 pub trait RTreeObject {
     type Envelope: Envelope;

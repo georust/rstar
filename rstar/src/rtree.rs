@@ -1,13 +1,13 @@
-use envelope::Envelope;
-use iterators::{
+use crate::envelope::Envelope;
+use crate::iterators::{
     LocateAllAtPoint, LocateAllAtPointMut, LocateInEnvelope, LocateInEnvelopeMut, RTreeIterator,
     RTreeIteratorMut,
 };
-use node::{ParentNodeData};
-use object::{PointDistance, RTreeObject};
-use params::{DefaultParams, RTreeParams};
-use point::EuclideanPoint;
-use selection_functions::SelectionFunc;
+use crate::node::{ParentNodeData};
+use crate::object::{PointDistance, RTreeObject};
+use crate::params::{DefaultParams, RTreeParams};
+use crate::point::EuclideanPoint;
+use crate::selection_functions::SelectionFunc;
 
 /// Defines how points are inserted into an r-tree.
 ///
@@ -20,7 +20,7 @@ use selection_functions::SelectionFunc;
 ///
 /// This trait is not meant to be implemented by the user.
 pub trait InsertionStrategy {
-    fn insert<T, Params>(&mut RTree<T, Params>, t: T)
+    fn insert<T, Params>(tree: &mut RTree<T, Params>, t: T)
     where
         Params: RTreeParams,
         T: RTreeObject;
@@ -167,8 +167,8 @@ where
     }
 
     pub fn remove_at_point(&mut self, point: &<T::Envelope as Envelope>::Point) -> Option<T> {
-        let removal_function = ::removal::RemoveAtPointFunction::new(*point);
-        let result = ::removal::remove::<_, Params, _>(self.root_mut(), &removal_function);
+        let removal_function = crate::removal::RemoveAtPointFunction::new(*point);
+        let result = crate::removal::remove::<_, Params, _>(self.root_mut(), &removal_function);
         if result.is_some() {
             self.size -= 1;
         }
@@ -190,8 +190,8 @@ where
     }
 
     pub fn remove(&mut self, t: &T) -> Option<T> {
-        let removal_function = ::removal::RemoveEqualsFunction::new(t);
-        let result = ::removal::remove::<_, Params, _>(self.root_mut(), &removal_function);
+        let removal_function = crate::removal::RemoveEqualsFunction::new(t);
+        let result = crate::removal::remove::<_, Params, _>(self.root_mut(), &removal_function);
         if result.is_some() {
             self.size -= 1;
         }
@@ -212,7 +212,7 @@ where
         'b: 'a,
     {
         if self.size > 0 {
-            ::nearest_neighbor::nearest_neighbor(self.root(), query_point)
+            crate::nearest_neighbor::nearest_neighbor(self.root(), query_point)
                 .or_else(|| self.nearest_neighbor_iter(query_point).next())
         } else {
             None
@@ -226,7 +226,7 @@ where
     where
         'b: 'a,
     {
-        ::nearest_neighbor::NearestNeighborIterator::new(self.root(), query_point)
+        crate::nearest_neighbor::NearestNeighborIterator::new(self.root(), query_point)
     }
 }
 
@@ -237,7 +237,7 @@ where
     Params: RTreeParams,
 {
     pub fn bulk_load_with_params(elements: &mut Vec<T>) -> Self {
-        let root = ::bulk_load::bulk_load_with_params::<_, Params>(elements);
+        let root = crate::bulk_load::bulk_load_with_params::<_, Params>(elements);
         RTree {
             root,
             size: elements.len(),
@@ -253,7 +253,7 @@ where
 {
     pub fn bulk_load(elements: &mut [T]) -> Self {
         RTree {
-            root: ::bulk_load::bulk_load_with_params::<_, DefaultParams>(elements),
+            root: crate::bulk_load::bulk_load_with_params::<_, DefaultParams>(elements),
             size: elements.len(),
             _params: Default::default(),
         }
@@ -263,9 +263,9 @@ where
 #[cfg(test)]
 mod test {
     use super::RTree;
-    use params::RTreeParams;
-    use rstar::RStarInsertionStrategy;
-    use test_utilities::create_random_points;
+    use crate::params::RTreeParams;
+    use crate::rstar::RStarInsertionStrategy;
+    use crate::test_utilities::create_random_points;
 
     struct TestParams;
     impl RTreeParams for TestParams {

@@ -1,6 +1,6 @@
-use envelope::Envelope;
-use object::RTreeObject;
-use params::RTreeParams;
+use crate::envelope::Envelope;
+use crate::object::RTreeObject;
+use crate::params::RTreeParams;
 
 #[derive(Debug)]
 pub enum RTreeNode<T>

@@ -1,8 +1,8 @@
-use envelope::Envelope;
-use node::{ParentNodeData, RTreeNode};
-use object::RTreeObject;
-use params::RTreeParams;
-use point::{EuclideanPoint, Point};
+use crate::envelope::Envelope;
+use crate::node::{ParentNodeData, RTreeNode};
+use crate::object::RTreeObject;
+use crate::params::RTreeParams;
+use crate::point::{EuclideanPoint, Point};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct LevelPartitioning {
@@ -133,9 +133,9 @@ fn div_up(a: usize, b: usize) -> usize {
 #[cfg(test)]
 mod test {
     use super::{div_up, LevelPartitioning};
-    use rtree::RTree;
+    use crate::rtree::RTree;
     use std::collections::HashSet;
-    use test_utilities::create_random_integers;
+    use crate::test_utilities::create_random_integers;
 
     #[test]
     fn test_bulk_load() {

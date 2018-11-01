@@ -1,8 +1,8 @@
-use envelope::Envelope;
-use node::{ParentNodeData, RTreeNode};
+use crate::envelope::Envelope;
+use crate::node::{ParentNodeData, RTreeNode};
 use num_traits::Bounded;
-use object::PointDistance;
-use point::{min_inline, Point};
+use crate::object::PointDistance;
+use crate::point::{min_inline, Point};
 use std::collections::binary_heap::BinaryHeap;
 
 struct RTreeNodeDistanceWrapper<'a, T>
@@ -172,9 +172,9 @@ where
 
 #[cfg(test)]
 mod test {
-    use object::PointDistance;
-    use rtree::RTree;
-    use test_utilities::create_random_points;
+    use crate::object::PointDistance;
+    use crate::rtree::RTree;
+    use crate::test_utilities::create_random_points;
 
     #[test]
     fn test_nearest_neighbor_empty() {
