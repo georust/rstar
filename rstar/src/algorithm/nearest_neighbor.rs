@@ -1,5 +1,5 @@
 use crate::envelope::Envelope;
-use crate::node::{ParentNodeData, RTreeNode};
+use crate::structures::node::{ParentNodeData, RTreeNode};
 use num_traits::Bounded;
 use crate::object::PointDistance;
 use crate::point::{min_inline, Point};

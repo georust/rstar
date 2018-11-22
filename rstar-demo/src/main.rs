@@ -19,15 +19,15 @@ extern crate num_traits;
 
 mod graphics;
 
+use crate::graphics::RenderData;
 use glium::glutin::VirtualKeyCode;
 use glium::glutin::{ElementState, Event, MouseButton};
 use glium::DisplayBuild;
-use crate::graphics::RenderData;
 use rand::distributions::range::SampleRange;
 use rand::distributions::{Distribution, Range};
 use rand::{Rng, SeedableRng, XorShiftRng};
 use rstar::RTree;
-use rstar::{RTreeNum, DefaultParams};
+use rstar::{DefaultParams, RTreeNum};
 
 pub type Point = [f64; 2];
 

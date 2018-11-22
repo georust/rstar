@@ -18,10 +18,6 @@ pub trait Point: Copy + Clone + PartialEq + Debug {
     fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar;
 }
 
-pub trait EuclideanPoint: Point {}
-
-pub trait PeriodicPoint: Point {}
-
 impl<T> PointExt for T where T: Point {}
 
 pub trait PointExt: Point {
@@ -133,7 +129,6 @@ macro_rules! count_exprs {
 
 macro_rules! implement_point_for_array {
     ($($index:expr),*) => {
-        impl<S> EuclideanPoint for [S; count_exprs!($($index),*)] where S: RTreeNum {}
         impl<S> Point for [S; count_exprs!($($index),*)]
         where
             S: RTreeNum,

@@ -1,27 +1,38 @@
-use crate::aabb::AABB;
+use crate::structures::aabb::AABB;
 use crate::envelope::Envelope;
-use crate::object::{RTreeObject, PointDistance};
-use crate::point::{EuclideanPoint, Point, PointExt};
+use crate::object::{PointDistance, RTreeObject};
+use crate::point::{Point, PointExt};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 pub struct SimpleRectangle<P>
 where
-    P: EuclideanPoint,
+    P: Point,
 {
-    aabb: AABB<P>
+    aabb: AABB<P>,
 }
 
-impl <P> SimpleRectangle<P> where P: EuclideanPoint {
+impl<P> SimpleRectangle<P>
+where
+    P: Point,
+{
     pub fn new(from: P, to: P) -> Self {
         SimpleRectangle {
-            aabb: AABB::from_corners(&from, &to)
+            aabb: AABB::from_corners(from, to),
         }
+    }
+
+    pub fn lower(&self) -> P {
+        self.aabb.lower()
+    }
+
+    pub fn upper(&self) -> P {
+        self.aabb.upper()
     }
 }
 
 impl<P> RTreeObject for SimpleRectangle<P>
 where
-    P: EuclideanPoint,
+    P: Point,
 {
     type Envelope = AABB<P>;
 
@@ -32,7 +43,7 @@ where
 
 impl<P> SimpleRectangle<P>
 where
-    P: EuclideanPoint,
+    P: Point,
 {
     pub fn nearest_point(&self, query_point: &P) -> P {
         self.aabb.min_point(query_point)
@@ -41,7 +52,7 @@ where
 
 impl<P> PointDistance for SimpleRectangle<P>
 where
-    P: EuclideanPoint,
+    P: Point,
 {
     fn distance_2(
         &self,
@@ -49,8 +60,11 @@ where
     ) -> <<Self::Envelope as Envelope>::Point as Point>::Scalar {
         self.nearest_point(point).sub(point).length_2()
     }
-}
 
+    fn contains_point(&self, point: &<Self::Envelope as Envelope>::Point) -> bool {
+        self.aabb.contains_point(point)
+    }
+}
 
 #[cfg(test)]
 mod test {

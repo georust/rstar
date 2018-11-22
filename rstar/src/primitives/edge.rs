@@ -1,20 +1,20 @@
-use crate::aabb::AABB;
+use crate::structures::aabb::AABB;
 use crate::envelope::Envelope;
 use num_traits::{One, Zero};
 use crate::object::PointDistance;
 use crate::object::RTreeObject;
-use crate::point::{EuclideanPoint, Point, PointExt};
+use crate::point::{Point, PointExt};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 pub struct SimpleEdge<P>
 where
-    P: EuclideanPoint,
+    P: Point,
 {
-    from: P,
-    to: P,
+    pub from: P,
+    pub to: P,
 }
 
-impl <P> SimpleEdge<P> where P: EuclideanPoint {
+impl <P> SimpleEdge<P> where P: Point {
     pub fn new(from: P, to: P) -> Self {
         SimpleEdge {
             from, to
@@ -24,18 +24,18 @@ impl <P> SimpleEdge<P> where P: EuclideanPoint {
 
 impl<P> RTreeObject for SimpleEdge<P>
 where
-    P: EuclideanPoint,
+    P: Point,
 {
     type Envelope = AABB<P>;
 
     fn envelope(&self) -> Self::Envelope {
-        AABB::from_corners(&self.from, &self.to)
+        AABB::from_corners(self.from, self.to)
     }
 }
 
 impl<P> SimpleEdge<P>
 where
-    P: EuclideanPoint,
+    P: Point,
 {
     fn project_point(&self, query_point: &P) -> P::Scalar {
         let (ref p1, ref p2) = (self.from, self.to);
@@ -59,7 +59,7 @@ where
 
 impl<P> PointDistance for SimpleEdge<P>
 where
-    P: EuclideanPoint,
+    P: Point,
 {
     fn distance_2(
         &self,

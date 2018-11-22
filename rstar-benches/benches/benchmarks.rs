@@ -44,25 +44,23 @@ fn bulk_load_comparison(c: &mut Criterion) {
         b.iter(move || {
             spade::rtree::RTree::bulk_load(points.clone());
         });
-    })
-        .with_function("rstar sequential", |b: &mut Bencher, size: &usize| {
-            let points: Vec<_> = create_random_points(*size, *b"|nsu)r3cTI0ni5ts");
-            b.iter(move || {
-                let mut rtree = rstar::RTree::new();
-                for point in &points {
-                    rtree.insert(*point);
-                }
-            });
-        })
-        .with_function("spade sequential", |b: &mut Bencher, size: &usize| {
-            let points: Vec<_> = create_random_points(*size, *b"|nsu)r3cTI0ni5ts");
-            b.iter(move || {
-                let mut rtree = spade::rtree::RTree::new();
-                for point in &points {
-                    rtree.insert(*point);
-                }
-            });
+    }).with_function("rstar sequential", |b: &mut Bencher, size: &usize| {
+        let points: Vec<_> = create_random_points(*size, *b"|nsu)r3cTI0ni5ts");
+        b.iter(move || {
+            let mut rtree = rstar::RTree::new();
+            for point in &points {
+                rtree.insert(*point);
+            }
         });
+    }).with_function("spade sequential", |b: &mut Bencher, size: &usize| {
+        let points: Vec<_> = create_random_points(*size, *b"|nsu)r3cTI0ni5ts");
+        b.iter(move || {
+            let mut rtree = spade::rtree::RTree::new();
+            for point in &points {
+                rtree.insert(*point);
+            }
+        });
+    });
 
     c.bench("bulk load comparison", rstar_bench);
 }

@@ -1,8 +1,8 @@
 use crate::envelope::Envelope;
-use crate::node::{ParentNodeData, RTreeNode};
+use crate::structures::node::{ParentNodeData, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
-use crate::point::{EuclideanPoint, Point};
+use crate::point::{Point};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct LevelPartitioning {
@@ -45,7 +45,7 @@ impl LevelPartitioning {
 pub fn bulk_load_with_params<T, Params>(elements: &mut [T]) -> ParentNodeData<T>
 where
     T: RTreeObject + Clone,
-    <T::Envelope as Envelope>::Point: EuclideanPoint,
+    <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
     bulk_load_recursive::<_, Params>(elements)
@@ -54,7 +54,7 @@ where
 fn bulk_load_recursive<T, Params>(mut elements: &mut [T]) -> ParentNodeData<T>
 where
     T: RTreeObject + Clone,
-    <T::Envelope as Envelope>::Point: EuclideanPoint,
+    <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
     let max_node_size = Params::MAX_SIZE;

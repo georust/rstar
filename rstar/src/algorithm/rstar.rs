@@ -1,5 +1,5 @@
 use crate::envelope::Envelope;
-use crate::node::{envelope_for_children, ParentNodeData, RTreeNode};
+use crate::structures::node::{envelope_for_children, ParentNodeData, RTreeNode};
 use num_traits::{Bounded, Zero};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;

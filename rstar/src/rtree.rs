@@ -1,13 +1,14 @@
 use crate::envelope::Envelope;
-use crate::iterators::{
-    LocateAllAtPoint, LocateAllAtPointMut, LocateInEnvelope, LocateInEnvelopeMut, RTreeIterator,
-    RTreeIteratorMut,
-};
-use crate::node::{ParentNodeData};
+use crate::algorithm::iterators::*;
+use crate::structures::node::ParentNodeData;
 use crate::object::{PointDistance, RTreeObject};
 use crate::params::{DefaultParams, RTreeParams};
-use crate::point::EuclideanPoint;
-use crate::selection_functions::SelectionFunc;
+use crate::algorithm::removal;
+use crate::algorithm::removal::*;
+use crate::algorithm::selection_functions::*;
+use crate::Point;
+use crate::algorithm::nearest_neighbor;
+use crate::algorithm::bulk_load;
 
 /// Defines how points are inserted into an r-tree.
 ///
@@ -110,24 +111,12 @@ where
         &mut self.root
     }
 
-    #[cfg(not(feature = "debug"))]
-    pub fn insert(&mut self, t: T) {
-        Params::DefaultInsertionStrategy::insert(self, t);
-        self.size += 1;
-    }
-
-    #[cfg(feature = "debug")]
-    pub fn insert(&mut self, t: T, metrics: &mut RTreeMetrics) {
-        Params::DefaultInsertionStrategy::insert(self, t, metrics);
-        self.size += 1;
-    }
-
     pub fn iter(&self) -> RTreeIterator<T> {
-        RTreeIterator::new(self, ())
+        RTreeIterator::new(self, SelectAllFunc)
     }
 
     pub fn iter_mut(&mut self) -> RTreeIteratorMut<T> {
-        RTreeIteratorMut::new(self, ())
+        RTreeIteratorMut::new(self, SelectAllFunc)
     }
 
     pub fn locate_at_point(&self, point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
@@ -145,30 +134,61 @@ where
         &self,
         point: &<T::Envelope as Envelope>::Point,
     ) -> LocateAllAtPoint<T> {
-        LocateAllAtPoint::new(self, *point)
+        LocateAllAtPoint::new(self, SelectAtPointFunc::new(*point))
     }
 
     pub fn locate_all_at_point_mut(
         &mut self,
         point: &<T::Envelope as Envelope>::Point,
     ) -> LocateAllAtPointMut<T> {
-        LocateAllAtPointMut::new(self, *point)
+        LocateAllAtPointMut::new(self, SelectAtPointFunc::new(*point))
     }
 
     pub fn locate_in_envelope(&self, envelope: &T::Envelope) -> LocateInEnvelope<T> {
-        LocateInEnvelope::new(self, *envelope)
+        // println!("Locate_in_envelope {:?}", envelope);
+        LocateInEnvelope::new(self, SelectInEnvelopeFunc::new(*envelope))
     }
 
-    pub fn locate_in_envelope_mut(
+    pub fn locate_in_envelope_mut(&mut self, envelope: &T::Envelope) -> LocateInEnvelopeMut<T> {
+        LocateInEnvelopeMut::new(self, SelectInEnvelopeFunc::new(*envelope))
+    }
+
+    pub fn locate_in_envelope_intersecting(
+        &self,
+        envelope: &T::Envelope,
+    ) -> LocateInEnvelopeIntersecting<T> {
+        LocateInEnvelopeIntersecting::new(self, SelectInEnvelopeFuncIntersecting::new(*envelope))
+    }
+
+    pub fn locate_in_envelope_intersecting_mut(
         &mut self,
         envelope: &T::Envelope,
-    ) -> LocateInEnvelopeMut<T> {
-        LocateInEnvelopeMut::new(self, *envelope)
+    ) -> LocateInEnvelopeIntersectingMut<T> {
+        LocateInEnvelopeIntersectingMut::new(self, SelectInEnvelopeFuncIntersecting::new(*envelope))
+    }
+}
+
+impl<T, Params> RTree<T, Params>
+where
+    Params: RTreeParams,
+    T: PointDistance,
+{
+    pub fn remove_with_distance_function(
+        &mut self,
+        point: &<T::Envelope as Envelope>::Point,
+        distance_2: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+    ) -> Option<T> {
+        let removal_function = RemoveWithDistanceFunction::new(*point, distance_2);
+        let result = remove::<_, Params, _>(self.root_mut(), &removal_function);
+        if result.is_some() {
+            self.size -= 1;
+        }
+        result
     }
 
     pub fn remove_at_point(&mut self, point: &<T::Envelope as Envelope>::Point) -> Option<T> {
-        let removal_function = crate::removal::RemoveAtPointFunction::new(*point);
-        let result = crate::removal::remove::<_, Params, _>(self.root_mut(), &removal_function);
+        let removal_function = RemoveAtPointFunction::new(*point);
+        let result = removal::remove::<_, Params, _>(self.root_mut(), &removal_function);
         if result.is_some() {
             self.size -= 1;
         }
@@ -190,8 +210,8 @@ where
     }
 
     pub fn remove(&mut self, t: &T) -> Option<T> {
-        let removal_function = crate::removal::RemoveEqualsFunction::new(t);
-        let result = crate::removal::remove::<_, Params, _>(self.root_mut(), &removal_function);
+        let removal_function = RemoveEqualsFunction::new(t);
+        let result = removal::remove::<_, Params, _>(self.root_mut(), &removal_function);
         if result.is_some() {
             self.size -= 1;
         }
@@ -212,7 +232,7 @@ where
         'b: 'a,
     {
         if self.size > 0 {
-            crate::nearest_neighbor::nearest_neighbor(self.root(), query_point)
+            nearest_neighbor::nearest_neighbor(self.root(), query_point)
                 .or_else(|| self.nearest_neighbor_iter(query_point).next())
         } else {
             None
@@ -226,18 +246,31 @@ where
     where
         'b: 'a,
     {
-        crate::nearest_neighbor::NearestNeighborIterator::new(self.root(), query_point)
+        nearest_neighbor::NearestNeighborIterator::new(self.root(), query_point)
     }
 }
 
 impl<T, Params> RTree<T, Params>
 where
-    T: RTreeObject + Clone,
-    <T::Envelope as Envelope>::Point: EuclideanPoint,
+    T: RTreeObject + ::std::fmt::Debug,
+    Params: RTreeParams,
+{
+    pub fn insert(&mut self, t: T) {
+        // println!("insert {:?}", t);
+        Params::DefaultInsertionStrategy::insert(self, t);
+        self.size += 1;
+    }
+}
+
+impl<T, Params> RTree<T, Params>
+where
+    T: RTreeObject + Clone + ::std::fmt::Debug,
+    <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
     pub fn bulk_load_with_params(elements: &mut Vec<T>) -> Self {
-        let root = crate::bulk_load::bulk_load_with_params::<_, Params>(elements);
+        let root = 
+        bulk_load::bulk_load_with_params::<_, Params>(elements);
         RTree {
             root,
             size: elements.len(),
@@ -248,12 +281,13 @@ where
 
 impl<T> RTree<T>
 where
-    T: RTreeObject + Clone,
-    <T::Envelope as Envelope>::Point: EuclideanPoint,
+    T: RTreeObject + Clone + ::std::fmt::Debug,
+    <T::Envelope as Envelope>::Point: Point,
 {
     pub fn bulk_load(elements: &mut [T]) -> Self {
+        // println!("bulk load\n{:?}", elements);
         RTree {
-            root: crate::bulk_load::bulk_load_with_params::<_, DefaultParams>(elements),
+            root: bulk_load::bulk_load_with_params::<_, DefaultParams>(elements),
             size: elements.len(),
             _params: Default::default(),
         }
@@ -264,7 +298,7 @@ where
 mod test {
     use super::RTree;
     use crate::params::RTreeParams;
-    use crate::rstar::RStarInsertionStrategy;
+    use crate::algorithm::rstar::RStarInsertionStrategy;
     use crate::test_utilities::create_random_points;
 
     struct TestParams;

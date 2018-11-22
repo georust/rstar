@@ -1,3 +1,4 @@
+use crate::primitives::SimpleRectangle;
 use rand::distributions::{Distribution, Uniform};
 use rand::{Rng, SeedableRng, XorShiftRng};
 
@@ -19,6 +20,24 @@ pub fn create_random_points(num_points: usize, seed: [u8; 16]) -> Vec<[f64; 2]> 
     let mut rng = XorShiftRng::from_seed(seed);
     for _ in 0..num_points {
         result.push(rng.gen());
+    }
+    result
+}
+
+pub fn create_random_rectangles(
+    num_rectangles: usize,
+    seed: [u8; 16],
+) -> Vec<SimpleRectangle<[f32; 2]>> {
+    let mut result = Vec::with_capacity(num_rectangles);
+    let mut rng = XorShiftRng::from_seed(seed);
+    let factor = 10. / num_rectangles as f32;
+    for _ in 0..num_rectangles {
+        let point: [f32; 2] = rng.gen();
+        let offset: [f32; 2] = rng.gen();
+        result.push(SimpleRectangle::new(
+            point,
+            [point[0] + offset[1] * factor, point[1] + offset[1] * factor],
+        ));
     }
     result
 }

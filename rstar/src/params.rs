@@ -1,4 +1,5 @@
-use crate::rstar::RStarInsertionStrategy;
+
+use crate::algorithm::rstar::RStarInsertionStrategy;
 use crate::rtree::InsertionStrategy;
 
 pub trait RTreeParams {

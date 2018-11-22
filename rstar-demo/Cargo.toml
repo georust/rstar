@@ -10,3 +10,4 @@ rand = "0.*"
 
 [dependencies.rstar]
 path = "../rstar"
+features = ["debug"]

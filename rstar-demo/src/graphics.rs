@@ -6,11 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use crate::Point;
 use glium;
 use glium::{Display, DrawParameters, Program, Surface, VertexBuffer};
-use rstar::node::RTreeNode;
+use rstar::RTreeNode;
 use rstar::{RTree, AABB};
-use crate::Point;
 
 const VERTEX_SHADER_SRC: &str = r#"
     #version 140
@@ -74,8 +74,7 @@ impl RenderData {
                 &self.program,
                 &glium::uniforms::EmptyUniforms,
                 &parameters,
-            )
-            .unwrap();
+            ).unwrap();
 
         let parameters = DrawParameters {
             point_size: Some(3.0),
@@ -90,8 +89,7 @@ impl RenderData {
                 &self.program,
                 &glium::uniforms::EmptyUniforms,
                 &parameters,
-            )
-            .unwrap();
+            ).unwrap();
 
         target
             .draw(
@@ -100,8 +98,7 @@ impl RenderData {
                 &self.program,
                 &glium::uniforms::EmptyUniforms,
                 &parameters,
-            )
-            .unwrap();
+            ).unwrap();
 
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::Points);
         target
@@ -111,8 +108,7 @@ impl RenderData {
                 &self.program,
                 &glium::uniforms::EmptyUniforms,
                 &parameters,
-            )
-            .unwrap();
+            ).unwrap();
 
         target.finish().unwrap();
     }
@@ -147,9 +143,9 @@ impl Vertex {
     }
 }
 
-pub fn push_rectangle(vec: &mut Vec<Vertex>, rect: &AABB<Point>, color: [f32; 3]) {
-    let v0 = [rect.lower()[0] as f32, rect.lower()[1] as f32];
-    let v2 = [rect.upper()[0] as f32, rect.upper()[1] as f32];;
+pub fn push_rectangle(vec: &mut Vec<Vertex>, rectangle: &AABB<Point>, color: [f32; 3]) {
+    let v0 = [rectangle.lower()[0] as f32, rectangle.lower()[1] as f32];
+    let v2 = [rectangle.upper()[0] as f32, rectangle.upper()[1] as f32];;
     let v1 = [v2[0] as f32, v0[1] as f32];
     let v3 = [v0[0] as f32, v2[1] as f32];
     vec.extend(

@@ -1,6 +1,6 @@
 use crate::envelope::Envelope;
 use num_traits::{Bounded, One, Signed, Zero};
-use crate::point::{max_inline, EuclideanPoint, Point, PointExt};
+use crate::point::{max_inline, Point, PointExt};
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub struct AABB<P>
@@ -13,7 +13,7 @@ where
 
 impl<P> AABB<P>
 where
-    P: EuclideanPoint,
+    P: Point,
 {
     pub fn from_point(p: P) -> Self {
         AABB { lower: p, upper: p }
@@ -27,10 +27,10 @@ where
         self.upper
     }
 
-    pub fn from_corners(p1: &P, p2: &P) -> Self {
+    pub fn from_corners(p1: P, p2: P) -> Self {
         AABB {
-            lower: p1.min_point(p2),
-            upper: p2.max_point(p2),
+            lower: p1.min_point(&p2),
+            upper: p1.max_point(&p2),
         }
     }
 
@@ -74,7 +74,7 @@ where
 
 impl<P> Envelope for AABB<P>
 where
-    P: EuclideanPoint,
+    P: Point,
 {
     type Point = P;
 

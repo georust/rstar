@@ -1,13 +1,17 @@
-use crate::node::RTreeNode;
+use crate::structures::node::RTreeNode;
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::rtree::RTree;
-use crate::selection_functions::{SelectAllFunc, SelectAtPointFunc, SelectInEnvelopeFunc, SelectionFunc};
+use crate::algorithm::selection_functions::*;
 
 pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunc<T>>;
 pub type LocateAllAtPointMut<'a, T> = SelectionIteratorMut<'a, T, SelectAtPointFunc<T>>;
 pub type LocateInEnvelope<'a, T> = SelectionIterator<'a, T, SelectInEnvelopeFunc<T>>;
 pub type LocateInEnvelopeMut<'a, T> = SelectionIteratorMut<'a, T, SelectInEnvelopeFunc<T>>;
+pub type LocateInEnvelopeIntersecting<'a, T> =
+    SelectionIterator<'a, T, SelectInEnvelopeFuncIntersecting<T>>;
+pub type LocateInEnvelopeIntersectingMut<'a, T> =
+    SelectionIteratorMut<'a, T, SelectInEnvelopeFuncIntersecting<T>>;
 pub type RTreeIterator<'a, T> = SelectionIterator<'a, T, SelectAllFunc>;
 pub type RTreeIteratorMut<'a, T> = SelectionIteratorMut<'a, T, SelectAllFunc>;
 
@@ -24,19 +28,19 @@ where
     T: RTreeObject,
     Func: SelectionFunc<T>,
 {
-    pub fn new<Params>(tree: &'a RTree<T, Params>, containment_unit: Func::ContainmentUnit) -> Self
+    pub fn new<Params>(tree: &'a RTree<T, Params>, func: Func) -> Self
     where
         Params: RTreeParams,
     {
-        let func = Func::new(containment_unit);
+        let current_nodes = tree
+            .root()
+            .children
+            .iter()
+            .filter(|c| func.is_contained_in(&c.envelope()))
+            .collect();
         SelectionIterator {
-            func: func.clone(),
-            current_nodes: tree
-                .root()
-                .children
-                .iter()
-                .filter(|c| func.is_contained_in(&c.envelope()))
-                .collect(),
+            func,
+            current_nodes,
         }
     }
 }
@@ -76,19 +80,19 @@ where
     T: RTreeObject,
     Func: SelectionFunc<T>,
 {
-    pub fn new<Params>(tree: &'a mut RTree<T, Params>, containment_unit: Func::ContainmentUnit) -> Self
+    pub fn new<Params>(tree: &'a mut RTree<T, Params>, func: Func) -> Self
     where
         Params: RTreeParams,
     {
-        let func = Func::new(containment_unit);
+        let current_nodes = tree
+            .root_mut()
+            .children
+            .iter_mut()
+            .filter(|c| func.is_contained_in(&c.envelope()))
+            .collect();
         SelectionIteratorMut {
-            func: func.clone(),
-            current_nodes: tree
-                .root_mut()
-                .children
-                .iter_mut()
-                .filter(|c| func.is_contained_in(&c.envelope()))
-                .collect(),
+            func: func,
+            current_nodes,
         }
     }
 }
@@ -122,13 +126,13 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::aabb::AABB;
+    use crate::structures::aabb::AABB;
     use crate::envelope::Envelope;
     use crate::object::RTreeObject;
     use crate::rtree::RTree;
     use crate::test_utilities::create_random_points;
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Clone)]
     struct TestRectangle {
         aabb: AABB<[f64; 2]>,
     }
