@@ -41,7 +41,7 @@ where
     type ContainmentUnit = T::Envelope;
 
     fn is_contained_in(&self, envelope: &T::Envelope) -> bool {
-        envelope.contains_envelope(&self.envelope)
+        self.envelope.contains_envelope(&envelope)
     }
 }
 
