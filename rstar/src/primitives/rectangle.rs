@@ -1,36 +1,68 @@
-use crate::structures::aabb::AABB;
 use crate::envelope::Envelope;
 use crate::object::{PointDistance, RTreeObject};
 use crate::point::{Point, PointExt};
+use crate::structures::aabb::AABB;
 
+/// An n-dimensional rectangle defined by its two corners.
+///
+/// This rectangle can be directly inserted into an r-tree.
+///
+/// *Note*: Despite being called rectangle, this struct can be used
+/// with more than two dimensions by using an appropriate point type.
+///
+/// # Type parameters
+/// `P`: The rectangle's point type.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
-pub struct SimpleRectangle<P>
+pub struct Rectangle<P>
 where
     P: Point,
 {
     aabb: AABB<P>,
 }
 
-impl<P> SimpleRectangle<P>
+impl<P> Rectangle<P>
 where
     P: Point,
 {
-    pub fn new(from: P, to: P) -> Self {
-        SimpleRectangle {
-            aabb: AABB::from_corners(from, to),
+    /// Creates a new rectangle defined by two corners.
+    pub fn new(corner_1: P, corner_2: P) -> Self {
+        Rectangle {
+            aabb: AABB::from_corners(corner_1, corner_2),
         }
     }
 
+    /// Creates a new rectangle defined by it's [axis aligned bounding box](struct.AABB.html).
+    pub fn from_aabb(aabb: AABB<P>) -> Self {
+        Rectangle { aabb }
+    }
+
+    /// Returns the rectangle's lower corner.
+    ///
+    /// This is the point contained within the rectangle with the smallest coordinate value in each
+    /// dimension.
     pub fn lower(&self) -> P {
         self.aabb.lower()
     }
 
+    /// Returns the rectangle's upper corner.
+    ///
+    /// This is the point contained within the AABB with the largest coordinate value in each
+    /// dimension.
     pub fn upper(&self) -> P {
         self.aabb.upper()
     }
 }
 
-impl<P> RTreeObject for SimpleRectangle<P>
+impl<P> From<AABB<P>> for Rectangle<P>
+where
+    P: Point,
+{
+    fn from(aabb: AABB<P>) -> Self {
+        Self::from_aabb(aabb)
+    }
+}
+
+impl<P> RTreeObject for Rectangle<P>
 where
     P: Point,
 {
@@ -41,16 +73,19 @@ where
     }
 }
 
-impl<P> SimpleRectangle<P>
+impl<P> Rectangle<P>
 where
     P: Point,
 {
+    /// Returns the nearest point within this rectangle to a given point.
+    ///
+    /// If `query_point` is contained within this rectangle, `query_point` is returned.
     pub fn nearest_point(&self, query_point: &P) -> P {
         self.aabb.min_point(query_point)
     }
 }
 
-impl<P> PointDistance for SimpleRectangle<P>
+impl<P> PointDistance for Rectangle<P>
 where
     P: Point,
 {
@@ -68,12 +103,13 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::SimpleRectangle;
+    use super::Rectangle;
     use crate::object::PointDistance;
+    use approx::*;
 
     #[test]
     fn rectangle_distance() {
-        let rectangle = SimpleRectangle::new([0.5, 0.5], [1.0, 2.0]);
+        let rectangle = Rectangle::new([0.5, 0.5], [1.0, 2.0]);
 
         assert_abs_diff_eq!(rectangle.distance_2(&[0.5, 0.5]), 0.0);
         assert_abs_diff_eq!(rectangle.distance_2(&[0.0, 0.5]), 0.5 * 0.5);

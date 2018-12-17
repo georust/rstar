@@ -1,13 +1,11 @@
-use crate::structures::node::RTreeNode;
-use crate::object::RTreeObject;
-use crate::params::RTreeParams;
-use crate::rtree::RTree;
 use crate::algorithm::selection_functions::*;
+use crate::object::RTreeObject;
+use crate::structures::node::{ParentNodeData, RTreeNode};
 
-pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunc<T>>;
-pub type LocateAllAtPointMut<'a, T> = SelectionIteratorMut<'a, T, SelectAtPointFunc<T>>;
-pub type LocateInEnvelope<'a, T> = SelectionIterator<'a, T, SelectInEnvelopeFunc<T>>;
-pub type LocateInEnvelopeMut<'a, T> = SelectionIteratorMut<'a, T, SelectInEnvelopeFunc<T>>;
+pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunction<T>>;
+pub type LocateAllAtPointMut<'a, T> = SelectionIteratorMut<'a, T, SelectAtPointFunction<T>>;
+pub type LocateInEnvelope<'a, T> = SelectionIterator<'a, T, SelectInEnvelopeFunction<T>>;
+pub type LocateInEnvelopeMut<'a, T> = SelectionIteratorMut<'a, T, SelectInEnvelopeFunction<T>>;
 pub type LocateInEnvelopeIntersecting<'a, T> =
     SelectionIterator<'a, T, SelectInEnvelopeFuncIntersecting<T>>;
 pub type LocateInEnvelopeIntersectingMut<'a, T> =
@@ -18,25 +16,22 @@ pub type RTreeIteratorMut<'a, T> = SelectionIteratorMut<'a, T, SelectAllFunc>;
 pub struct SelectionIterator<'a, T, Func>
 where
     T: RTreeObject + 'a,
-    Func: SelectionFunc<T>,
+    Func: SelectionFunction<T>,
 {
     func: Func,
     current_nodes: Vec<&'a RTreeNode<T>>,
 }
+
 impl<'a, T, Func> SelectionIterator<'a, T, Func>
 where
     T: RTreeObject,
-    Func: SelectionFunc<T>,
+    Func: SelectionFunction<T>,
 {
-    pub fn new<Params>(tree: &'a RTree<T, Params>, func: Func) -> Self
-    where
-        Params: RTreeParams,
-    {
-        let current_nodes = tree
-            .root()
+    pub fn new(root: &'a ParentNodeData<T>, func: Func) -> Self {
+        let current_nodes: Vec<_> = root
             .children
             .iter()
-            .filter(|c| func.is_contained_in(&c.envelope()))
+            .filter(|child| func.should_unpack_node(child))
             .collect();
         SelectionIterator {
             func,
@@ -49,16 +44,22 @@ impl<'a, T, Func> Iterator for SelectionIterator<'a, T, Func>
 where
     T: RTreeObject,
 
-    Func: SelectionFunc<T>,
+    Func: SelectionFunction<T>,
 {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<&'a T> {
         while let Some(next) = self.current_nodes.pop() {
-            if self.func.is_contained_in(&next.envelope()) {
-                match next {
-                    RTreeNode::Leaf(ref t) => return Some(t),
-                    RTreeNode::Parent(ref data) => self.current_nodes.extend(&data.children),
+            match next {
+                RTreeNode::Leaf(ref t) => {
+                    if self.func.should_unpack_leaf(t) {
+                        return Some(t);
+                    }
+                }
+                RTreeNode::Parent(ref data) => {
+                    if self.func.should_unpack_parent(&data.envelope) {
+                        self.current_nodes.extend(&data.children);
+                    }
                 }
             }
         }
@@ -69,7 +70,7 @@ where
 pub struct SelectionIteratorMut<'a, T, Func>
 where
     T: RTreeObject + 'a,
-    Func: SelectionFunc<T>,
+    Func: SelectionFunction<T>,
 {
     func: Func,
     current_nodes: Vec<&'a mut RTreeNode<T>>,
@@ -78,20 +79,16 @@ where
 impl<'a, T, Func> SelectionIteratorMut<'a, T, Func>
 where
     T: RTreeObject,
-    Func: SelectionFunc<T>,
+    Func: SelectionFunction<T>,
 {
-    pub fn new<Params>(tree: &'a mut RTree<T, Params>, func: Func) -> Self
-    where
-        Params: RTreeParams,
-    {
-        let current_nodes = tree
-            .root_mut()
+    pub fn new(root: &'a mut ParentNodeData<T>, func: Func) -> Self {
+        let current_nodes = root
             .children
             .iter_mut()
-            .filter(|c| func.is_contained_in(&c.envelope()))
+            .filter(|c| func.should_unpack_parent(&c.envelope()))
             .collect();
         SelectionIteratorMut {
-            func: func,
+            func,
             current_nodes,
         }
     }
@@ -101,11 +98,11 @@ impl<'a, T, Func> Iterator for SelectionIteratorMut<'a, T, Func>
 where
     T: RTreeObject,
 
-    Func: SelectionFunc<T>,
+    Func: SelectionFunction<T>,
 {
     type Item = &'a mut T;
     fn next(&mut self) -> Option<&'a mut T> {
-        let func = self.func.clone();
+        let func = &self.func;
         if let Some(next) = self.current_nodes.pop() {
             match next {
                 RTreeNode::Leaf(ref mut t) => Some(t),
@@ -113,7 +110,7 @@ where
                     self.current_nodes.extend(
                         data.children
                             .iter_mut()
-                            .filter(|c| func.is_contained_in(&c.envelope())),
+                            .filter(|c| func.should_unpack_parent(&c.envelope())),
                     );
                     self.next()
                 }
@@ -126,71 +123,60 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::structures::aabb::AABB;
     use crate::envelope::Envelope;
     use crate::object::RTreeObject;
     use crate::rtree::RTree;
-    use crate::test_utilities::create_random_points;
+    use crate::structures::aabb::AABB;
+    use crate::test_utilities::{create_random_points, create_random_rectangles, SEED_1};
 
-    #[derive(Debug, PartialEq, Clone)]
-    struct TestRectangle {
-        aabb: AABB<[f64; 2]>,
-    }
+    #[test]
+    fn test_locate_all() {
+        const NUM_RECTANGLES: usize = 400;
+        let mut rectangles = create_random_rectangles(NUM_RECTANGLES, SEED_1);
+        let tree = RTree::bulk_load(&mut rectangles);
 
-    impl RTreeObject for TestRectangle {
-        type Envelope = AABB<[f64; 2]>;
+        let query_points = create_random_points(20, SEED_1);
 
-        fn envelope(&self) -> Self::Envelope {
-            self.aabb
+        for p in &query_points {
+            let contained_sequential: Vec<_> = rectangles
+                .iter()
+                .filter(|rectangle| rectangle.envelope().contains_point(p))
+                .cloned()
+                .collect();
+
+            let contained_rtree: Vec<_> = tree.locate_all_at_point(p).cloned().collect();
+
+            contained_sequential
+                .iter()
+                .all(|r| contained_rtree.contains(r));
+            contained_rtree
+                .iter()
+                .all(|r| contained_sequential.contains(r));
         }
     }
 
     #[test]
-    fn test_locate_all() {
-        const NUM_POINTS: usize = 400;
-        let points = create_random_points(NUM_POINTS, *b"pt=rylOgr/PHi,al");
-        let mut tree = RTree::new();
-        let mut aabb_list = Vec::new();
-        for ps in points.as_slice().windows(2) {
-            let rectangle = TestRectangle {
-                aabb: AABB::from_points(ps),
-            };
-            tree.insert(rectangle.clone());
-            aabb_list.push(rectangle)
-        }
-
-        let query_points = create_random_points(10, *b"pO5tp2r;xysMa1!y");
-        for p in &query_points {
-            let mut contained_sequential: Vec<_> = aabb_list
-                .iter()
-                .filter(|aabb| aabb.aabb.contains_point(p))
-                .cloned()
-                .collect();
-            {
-                let contained_rtree: Vec<_> = tree.locate_all_at_point(p).collect();
-                for rectangle in &contained_rtree {
-                    assert!(&contained_sequential.contains(rectangle));
-                }
-                assert_eq!(contained_sequential.len(), contained_rtree.len());
-            }
-
-            let contained_rtree_mut: Vec<_> = tree.locate_all_at_point_mut(p).collect();
-
-            assert_eq!(contained_sequential.len(), contained_rtree_mut.len());
-
-            for rectangle in &contained_rtree_mut {
-                assert!(&contained_sequential.contains(rectangle));
-            }
-            for rectangle in &mut contained_sequential {
-                assert!(&contained_rtree_mut.contains(&rectangle));
-            }
+    fn test_locate_in_envelope() {
+        let mut points = create_random_points(100, SEED_1);
+        let tree = RTree::bulk_load(&mut points);
+        let envelope = AABB::from_corners([0.5, 0.5], [1.0, 1.0]);
+        let contained_in_envelope: Vec<_> = points
+            .iter()
+            .filter(|point| envelope.contains_point(point))
+            .cloned()
+            .collect();
+        let len = contained_in_envelope.len();
+        assert!(10 < len && len < 90, "unexpected point distribution");
+        let located: Vec<_> = tree.locate_in_envelope(&envelope).cloned().collect();
+        for point in &contained_in_envelope {
+            assert!(located.contains(point));
         }
     }
 
     #[test]
     fn test_iteration() {
         const NUM_POINTS: usize = 1000;
-        let points = create_random_points(NUM_POINTS, *b"di5syMmeTriCa1ly");
+        let points = create_random_points(NUM_POINTS, SEED_1);
         let mut tree = RTree::new();
         for p in &points {
             tree.insert(*p);

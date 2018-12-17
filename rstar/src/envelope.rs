@@ -1,26 +1,57 @@
 use crate::point::Point;
 
+/// An envelope type that encompasses some child nodes.
+///
+/// An envelope defines how different bounding boxes of inserted children in an r-tree can interact,
+/// e.g. how they can be merged or intersected.
+/// This trait is not meant to be implemented by the user. Currently, only one implementation
+/// exists (AABB)[struct.AABB.html] and should be used, but more implementations are possible.
 pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
-    type Point: Point;
+        /// The envelope's point type.
+        type Point: Point;
 
-    fn new_empty() -> Self;
+        /// Creates a new, empty envelope that does not encompass any child.
+        fn new_empty() -> Self;
 
-    fn contains_point(&self, point: &Self::Point) -> bool;
-    fn contains_envelope(&self, aabb: &Self) -> bool;
+        /// Returns true if a point is contained within this envelope.
+        fn contains_point(&self, point: &Self::Point) -> bool;
 
-    fn merge(&mut self, other: &Self);
-    fn merged(&self, other: &Self) -> Self;
-    fn intersects(&self, other: &Self) -> bool;
-    fn intersection_area(&self, other: &Self) -> <Self::Point as Point>::Scalar;
+        /// Returns true if another envelope is _fully contained_ within `self`.
+        fn contains_envelope(&self, aabb: &Self) -> bool;
 
-    fn area(&self) -> <Self::Point as Point>::Scalar;
+        /// Extends `self` to contain another envelope.
+        fn merge(&mut self, other: &Self);
+        /// Returns the minimal envelope containing `self` and another envelope.
+        fn merged(&self, other: &Self) -> Self;
 
-    fn distance_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
-    fn min_max_dist_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
-    fn center(&self) -> Self::Point;
-    fn margin_value(&self) -> <Self::Point as Point>::Scalar;
+        /// Sets `self` to the intersection of `self` and another envelope.
+        fn intersects(&self, other: &Self) -> bool;
+        /// Returns the area of the intersection of `self` and another envelope.
+        fn intersection_area(&self, other: &Self) -> <Self::Point as Point>::Scalar;
 
-    fn align_envelopes<T, F>(axis: usize, envelopes: &mut [T], f: F)
-    where
-        F: Fn(&T) -> Self;
+        /// Returns this envelope's area. Must be at least 0.
+        fn area(&self) -> <Self::Point as Point>::Scalar;
+
+        /// Returns the euclidean distance to the envelope's border.
+        fn distance_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
+
+        /// Returns the squared min-max distance, a concept that helps to find nearest neighbors efficiently.
+        ///
+        /// Visually, if an AABB and a point are given, the min-max distance returns the distance at which we
+        /// surely know an element must be present. This serves as an upper bound during nearest neighbor search.
+        ///
+        /// # References
+        /// Roussopoulos, Nick, Stephen Kelley, and Frédéric Vincent. "Nearest neighbor queries." ACM sigmod record. Vol. 24. No. 2. ACM, 1995.
+        fn min_max_dist_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
+
+        /// Returns the envelope's center point.
+        fn center(&self) -> Self::Point;
+
+        /// Returns a value proportional to the envelope's margin.
+        fn margin_value(&self) -> <Self::Point as Point>::Scalar;
+
+        /// Sorts a given set of objects with envelopes along one of their axis.
+        fn sort_envelopes<T, F>(axis: usize, envelopes: &mut [T], f: F)
+        where
+                F: Fn(&T) -> Self;
 }

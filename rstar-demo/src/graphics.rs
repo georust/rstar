@@ -1,16 +1,8 @@
-// Copyright 2017 The Spade Developers.
-//
-// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
-// except according to those terms.
-
 use crate::Point;
 use glium;
 use glium::{Display, DrawParameters, Program, Surface, VertexBuffer};
 use rstar::RTreeNode;
-use rstar::{RTree, AABB};
+use rstar::{root, RTree, RTreeParams, AABB};
 
 const VERTEX_SHADER_SRC: &str = r#"
     #version 140
@@ -74,7 +66,8 @@ impl RenderData {
                 &self.program,
                 &glium::uniforms::EmptyUniforms,
                 &parameters,
-            ).unwrap();
+            )
+            .unwrap();
 
         let parameters = DrawParameters {
             point_size: Some(3.0),
@@ -89,7 +82,8 @@ impl RenderData {
                 &self.program,
                 &glium::uniforms::EmptyUniforms,
                 &parameters,
-            ).unwrap();
+            )
+            .unwrap();
 
         target
             .draw(
@@ -98,7 +92,8 @@ impl RenderData {
                 &self.program,
                 &glium::uniforms::EmptyUniforms,
                 &parameters,
-            ).unwrap();
+            )
+            .unwrap();
 
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::Points);
         target
@@ -108,14 +103,18 @@ impl RenderData {
                 &self.program,
                 &glium::uniforms::EmptyUniforms,
                 &parameters,
-            ).unwrap();
+            )
+            .unwrap();
 
         target.finish().unwrap();
     }
 
-    pub fn update_rtree_buffers(&mut self, display: &Display, tree: &RTree<Point>) {
+    pub fn update_rtree_buffers<Params>(&mut self, display: &Display, tree: &RTree<Point, Params>)
+    where
+        Params: RTreeParams,
+    {
         let mut edges = Vec::new();
-        let vertices = get_tree_edges(&tree, &mut edges);
+        let vertices = get_tree_edges::<Params>(&tree, &mut edges);
         self.edges_buffer = VertexBuffer::new(display, &edges).unwrap();
         self.vertices_buffer = VertexBuffer::new(display, &vertices).unwrap();
     }
@@ -181,10 +180,13 @@ pub fn get_color_for_depth(depth: usize) -> [f32; 3] {
     }
 }
 
-fn get_tree_edges(tree: &RTree<Point>, buffer: &mut Vec<Vertex>) -> Vec<Vertex> {
+fn get_tree_edges<Params>(tree: &RTree<Point, Params>, buffer: &mut Vec<Vertex>) -> Vec<Vertex>
+where
+    Params: RTreeParams,
+{
     let mut vertices = Vec::new();
     let vertex_color = [0.0, 0.0, 1.0];
-    let mut to_visit = vec![(tree.root(), 0)];
+    let mut to_visit = vec![(root(tree), 0)];
     while let Some((cur, depth)) = to_visit.pop() {
         push_rectangle(buffer, &cur.envelope, get_color_for_depth(depth));
         for child in &cur.children {

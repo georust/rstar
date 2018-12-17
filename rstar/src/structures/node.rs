@@ -2,7 +2,8 @@ use crate::envelope::Envelope;
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[doc(hidden)]
 pub enum RTreeNode<T>
 where
     T: RTreeObject,
@@ -11,7 +12,7 @@ where
     Parent(ParentNodeData<T>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParentNodeData<T>
 where
     T: RTreeObject,
@@ -20,6 +21,7 @@ where
     pub envelope: T::Envelope,
 }
 
+#[doc(hidden)]
 impl<T> RTreeNode<T>
 where
     T: RTreeObject,

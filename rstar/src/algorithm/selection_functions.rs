@@ -1,47 +1,55 @@
 use crate::envelope::Envelope;
+use crate::object::PointDistance;
 use crate::object::RTreeObject;
+use crate::structures::node::RTreeNode;
 
-pub trait SelectionFunc<T> : Clone
+pub trait SelectionFunction<T>
 where
     T: RTreeObject,
 {
     type ContainmentUnit;
-    fn is_contained_in(&self, envelope: &T::Envelope) -> bool;
+    fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool;
+
+    fn should_unpack_leaf(&self, leaf: &T) -> bool {
+        self.should_unpack_parent(&leaf.envelope())
+    }
+
+    fn should_unpack_node(&self, node: &RTreeNode<T>) -> bool {
+        match node {
+            RTreeNode::Parent(ref data) => self.should_unpack_parent(&data.envelope),
+            RTreeNode::Leaf(ref t) => self.should_unpack_leaf(t),
+        }
+    }
 }
 
-pub struct SelectInEnvelopeFunc<T>
+pub struct SelectInEnvelopeFunction<T>
 where
     T: RTreeObject,
 {
     envelope: T::Envelope,
 }
 
-impl<T> Clone for SelectInEnvelopeFunc<T> where T: RTreeObject
-{
-    fn clone(&self) -> Self {
-        SelectInEnvelopeFunc {
-            envelope: self.envelope
-        }
-    }
-}
-
-impl<T> SelectInEnvelopeFunc<T>
+impl<T> SelectInEnvelopeFunction<T>
 where
     T: RTreeObject,
 {
     pub fn new(envelope: T::Envelope) -> Self {
-        SelectInEnvelopeFunc { envelope }
+        SelectInEnvelopeFunction { envelope }
     }
 }
 
-impl<T> SelectionFunc<T> for SelectInEnvelopeFunc<T>
+impl<T> SelectionFunction<T> for SelectInEnvelopeFunction<T>
 where
     T: RTreeObject,
 {
     type ContainmentUnit = T::Envelope;
 
-    fn is_contained_in(&self, envelope: &T::Envelope) -> bool {
-        envelope.contains_envelope(&self.envelope)
+    fn should_unpack_parent(&self, parent_envelope: &T::Envelope) -> bool {
+        self.envelope.intersects(parent_envelope)
+    }
+
+    fn should_unpack_leaf(&self, leaf: &T) -> bool {
+        self.envelope.contains_envelope(&leaf.envelope())
     }
 }
 
@@ -61,73 +69,93 @@ where
     }
 }
 
-impl<T> SelectionFunc<T> for SelectInEnvelopeFuncIntersecting<T>
+impl<T> SelectionFunction<T> for SelectInEnvelopeFuncIntersecting<T>
 where
     T: RTreeObject,
 {
     type ContainmentUnit = T::Envelope;
 
-    fn is_contained_in(&self, envelope: &T::Envelope) -> bool {
+    fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
         self.envelope.intersects(&envelope)
     }
 }
 
-impl <T> Clone for SelectInEnvelopeFuncIntersecting<T> where T: RTreeObject
+pub struct SelectAllFunc;
+
+impl<T> SelectionFunction<T> for SelectAllFunc
+where
+    T: RTreeObject,
 {
-    fn clone(&self) -> Self {
-        SelectInEnvelopeFuncIntersecting {
-            envelope: self.envelope
-        }
+    type ContainmentUnit = ();
+
+    fn should_unpack_parent(&self, _: &T::Envelope) -> bool {
+        true
     }
 }
 
-pub struct SelectAtPointFunc<T>
+/// A [trait.SelectionFunction] that only selects elements whose envelope
+/// contains a specific point.
+pub struct SelectAtPointFunction<T>
 where
     T: RTreeObject,
 {
     point: <T::Envelope as Envelope>::Point,
 }
 
-impl<T> SelectAtPointFunc<T>
+impl<T> SelectAtPointFunction<T>
 where
-    T: RTreeObject,
+    T: PointDistance,
 {
     pub fn new(point: <T::Envelope as Envelope>::Point) -> Self {
-        SelectAtPointFunc { point }
+        SelectAtPointFunction { point }
     }
 }
 
-impl<T> SelectionFunc<T> for SelectAtPointFunc<T>
+impl<T> SelectionFunction<T> for SelectAtPointFunction<T>
 where
-    T: RTreeObject,
+    T: PointDistance,
 {
     type ContainmentUnit = <T::Envelope as Envelope>::Point;
 
-    fn is_contained_in(&self, envelope: &T::Envelope) -> bool {
+    fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
         envelope.contains_point(&self.point)
     }
-}
 
-impl<T> Clone for SelectAtPointFunc<T>
-where T: RTreeObject
-{
-    fn clone(&self) -> Self {
-        SelectAtPointFunc {
-            point: self.point
-        }
+    fn should_unpack_leaf(&self, leaf: &T) -> bool {
+        leaf.contains_point(&self.point)
     }
 }
 
-#[derive(Clone)]
-pub struct SelectAllFunc;
-
-impl<T> SelectionFunc<T> for SelectAllFunc
+/// A selection function that only chooses elements equal (`==`) to a
+/// given element
+pub struct SelectEqualsFunction<'a, T>
 where
-    T: RTreeObject,
+    T: RTreeObject + PartialEq + 'a,
 {
-    type ContainmentUnit = ();
+    /// Only elements equal to this object will be removed.
+    object_to_remove: &'a T,
+}
 
-    fn is_contained_in(&self, _: &T::Envelope) -> bool {
-        true
+impl<'a, T> SelectEqualsFunction<'a, T>
+where
+    T: RTreeObject + PartialEq,
+{
+    pub fn new(object_to_remove: &'a T) -> Self {
+        SelectEqualsFunction { object_to_remove }
+    }
+}
+
+impl<'a, T> SelectionFunction<T> for SelectEqualsFunction<'a, T>
+where
+    T: RTreeObject + PartialEq,
+{
+    type ContainmentUnit = &'a T;
+
+    fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
+        envelope.contains_envelope(&self.object_to_remove.envelope())
+    }
+
+    fn should_unpack_leaf(&self, leaf: &T) -> bool {
+        leaf == self.object_to_remove
     }
 }

@@ -1,21 +1,9 @@
-// Copyright 2017 The Spade Developers.
-//
-// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
-// except according to those terms.
-
-/*
- * This example is an interactive demo showing the features of spade's delaunay
- * triangulation and R-Tree. Press h for help.
- */
-
 extern crate rand;
 extern crate rstar;
 #[macro_use]
 extern crate glium;
 extern crate num_traits;
+extern crate rand_hc;
 
 mod graphics;
 
@@ -23,17 +11,26 @@ use crate::graphics::RenderData;
 use glium::glutin::VirtualKeyCode;
 use glium::glutin::{ElementState, Event, MouseButton};
 use glium::DisplayBuild;
-use rand::distributions::range::SampleRange;
-use rand::distributions::{Distribution, Range};
-use rand::{Rng, SeedableRng, XorShiftRng};
+use rand::distributions::uniform::*;
+use rand::distributions::Distribution;
+use rand::{Rng, SeedableRng};
+use rand_hc::Hc128Rng;
+use rstar::root;
 use rstar::RTree;
-use rstar::{DefaultParams, RTreeNum};
+use rstar::{RStarInsertionStrategy, RTreeNum, RTreeParams};
 
 pub type Point = [f64; 2];
 
 #[derive(Clone, Copy)]
 pub enum LookupMode {
     Nearest,
+}
+
+struct Params;
+impl RTreeParams for Params {
+    const MIN_SIZE: usize = 4;
+    const MAX_SIZE: usize = 9;
+    type DefaultInsertionStrategy = RStarInsertionStrategy;
 }
 
 impl ::std::fmt::Display for LookupMode {
@@ -55,8 +52,8 @@ pub fn main() {
         .build_glium()
         .unwrap();
 
-    let mut points = random_points_with_seed(24, *b"abcdefghijklm1+n");
-    let mut rtree: RTree<Point> = RTree::bulk_load(&mut points);
+    let mut points = random_points_with_seed(10000, *b"abcdefghijklm1+nnonrestrictively");
+    let mut rtree: RTree<Point, Params> = RTree::bulk_load_with_params(&mut points);
 
     let mut render_data = RenderData::new(&display);
     render_data.update_rtree_buffers(&display, &rtree);
@@ -64,8 +61,8 @@ pub fn main() {
     let mut last_point = [0.0, 0.0];
     let lookup_mode = LookupMode::Nearest;
 
-    let seed = b"criminalisations";
-    let mut rng = XorShiftRng::from_seed(*seed);
+    let seed = b"seminationalizedcriminalisations";
+    let mut rng = Hc128Rng::from_seed(*seed);
 
     println!("Interactive Demo");
     print_help();
@@ -103,7 +100,7 @@ pub fn main() {
                             for point in new_points {
                                 rtree.insert(point);
                             }
-                            rtree.root().sanity_check::<DefaultParams>();
+                            root(&rtree).sanity_check::<Params>();
                             render_data.update_rtree_buffers(&display, &rtree);
                             dirty = true;
                         }
@@ -145,7 +142,14 @@ pub fn main() {
     }
 }
 
-fn get_selected_vertices(tree: &RTree<Point>, point: Point, lookup_mode: LookupMode) -> Vec<Point> {
+fn get_selected_vertices<Params>(
+    tree: &RTree<Point, Params>,
+    point: Point,
+    lookup_mode: LookupMode,
+) -> Vec<Point>
+where
+    Params: RTreeParams,
+{
     let mut points = Vec::new();
     match lookup_mode {
         LookupMode::Nearest => {
@@ -165,13 +169,13 @@ fn print_help() {
     println!("Right click: Delete closest point.");
 }
 
-fn random_points_in_range<S: RTreeNum + SampleRange>(
+fn random_points_in_range<S: RTreeNum + SampleUniform>(
     range: S,
     size: usize,
-    seed: [u8; 16],
+    seed: [u8; 32],
 ) -> Vec<[S; 2]> {
-    let mut rng = XorShiftRng::from_seed(seed);
-    let range = Range::new(-range, range);
+    let mut rng = Hc128Rng::from_seed(seed);
+    let range = Uniform::new(-range, range);
     let mut points = Vec::with_capacity(size);
     for _ in 0..size {
         let x = range.sample(&mut rng);
@@ -181,6 +185,9 @@ fn random_points_in_range<S: RTreeNum + SampleRange>(
     points
 }
 
-fn random_points_with_seed<S: RTreeNum + SampleRange>(size: usize, seed: [u8; 16]) -> Vec<[S; 2]> {
+fn random_points_with_seed<S: RTreeNum + SampleUniform>(
+    size: usize,
+    seed: [u8; 32],
+) -> Vec<[S; 2]> {
     random_points_in_range(S::one(), size, seed)
 }

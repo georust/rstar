@@ -1,19 +1,163 @@
-use crate::structures::aabb::AABB;
 use crate::envelope::Envelope;
 use crate::point::{Point, PointExt};
+use crate::structures::aabb::AABB;
 
+/// An object that can be inserted into an r-tree.
+///
+/// This trait must be implemented for any object that should be inserted into an r-tree.
+/// Some simple objects that already implement this trait can be found in the
+/// [primitives](mod.primitives.html) module.
+///
+/// The only property required of such an object is its [envelope](traits.Envelope.html).
+/// Most simply, this method should return the [axis aligned bounding box](structs.AABB.html)
+/// of the object, other envelope types may be supported in the future.
+///
+/// # Type parameters
+/// `Envelope`: The objects envelope type. At the moment, only [AABB](structs.AABB.html) is
+/// feasible.
+///
+/// # Example implementation
+/// ```
+/// use rstar::{RTreeObject, AABB};
+///
+/// struct Player
+/// {
+///     name: String,
+///     x_coordinate: f64,
+///     y_coordinate: f64
+/// }
+///
+/// impl RTreeObject for Player
+/// {
+///     type Envelope = AABB<[f64; 2]>;
+///
+///     fn envelope(&self) -> Self::Envelope
+///     {
+///         AABB::from_point([self.x_coordinate, self.y_coordinate])
+///     }
+/// }
+///
+/// fn main()
+/// {
+///     use rstar::{RTree, AABB};
+///
+///     let mut tree = RTree::new();
+///     
+///     // Insert a few players...
+///     tree.insert(Player {
+///         name: "Forlorn Freeman".into(),
+///         x_coordinate: 1.,
+///         y_coordinate: 0.
+///     });
+///     tree.insert(Player {
+///         name: "Sarah Croft".into(),
+///         x_coordinate: 0.5,
+///         y_coordinate: 0.5,
+///     });
+///     tree.insert(Player {
+///         name: "Geralt of Trivia".into(),
+///         x_coordinate: 0.,
+///         y_coordinate: 2.,
+///     });
+///     
+///     // Now we are ready to ask some questions!
+///     let envelope = AABB::from_point([0.5, 0.5]);
+///     let likely_sarah_croft = tree.locate_in_envelope(&envelope).next();
+///     println!("Found {:?} lurking around at (0.5, 0.5)!", likely_sarah_croft.unwrap().name);
+///     # assert!(likely_sarah_croft.is_some());
+///
+///     let unit_square = AABB::from_corners([-1.0, -1.0], [1., 1.]);
+///     for player in tree.locate_in_envelope(&unit_square) {
+///        println!("And here is {:?} spelunking in the unit square.", player.name);
+///     }
+///     # assert_eq!(tree.locate_in_envelope(&unit_square).count(), 2);
+/// }
+/// ```
 pub trait RTreeObject {
+    /// The object's envelope type. Usually, [AABB](struct.AABB.html) will be the right choice.
+    /// This type also defines the objects dimensionality.
     type Envelope: Envelope;
 
+    /// Returns the object's envelope.
+    ///
+    /// Usually, this will return the object's [axis aligned bounding box](struct.AABB.html).
     fn envelope(&self) -> Self::Envelope;
 }
 
+/// Defines objects which can calculate their minimal distance to a point.
+///
+/// This trait is most notably necessary for support of [nearest_neighbor](struct.RTree#method.nearest_neighbor)
+/// queries.
+///
+/// # Example
+/// ```
+/// use rstar::{RTreeObject, PointDistance, AABB};
+///
+/// struct Circle
+/// {
+///     origin: [f32; 2],
+///     radius: f32,
+/// }
+///
+/// impl RTreeObject for Circle {
+///     type Envelope = AABB<[f32; 2]>;
+///     
+///     fn envelope(&self) -> Self::Envelope {
+///         let corner_1 = [self.origin[0] - self.radius, self.origin[1] - self.radius];
+///         let corner_2 = [self.origin[0] + self.radius, self.origin[1] + self.radius];
+///         AABB::from_corners(corner_1, corner_2)
+///     }
+/// }
+///
+/// impl PointDistance for Circle
+/// {
+///     fn distance_2(&self, point: &[f32; 2]) -> f32
+///     {
+///         let d_x = self.origin[0] - point[0];
+///         let d_y = self.origin[1] - point[1];
+///         let distance_to_origin = (d_x * d_x + d_y * d_y).sqrt();
+///         let distance_to_ring = distance_to_origin - self.radius;
+///         let distance_to_circle = f32::max(0.0, distance_to_ring);
+///         // We must return the squared distance!
+///         distance_to_circle * distance_to_circle
+///     }
+///
+///     // This implementation is not required but more efficient since it
+///     // omits the calculation of a square root
+///     fn contains_point(&self, point: &[f32; 2]) -> bool
+///     {
+///         let d_x = self.origin[0] - point[0];
+///         let d_y = self.origin[1] - point[1];
+///         let distance_to_origin_2 = (d_x * d_x + d_y * d_y);
+///         let radius_2 = self.radius * self.radius;
+///         distance_to_origin_2 <= radius_2
+///     }
+/// }
+///
+///
+/// fn main() {
+///     let circle = Circle {
+///         origin: [1.0, 0.0],
+///         radius: 1.0,
+///     };
+///
+///     assert_eq!(circle.distance_2(&[-1.0, 0.0]), 1.0);
+///     assert_eq!(circle.distance_2(&[-2.0, 0.0]), 4.0);
+///     assert!(circle.contains_point(&[1.0, 0.0]));
+/// }
+/// ```
 pub trait PointDistance: RTreeObject {
+    /// Returns the squared euclidean distance of an object to a point.
     fn distance_2(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
     ) -> <<Self::Envelope as Envelope>::Point as Point>::Scalar;
 
+    /// Returns true if a point is contained within this object.
+    ///
+    /// By default, any point returning a `distance_2` less than or equal to zero is considered to be
+    /// contained within `self`. Changing this default behavior is advised if calculating the squared distance
+    /// is more computational expensive a point containment check.
     fn contains_point(&self, point: &<Self::Envelope as Envelope>::Point) -> bool {
         self.distance_2(point) <= num_traits::zero()
     }

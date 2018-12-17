@@ -1,7 +1,21 @@
 use crate::envelope::Envelope;
-use num_traits::{Bounded, One, Signed, Zero};
 use crate::point::{max_inline, Point, PointExt};
+use num_traits::{Bounded, One, Signed, Zero};
 
+/// An n-dimensional axis aligned bounding box (AABB).
+///
+/// An object's AABB is the smallest box totally encompassing an object
+/// that is aligned to the current coordinate system.
+/// Although these structures are commonly called bounding _boxes_, they are exists in any
+/// dimension.
+///  
+/// Note that this object is not fit for insertion into an r-tree. Use the
+/// [Rectangle](struct.primitives.Rectangle) struct for this purpose.
+/// The main purpose of this struct is to define an envelope type for r-trees.
+///
+/// # Type arguments
+/// `P`: The struct is generic over which point type is used. Using an n-dimensional point
+/// type will result in an n-dimensional bounding box.
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub struct AABB<P>
 where
@@ -15,18 +29,28 @@ impl<P> AABB<P>
 where
     P: Point,
 {
+    /// Returns the AABB encompassing a single point.
     pub fn from_point(p: P) -> Self {
         AABB { lower: p, upper: p }
     }
 
+    /// Returns the AABB's lower corner.
+    ///
+    /// This is the point contained within the AABB with the smallest coordinate value in each
+    /// dimension.
     pub fn lower(&self) -> P {
         self.lower
     }
 
+    /// Returns the AABB's upper corner.
+    ///
+    /// This is the point contained within the AABB with the largest coordinate value in each
+    /// dimension.
     pub fn upper(&self) -> P {
         self.upper
     }
 
+    /// Creates a new AABB encompassing two points.
     pub fn from_corners(p1: P, p2: P) -> Self {
         AABB {
             lower: p1.min_point(&p2),
@@ -34,6 +58,7 @@ where
         }
     }
 
+    /// Creates a new AABB encompassing a collection of points.
     pub fn from_points<'a, I>(i: I) -> Self
     where
         I: IntoIterator<Item = &'a P> + 'a,
@@ -43,6 +68,7 @@ where
             .fold(Self::new_empty(), |aabb, p| aabb.add_point(p))
     }
 
+    /// Returns the AABB that contains `self` and another point.
     fn add_point(&self, point: &P) -> Self {
         AABB {
             lower: self.lower.min_point(point),
@@ -50,6 +76,7 @@ where
         }
     }
 
+    #[doc(hidden)]
     pub fn new_empty() -> Self {
         let max = P::Scalar::max_value();
         let min = P::Scalar::min_value();
@@ -59,10 +86,14 @@ where
         }
     }
 
+    /// Returns the point within this AABB closest to a given point.
+    ///
+    /// If `point` is contained within the AABB, `point` will be returned.
     pub fn min_point(&self, point: &P) -> P {
         self.upper.min_point(&self.lower.max_point(point))
     }
 
+    /// Returns the squared distance to the AABB's [min_point](#method.min_point).
     pub fn distance_2(&self, point: &P) -> P::Scalar {
         if self.contains_point(point) {
             Zero::zero()
@@ -156,7 +187,8 @@ where
         AABB {
             lower: self.lower.max_point(&other.lower),
             upper: self.upper.min_point(&other.upper),
-        }.area()
+        }
+        .area()
     }
 
     fn margin_value(&self) -> P::Scalar {
@@ -165,7 +197,7 @@ where
         max_inline(diag.fold(zero, |acc, value| acc + value), zero)
     }
 
-    fn align_envelopes<T, F>(axis: usize, envelopes: &mut [T], f: F)
+    fn sort_envelopes<T, F>(axis: usize, envelopes: &mut [T], f: F)
     where
         F: Fn(&T) -> Self,
     {

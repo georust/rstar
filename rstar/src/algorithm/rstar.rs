@@ -1,11 +1,19 @@
 use crate::envelope::Envelope;
-use crate::structures::node::{envelope_for_children, ParentNodeData, RTreeNode};
-use num_traits::{Bounded, Zero};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
-use crate::point::{Point};
-use crate::rtree::{InsertionStrategy, RTree};
+use crate::point::Point;
+use crate::rtree::{root_mut, InsertionStrategy, RTree};
+use crate::structures::node::{envelope_for_children, ParentNodeData, RTreeNode};
+use num_traits::{Bounded, Zero};
 
+/// Inserts points according to the r-star heuristic.
+///
+/// The r*-heuristic focusses on good insertion quality at the costs of
+/// insertion performance. This strategy is best for use cases with few
+/// insertions and many nearest neighbor queries.
+///
+/// `RStarInsertionStrategy` is used as the default insertion strategy.
+/// See [InsertionStrategy](trait.InsertionStrategy.html) for more information on insertion strategies.
 pub enum RStarInsertionStrategy {}
 
 enum InsertionResult<T>
@@ -25,15 +33,16 @@ impl InsertionStrategy for RStarInsertionStrategy {
         let mut insertion_stack = vec![RTreeNode::Leaf(t)];
 
         while let Some(next) = insertion_stack.pop() {
-            match recursive_insert::<_, Params>(tree.root_mut(), next) {
+            match recursive_insert::<_, Params>(root_mut(tree), next) {
                 InsertionResult::Split(node) => {
                     // The root node was split, create a new root and increase height
                     let old_root =
-                        ::std::mem::replace(tree.root_mut(), ParentNodeData::new_root::<Params>());
+                        ::std::mem::replace(root_mut(tree), ParentNodeData::new_root::<Params>());
                     let new_envelope = old_root.envelope.merged(&node.envelope());
-                    tree.root_mut().envelope = new_envelope;
-                    tree.root_mut().children.push(RTreeNode::Parent(old_root));
-                    tree.root_mut().children.push(node);
+                    let root = root_mut(tree);
+                    root.envelope = new_envelope;
+                    root.children.push(RTreeNode::Parent(old_root));
+                    root.children.push(node);
                 }
                 InsertionResult::Complete => (),
             }
@@ -160,7 +169,7 @@ where
     let zero = <<T::Envelope as Envelope>::Point as Point>::Scalar::zero();
     debug_assert!(node.children.len() >= 2);
     // Sort along axis
-    T::Envelope::align_envelopes(axis, &mut node.children, |c| c.envelope());
+    T::Envelope::sort_envelopes(axis, &mut node.children, |c| c.envelope());
     let mut best = (zero, zero);
     let min_size = Params::MIN_SIZE;
     let mut best_index = min_size;
@@ -200,7 +209,7 @@ where
     let until = node.children.len() - min_size + 1;
     for axis in 0..<T::Envelope as Envelope>::Point::DIMENSIONS {
         // Sort children along the current axis
-        T::Envelope::align_envelopes(axis, &mut node.children, |c| c.envelope());
+        T::Envelope::sort_envelopes(axis, &mut node.children, |c| c.envelope());
         let mut first_envelope = T::Envelope::new_empty();
         let mut second_envelope = T::Envelope::new_empty();
         for child in &node.children[..min_size] {
