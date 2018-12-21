@@ -1,6 +1,6 @@
 [package]
 name = "rstar"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
 description = "R*-tree library for the rust ecosystem"
 documentation = "https://docs.rs/rstar/"
@@ -12,7 +12,6 @@ keywords = ["rtree", "rstar", "spatialgit-database", "nearest-neighbor"]
 categories = ["data-structures", "algorithms"]
 
 [badges]
-gitlab = { repository = "https://github.com/Stoeoef/rstar" }
 travis-ci = { repository = "Stoeoef/rstar", branch = "master" }
 codecov = { repository = "Stoeoef/rstar", branch = "master", service = "github" }
 maintenance = { status = "actively-developed" }
