@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.com/Stoeoef/rstar.svg?branch=master)(https://travis-ci.com/Stoeoef/rstar)
+[![Docs](https://docs.rs/rstar/badge.svg)](https://docs.rs/rstar/)
+[![Crates.io](https://img.shields.io/crates/v/rstar.svg)](https://crates.io/crates/rstar)
+
 # rstar
 
 A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) implementation for the rust ecosystem.

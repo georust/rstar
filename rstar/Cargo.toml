@@ -10,6 +10,7 @@ readme = "README.md"
 edition = "2018"
 keywords = ["rtree", "rstar", "spatialgit-database", "nearest-neighbor"]
 categories = ["data-structures", "algorithms"]
+maintenance = { status = "actively-developed" }
 
 [badges]
 gitlab = { repository = "https://github.com/Stoeoef/rstar" }
