@@ -1,6 +1,8 @@
-[![Build Status](https://travis-ci.com/Stoeoef/rstar.svg?branch=master)(https://travis-ci.com/Stoeoef/rstar)
+[![Build Status](https://travis-ci.com/Stoeoef/rstar.svg?branch=master)](https://travis-ci.com/Stoeoef/rstar)
 [![Docs](https://docs.rs/rstar/badge.svg)](https://docs.rs/rstar/)
 [![Crates.io](https://img.shields.io/crates/v/rstar.svg)](https://crates.io/crates/rstar)
+[![Code coverage](https://img.shields.io/codecov/c/github/stoeoef/rstar.svg)](https://codecov.io/gh/Stoeoef/rstar)
+[![MIT/Apache](https://img.shields.io/crates/l/rustc-serialize.svg)](#license)
 
 # rstar
 

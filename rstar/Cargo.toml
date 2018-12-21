@@ -10,11 +10,12 @@ readme = "README.md"
 edition = "2018"
 keywords = ["rtree", "rstar", "spatialgit-database", "nearest-neighbor"]
 categories = ["data-structures", "algorithms"]
-maintenance = { status = "actively-developed" }
 
 [badges]
 gitlab = { repository = "https://github.com/Stoeoef/rstar" }
 travis-ci = { repository = "Stoeoef/rstar", branch = "master" }
+codecov = { repository = "Stoeoef/rstar", branch = "master", service = "github" }
+maintenance = { status = "actively-developed" }
 
 [dependencies]
 num-traits = "0.2"
