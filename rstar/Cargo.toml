@@ -13,6 +13,7 @@ categories = ["data-structures", "algorithms"]
 
 [badges]
 gitlab = { repository = "https://github.com/Stoeoef/rstar" }
+travis-ci = { repository = "Stoeoef/rstar", branch = "master" }
 
 [dependencies]
 num-traits = "0.2"
