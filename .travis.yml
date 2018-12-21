@@ -1,8 +1,7 @@
 language: rust
 rust:
-  - stable
+ - stable
 
 cache: cargo
 script:
-  - cargo build -p rstar-benches
-  - cargo test -p rstar
+ - cargo build -p rstar-benches && cargo test -p rstar
