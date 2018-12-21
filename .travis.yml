@@ -1,10 +1,8 @@
 language: rust
 rust:
-- stable
+  - stable
 
 cache: cargo
 script:
-    cargo build -p rstar-benches
-    cargo test -p rstar
-global:
-  - secure: eSVOHoe1Da8k6ZO2/Sny2xHjWZlU1n0htXiCsO3pghd0dffBnnjhhPzylWPnJZ4KdngHfdpGdTz+LAW1Z2c25Lbr56NzmwgdBv+JR3dl6N6NzvlTGGUPyd2yzlH1w5v7+kgbg0/Asq7xae2VwzW7KBxmYRhfEmRRqVTct6fahyElwTchyeEG8FkhWS15oTyaoxSqB3i8ebka0bL9RBZznrbW3e4NyZYNwNRWvex5kAYWr1+d3VCrDyFcJVG54ZhiOVkWawLp7qS3lC/fMsajEC93Wh72417Bf6N1q3/+1wHz05ObLeF2r29bwbolgis0jSy/JSn4DHm40xQHjkxleI3MztOo48rcuVSdAUkPho24sglFmdG4puNmNUVzodUElqKdowN/tr5NpgP3JuFXCK3L78Ya6taYF+WCAKJBktTXOXUEVpcafZMviKR9OmO9Rlj3oLSe/1tqpg8gLBWjlmxtmK2WaI2WfDRWVf4qb/4SRt5Qo1BnJqech6zTRWVoj68HcqTu+AsIcUgc+EpQZ34bAc+oVx+Yw7GWwsFjP1HWiEhhJRXTpGC7gUBLdBSjnK1CNCKuaWxyJ8cDoP7VGsAOUup7VtQuO/jtXnuXndGfVUSHXnfHr308oOcG4kORnXff1+wPa065W9GkTc5kx42uFEEb4RwRW3Sb/AOxDRA=
+  - cargo build -p rstar-benches
+  - cargo test -p rstar
