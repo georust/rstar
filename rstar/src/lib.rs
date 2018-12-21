@@ -12,10 +12,10 @@
 //!
 //! # Further documentation
 //! The crate's main data structure and documentation is struct
-//! [RTree](structs.RTree.html).
+//! [RTree](struct.RTree.html).
 //!
 //! Also, the pre-defined primitives like lines and rectangles contained in
-//! the [primitives](mod.primitives.html) may be of interest for a quick start.
+//! the [primitives module](primitives/index.html) may be of interest for a quick start.
 //!
 #![deny(missing_docs)]
 mod algorithm;
@@ -38,7 +38,7 @@ pub use crate::structures::node::RTreeNode;
 pub use crate::algorithm::rstar::RStarInsertionStrategy;
 pub use crate::envelope::Envelope;
 pub use crate::object::{PointDistance, RTreeObject};
-pub use crate::params::{DefaultParams, RTreeParams};
+pub use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
 pub use crate::point::{Point, RTreeNum};
-pub use crate::rtree::{InsertionStrategy, RTree};
+pub use crate::rtree::RTree;
 pub use crate::structures::aabb::AABB;

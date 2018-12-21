@@ -25,10 +25,8 @@ where
     P: Point,
 {
     /// Creates a new rectangle defined by two corners.
-    pub fn new(corner_1: P, corner_2: P) -> Self {
-        Rectangle {
-            aabb: AABB::from_corners(corner_1, corner_2),
-        }
+    pub fn from_corners(corner_1: P, corner_2: P) -> Self {
+        AABB::from_corners(corner_1, corner_2).into()
     }
 
     /// Creates a new rectangle defined by it's [axis aligned bounding box](struct.AABB.html).
@@ -109,7 +107,7 @@ mod test {
 
     #[test]
     fn rectangle_distance() {
-        let rectangle = Rectangle::new([0.5, 0.5], [1.0, 2.0]);
+        let rectangle = Rectangle::from_corners([0.5, 0.5], [1.0, 2.0]);
 
         assert_abs_diff_eq!(rectangle.distance_2(&[0.5, 0.5]), 0.0);
         assert_abs_diff_eq!(rectangle.distance_2(&[0.0, 0.5]), 0.5 * 0.5);

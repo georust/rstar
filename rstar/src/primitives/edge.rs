@@ -20,8 +20,7 @@ use num_traits::{One, Zero};
 /// let line_2 = Line::new([0.0, 0.0], [-1.0, 1.0]);
 /// let tree = RTree::bulk_load(&mut [line_1, line_2]);
 ///
-/// assert_eq!(tree.locate_in_envelope(&line_1.envelope()).next(), Some(&line_1));
-///
+/// assert!(tree.contains(&line_1));
 /// ```
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Line<P>

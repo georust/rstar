@@ -1,8 +1,8 @@
 use crate::envelope::Envelope;
 use crate::object::RTreeObject;
-use crate::params::RTreeParams;
+use crate::params::{InsertionStrategy, RTreeParams};
 use crate::point::Point;
-use crate::rtree::{root_mut, InsertionStrategy, RTree};
+use crate::rtree::{root_mut, RTree};
 use crate::structures::node::{envelope_for_children, ParentNodeData, RTreeNode};
 use num_traits::{Bounded, Zero};
 

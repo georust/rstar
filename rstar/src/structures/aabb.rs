@@ -5,13 +5,12 @@ use num_traits::{Bounded, One, Signed, Zero};
 /// An n-dimensional axis aligned bounding box (AABB).
 ///
 /// An object's AABB is the smallest box totally encompassing an object
-/// that is aligned to the current coordinate system.
-/// Although these structures are commonly called bounding _boxes_, they are exists in any
+/// while being aligned to the current coordinate system.
+/// Although these structures are commonly called bounding _boxes_, they exist in any
 /// dimension.
 ///  
-/// Note that this object is not fit for insertion into an r-tree. Use the
-/// [Rectangle](struct.primitives.Rectangle) struct for this purpose.
-/// The main purpose of this struct is to define an envelope type for r-trees.
+/// Note that AABBs cannot be inserted into r-trees. Use the
+/// [Rectangle](primitives/struct.Rectangle.html) struct for this purpose.
 ///
 /// # Type arguments
 /// `P`: The struct is generic over which point type is used. Using an n-dimensional point
@@ -76,16 +75,6 @@ where
         }
     }
 
-    #[doc(hidden)]
-    pub fn new_empty() -> Self {
-        let max = P::Scalar::max_value();
-        let min = P::Scalar::min_value();
-        AABB {
-            lower: P::from_value(max),
-            upper: P::from_value(min),
-        }
-    }
-
     /// Returns the point within this AABB closest to a given point.
     ///
     /// If `point` is contained within the AABB, `point` will be returned.
@@ -110,7 +99,7 @@ where
     type Point = P;
 
     fn new_empty() -> Self {
-        AABB::new_empty()
+        new_empty()
     }
 
     fn contains_point(&self, point: &P) -> bool {
@@ -207,5 +196,14 @@ where
                 .partial_cmp(&f(r).lower.nth(axis))
                 .unwrap()
         });
+    }
+}
+
+fn new_empty<P: Point>() -> AABB<P> {
+    let max = P::Scalar::max_value();
+    let min = P::Scalar::min_value();
+    AABB {
+        lower: P::from_value(max),
+        upper: P::from_value(min),
     }
 }

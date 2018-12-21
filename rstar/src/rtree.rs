@@ -5,29 +5,9 @@ use crate::algorithm::removal;
 use crate::algorithm::selection_functions::*;
 use crate::envelope::Envelope;
 use crate::object::{PointDistance, RTreeObject};
-use crate::params::{DefaultParams, RTreeParams};
+use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
 use crate::structures::node::ParentNodeData;
 use crate::Point;
-
-/// Defines how points are inserted into an r-tree.
-///
-/// Different strategies try to minimize both _insertion time_ (how long does it take to add a new
-/// object into the tree?) and _querying time_ (how long does an average nearest neighbor query
-/// take?).
-/// Currently, only one insertion strategy is implemented: R* (R-star) insertion. R* insertion
-/// tries to minimize querying performance while yielding reasonable insertion times, making it a
-/// good default strategy. More strategies might be implemented in the future.
-///
-/// Only calls to [insert](struct.RTree.html#method.insert) are affected by this strategy.
-///
-/// This trait is not meant to be implemented by the user.
-pub trait InsertionStrategy {
-    #[doc(hidden)]
-    fn insert<T, Params>(tree: &mut RTree<T, Params>, t: T)
-    where
-        Params: RTreeParams,
-        T: RTreeObject;
-}
 
 impl<T> Default for RTree<T>
 where
@@ -41,9 +21,33 @@ where
 /// An n-dimensional r-tree data structure.
 ///
 /// # R-Trees
-/// R-trees are tree data structures for multi dimensional data which support efficient
-/// insertion operations and nearest neighbor queries. Also, other types of queries, like
-/// retrieving all objects within a rectangle or a circle, can be implemented efficiently.
+/// R-Trees are data structures containing multi-dimensional objects like points, rectangles
+/// or polygons. They are optimized for retrieving the nearest neighbor at any point.
+///
+/// R-trees can efficiently find answers to queries like "Find the nearest point of a polygon",
+/// "Find all police stations within a rectangle" or "Find the 10 nearest restaurants, sorted
+/// by their distances". Compared to a naive implementation for these scenarios that runs
+/// in `O(n)` for `n` inserted elements, r-trees reduce this time to `O(log(n))`.
+///
+/// However, creating an r-tree is time consuming
+/// and runs in `O(n * log(n))`. Thus, r-trees are suited best if many queries and only few
+/// insertions are made. Also, rstar supports [bulk loading](struct.RTree.html#method.bulk_load),
+/// which cuts down the constant factors when creating an r-tree significantly compared to
+/// sequential insertions.
+///
+/// R-trees are also _dynamic_, thus, points can be inserted and removed even if the tree
+/// has been created before.
+///
+/// ## Partitioning heuristics
+/// The inserted objects are internally partitioned into several boxes which should have small
+/// overlap and volume. This is done heuristically. While the originally proposed heuristic focused
+/// on fast insertion operations, the resulting r-trees were often suboptimally structured. Another
+/// heuristic, called `R*-tree` (r-star-tree), was proposed to improve the tree structure at the cost of
+/// longer insertion operations and is currently the crate's only implemented
+/// [insertion strategy](trait.InsertionStrategy.html).
+///
+/// ## Further reading
+/// For more information refer to the [wikipedia article](https://en.wikipedia.org/wiki/R-tree).
 ///
 /// # Usage
 /// The items inserted into an r-tree must implement the [RTreeObject](trait.RTreeObject.html)
@@ -65,7 +69,8 @@ where
 /// assert_eq!(tree.nearest_neighbor(&[0.4, 0.3]), Some(&[0.2, 0.1]));
 ///
 /// assert_eq!(tree.size(), 2);
-/// for point in tree.iter() {
+/// // &RTree implements IntoIterator!
+/// for point in &tree {
 ///     println!("Tree contains a point {:?}", point);
 /// }
 /// ```
@@ -79,16 +84,32 @@ where
 /// * `Params`: Compile time parameters that change the r-trees internal layout. Refer to the
 /// [RTreeParams](trait.RTreeParams.html) trait for more information.
 ///
+/// ## Defining methods generic over r-trees
+/// If a library defines a method that should be generic over the r-tree type signature, make
+/// sure to include both type parameters like this:
+/// ```
+/// # use rstar::{RTree,RTreeObject, RTreeParams};
+/// pub fn generic_rtree_function<T, Params>(tree: &mut RTree<T, Params>)
+/// where
+///   T: RTreeObject,
+///   Params: RTreeParams
+/// {
+///   // ...
+/// }
+/// ```
+/// Otherwise, any user of `generic_rtree_function` would be forced to use
+/// a tree with default parameters.
+///
 /// # Runtime and Performance
-/// The runtime of query operations (nearest neighbor queries, contains) is usually
+/// The runtime of query operations (e.g. `nearest neighbor` or `contains`) is usually
 /// `O(log(n))`, where `n` refers to the number of elements contained in the r-tree.
 /// A naive sequential algorithm would take `O(n)` time. However, r-trees incur higher
 /// build up times: inserting an element into an r-tree costs `O(log(n))` time.
 ///
 /// ## Bulk loading
 /// In many scenarios, insertion is only done once for many points. In this case,
-/// [bulk_load](#method.bulk_load) will be considerably faster. It's total run time
-/// is still O(log(n)).
+/// [bulk_load](#method.bulk_load) will be considerably faster. Its total run time
+/// is still `O(log(n))`.
 ///
 /// ## Element distribution
 /// The tree's performance heavily relies on the spatial distribution of its elements.
@@ -96,6 +117,9 @@ where
 ///  * No element is inserted more than once
 ///  * The overlapping area of elements should be as small a
 ///    possible.
+///
+/// For the edge case that all elements are overlapping (e.g, one and the same element
+///  is `n` times), the performance of most operations usually degrades to `O(n)`.
 #[derive(Clone)]
 pub struct RTree<T, Params = DefaultParams>
 where
@@ -117,9 +141,6 @@ where
     &tree.root
 }
 
-/// Returns the trees root node
-///
-/// This function is not exported.
 pub fn root_mut<T, Params>(tree: &mut RTree<T, Params>) -> &mut ParentNodeData<T>
 where
     T: RTreeObject,
@@ -180,7 +201,7 @@ where
     /// Creates a new, empty r-tree.
     ///
     /// The tree's compile time parameters must be specified. Refer to the
-    /// [RTreeParams](trait.RTreeParams.html) trait for more information.
+    /// [RTreeParams](trait.RTreeParams.html) trait for more information and a usage example.
     pub fn new_with_params() -> Self {
         RTree {
             root: ParentNodeData::new_root::<Params>(),
@@ -190,6 +211,18 @@ where
     }
 
     /// Returns the number of objects in an r-tree.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    ///
+    /// let mut tree = RTree::new();
+    /// assert_eq!(tree.size(), 0);
+    /// tree.insert([0.0, 1.0, 2.0]);
+    /// assert_eq!(tree.size(), 1);
+    /// tree.remove(&[0.0, 1.0, 2.0]);
+    /// assert_eq!(tree.size(), 0);
+    /// ```
     pub fn size(&self) -> usize {
         self.size
     }
@@ -227,12 +260,28 @@ where
     /// Returns all elements contained in an [Envelope](trait.Envelope.html).
     ///
     /// Usually, an envelope is an [axis aligned bounding box](struct.AABB.html). This
-    /// method can be used to get all elements that are fully contained within an aabb.
+    /// method can be used to get all elements that are fully contained within an envelope.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::{RTree, AABB};
+    /// let mut tree = RTree::bulk_load(&mut [
+    ///   [0.0, 0.0],
+    ///   [0.0, 1.0],
+    ///   [1.0, 1.0]
+    /// ]);
+    /// let half_unit_square = AABB::from_corners([0.0, 0.0], [0.5, 1.0]);
+    /// let unit_square = AABB::from_corners([0.0, 0.0], [1.0, 1.0]);
+    /// let elements_in_half_unit_square = tree.locate_in_envelope(&half_unit_square);
+    /// let elements_in_unit_square = tree.locate_in_envelope(&unit_square);
+    /// assert_eq!(elements_in_half_unit_square.count(), 2);
+    /// assert_eq!(elements_in_unit_square.count(), 3);
+    /// ```
     pub fn locate_in_envelope(&self, envelope: &T::Envelope) -> LocateInEnvelope<T> {
         LocateInEnvelope::new(&self.root, SelectInEnvelopeFunction::new(*envelope))
     }
 
-    /// Mutable variant of [locate_in_envelope_mut].
+    /// Mutable variant of [locate_in_envelope](#method.locate_in_envelope).
     pub fn locate_in_envelope_mut(&mut self, envelope: &T::Envelope) -> LocateInEnvelopeMut<T> {
         LocateInEnvelopeMut::new(&mut self.root, SelectInEnvelopeFunction::new(*envelope))
     }
@@ -252,7 +301,7 @@ where
         )
     }
 
-    /// Mutable variant of [#method.locate_in_envelope_intersecting]
+    /// Mutable variant of [locate_in_envelope_intersecting](#method.locate_in_envelope_intersecting)
     pub fn locate_in_envelope_intersecting_mut(
         &mut self,
         envelope: &T::Envelope,
@@ -271,7 +320,7 @@ where
 {
     /// Returns a single object that covers a given point.
     ///
-    /// Method [contains_point](trait.PointDistance.html#method.contains_point])
+    /// Method [contains_point](trait.PointDistance.html#method.contains_point)
     /// is used to determine if a tree element contains the given point.
     ///
     /// If multiple elements contain the given point, any of them is returned.
@@ -291,6 +340,20 @@ where
     ///
     /// Method [contains_point](trait.PointDistance.html#method.contains_point) is used
     /// to determine if a tree element contains the given point.
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// use rstar::primitives::Rectangle;
+    ///
+    /// let tree = RTree::bulk_load(&mut [
+    ///   Rectangle::from_corners([0.0, 0.0], [2.0, 2.0]),
+    ///   Rectangle::from_corners([1.0, 1.0], [3.0, 3.0])
+    /// ]);
+    ///
+    /// assert_eq!(tree.locate_all_at_point(&[1.5, 1.5]).count(), 2);
+    /// assert_eq!(tree.locate_all_at_point(&[0.0, 0.0]).count(), 1);
+    /// assert_eq!(tree.locate_all_at_point(&[-1., 0.0]).count(), 0);
+    /// ```
     pub fn locate_all_at_point(
         &self,
         point: &<T::Envelope as Envelope>::Point,
@@ -310,6 +373,21 @@ where
     ///
     /// The removed element, if any, is returned. If multiple elements cover the given point,
     /// only one of them is removed and returned.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// use rstar::primitives::Rectangle;
+    ///
+    /// let mut tree = RTree::bulk_load(&mut [
+    ///   Rectangle::from_corners([0.0, 0.0], [2.0, 2.0]),
+    ///   Rectangle::from_corners([1.0, 1.0], [3.0, 3.0])
+    /// ]);
+    ///
+    /// assert!(tree.remove_at_point(&[1.5, 1.5]).is_some());
+    /// assert!(tree.remove_at_point(&[1.5, 1.5]).is_some());
+    /// assert!(tree.remove_at_point(&[1.5, 1.5]).is_none());
+    ///```
     pub fn remove_at_point(&mut self, point: &<T::Envelope as Envelope>::Point) -> Option<T> {
         let removal_function = SelectAtPointFunction::new(*point);
         let result = removal::remove::<_, Params, _>(&mut self.root, &removal_function);
@@ -325,16 +403,36 @@ where
     Params: RTreeParams,
     T: RTreeObject + PartialEq,
 {
-    /// Returns ```true``` if a given element is equal (```==```) to an element in the
+    /// Returns `true` if a given element is equal (`==`) to an element in the
     /// r-tree.
+    /// ```
+    /// use rstar::RTree;
+    ///
+    /// let mut tree = RTree::new();
+    /// assert!(!tree.contains(&[0.0, 2.0]));
+    /// tree.insert([0.0, 2.0]);
+    /// assert!(tree.contains(&[0.0, 2.0]));
+    /// ```
     pub fn contains(&self, t: &T) -> bool {
         self.locate_in_envelope(&t.envelope()).any(|e| e == t)
     }
 
-    /// Removes and returns an element of the r-tree equal (```==```) to a given element.
+    /// Removes and returns an element of the r-tree equal (`==`) to a given element.
     ///
     /// If multiple elements equal to the given elements are contained in the tree, only
     /// one of them is removed and returned.
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    ///
+    /// let mut tree = RTree::new();
+    /// tree.insert([0.0, 2.0]);
+    /// // The element can be inserted twice just fine
+    /// tree.insert([0.0, 2.0]);
+    /// assert!(tree.remove(&[0.0, 2.0]).is_some());
+    /// assert!(tree.remove(&[0.0, 2.0]).is_some());
+    /// assert!(tree.remove(&[0.0, 2.0]).is_none());
+    /// ```
     pub fn remove(&mut self, t: &T) -> Option<T> {
         let removal_function = SelectEqualsFunction::new(t);
         let result = removal::remove::<_, Params, _>(&mut self.root, &removal_function);
@@ -355,8 +453,20 @@ where
     /// The distance is calculated by calling
     /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2)
     ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// let tree = RTree::bulk_load(&mut [
+    ///   [0.0, 0.0],
+    ///   [0.0, 1.0],
+    /// ]);
+    /// assert_eq!(tree.nearest_neighbor(&[-1., 0.0]), Some(&[0.0, 0.0]));
+    /// assert_eq!(tree.nearest_neighbor(&[0.0, 2.0]), Some(&[0.0, 1.0]));
+    /// ```
     pub fn nearest_neighbor(&self, query_point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
         if self.size > 0 {
+            // The single-nearest-neighbor retrieval may in rare cases return None due to
+            // rounding issues. The iterator will still work, though.
             nearest_neighbor::nearest_neighbor(&self.root, *query_point)
                 .or_else(|| self.nearest_neighbor_iter(query_point).next())
         } else {
@@ -367,10 +477,22 @@ where
     /// Returns all elements of the tree sorted by their distance to a given point.
     ///
     /// # Runtime
-    /// Every ```next()``` call runs in O(log(n)). Creating the iterator runs in
-    /// O(log(n)).
+    /// Every `next()` call runs in `O(log(n))`. Creating the iterator runs in
+    /// `O(log(n))`.
     /// The [r-tree documentation](struct.RTree.html) contains more information about
     /// r-tree performance.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// let tree = RTree::bulk_load(&mut [
+    ///   [0.0, 0.0],
+    ///   [0.0, 1.0],
+    /// ]);
+    ///
+    /// let nearest_neighbors = tree.nearest_neighbor_iter(&[0.5, 0.0]).collect::<Vec<_>>();
+    /// assert_eq!(nearest_neighbors, vec![&[0.0, 0.0], &[0.0, 1.0]]);
+    /// ```
     pub fn nearest_neighbor_iter(
         &self,
         query_point: &<T::Envelope as Envelope>::Point,
@@ -418,6 +540,32 @@ where
     }
 }
 
+impl<'a, T, Params> IntoIterator for &'a RTree<T, Params>
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    type IntoIter = RTreeIterator<'a, T>;
+    type Item = &'a T;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a, T, Params> IntoIterator for &'a mut RTree<T, Params>
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    type IntoIter = RTreeIteratorMut<'a, T>;
+    type Item = &'a mut T;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
 impl<T> RTree<T>
 where
     T: RTreeObject + Clone,
@@ -428,6 +576,10 @@ where
     /// This method should be the preferred way for creating r-trees. It both
     /// runs faster and yields an r-tree with better internal structure that
     /// improves query performance.
+    ///
+    /// # Runtime
+    /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
+    /// elements.
     pub fn bulk_load(elements: &mut [T]) -> Self {
         Self::bulk_load_with_params(elements)
     }
