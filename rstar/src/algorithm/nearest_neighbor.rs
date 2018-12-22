@@ -1,7 +1,6 @@
-use crate::envelope::Envelope;
-use crate::object::PointDistance;
 use crate::point::{min_inline, Point};
 use crate::structures::node::{ParentNodeData, RTreeNode};
+use crate::{Envelope, PointDistance, RTreeObject};
 use num_traits::Bounded;
 use std::collections::binary_heap::BinaryHeap;
 

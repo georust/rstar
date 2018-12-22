@@ -169,7 +169,7 @@ where
     let zero = <<T::Envelope as Envelope>::Point as Point>::Scalar::zero();
     debug_assert!(node.children.len() >= 2);
     // Sort along axis
-    T::Envelope::sort_envelopes(axis, &mut node.children, |c| c.envelope());
+    T::Envelope::sort_envelopes(axis, &mut node.children);
     let mut best = (zero, zero);
     let min_size = Params::MIN_SIZE;
     let mut best_index = min_size;
@@ -209,7 +209,7 @@ where
     let until = node.children.len() - min_size + 1;
     for axis in 0..<T::Envelope as Envelope>::Point::DIMENSIONS {
         // Sort children along the current axis
-        T::Envelope::sort_envelopes(axis, &mut node.children, |c| c.envelope());
+        T::Envelope::sort_envelopes(axis, &mut node.children);
         let mut first_envelope = T::Envelope::new_empty();
         let mut second_envelope = T::Envelope::new_empty();
         for child in &node.children[..min_size] {

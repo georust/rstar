@@ -1,4 +1,4 @@
-use crate::point::Point;
+use crate::{Point, RTreeObject};
 
 /// An envelope type that encompasses some child nodes.
 ///
@@ -51,7 +51,15 @@ pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
         fn margin_value(&self) -> <Self::Point as Point>::Scalar;
 
         /// Sorts a given set of objects with envelopes along one of their axis.
-        fn sort_envelopes<T, F>(axis: usize, envelopes: &mut [T], f: F)
-        where
-                F: Fn(&T) -> Self;
+        fn sort_envelopes<T: RTreeObject<Envelope = Self>>(axis: usize, envelopes: &mut [T]);
+
+        /// Partitions objects with an envelopes along a certain axis.
+        ///
+        /// After calling this, envelopes[0..selection_size] are all smaller
+        /// than envelopes[selection_size + 1..].
+        fn partition_envelopes<T: RTreeObject<Envelope = Self>>(
+                axis: usize,
+                envelopes: &mut [T],
+                selection_size: usize,
+        );
 }

@@ -73,17 +73,11 @@ where
             }
             _ => {
                 let cluster_dimension = self.cluster_dimension;
-                let comp = |l: &T, r: &T| {
-                    let l_mbr = l.envelope();
-                    let r_mbr = r.envelope();
-                    l_mbr
-                        .center()
-                        .nth(cluster_dimension)
-                        .partial_cmp(&r_mbr.center().nth(cluster_dimension))
-                        .unwrap()
-                };
-                ::pdqselect::select_by(&mut self.remaining, self.cluster_size, &comp);
-
+                T::Envelope::partition_envelopes(
+                    cluster_dimension,
+                    &mut self.remaining,
+                    self.cluster_size,
+                );
                 let off_split = self.remaining.split_off(self.cluster_size);
                 ::std::mem::replace(&mut self.remaining, off_split).into()
             }

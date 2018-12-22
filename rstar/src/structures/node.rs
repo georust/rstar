@@ -21,18 +21,25 @@ where
     pub envelope: T::Envelope,
 }
 
-#[doc(hidden)]
-impl<T> RTreeNode<T>
+impl<T> RTreeObject for RTreeNode<T>
 where
     T: RTreeObject,
 {
-    pub fn envelope(&self) -> T::Envelope {
+    type Envelope = T::Envelope;
+
+    fn envelope(&self) -> Self::Envelope {
         match self {
             RTreeNode::Leaf(ref t) => t.envelope(),
             RTreeNode::Parent(ref data) => data.envelope,
         }
     }
+}
 
+#[doc(hidden)]
+impl<T> RTreeNode<T>
+where
+    T: RTreeObject,
+{
     pub fn is_leaf(&self) -> bool {
         match self {
             RTreeNode::Leaf(..) => true,

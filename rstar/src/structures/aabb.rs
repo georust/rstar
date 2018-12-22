@@ -1,5 +1,5 @@
-use crate::envelope::Envelope;
 use crate::point::{max_inline, Point, PointExt};
+use crate::{Envelope, RTreeObject};
 use num_traits::{Bounded, One, Signed, Zero};
 
 /// An n-dimensional axis aligned bounding box (AABB).
@@ -186,14 +186,26 @@ where
         max_inline(diag.fold(zero, |acc, value| acc + value), zero)
     }
 
-    fn sort_envelopes<T, F>(axis: usize, envelopes: &mut [T], f: F)
-    where
-        F: Fn(&T) -> Self,
-    {
+    fn sort_envelopes<T: RTreeObject<Envelope = Self>>(axis: usize, envelopes: &mut [T]) {
         envelopes.sort_by(|l, r| {
-            f(l).lower
+            l.envelope()
+                .lower
                 .nth(axis)
-                .partial_cmp(&f(r).lower.nth(axis))
+                .partial_cmp(&r.envelope().lower.nth(axis))
+                .unwrap()
+        });
+    }
+
+    fn partition_envelopes<T: RTreeObject<Envelope = Self>>(
+        axis: usize,
+        envelopes: &mut [T],
+        selection_size: usize,
+    ) {
+        ::pdqselect::select_by(envelopes, selection_size, |l, r| {
+            l.envelope()
+                .lower
+                .nth(axis)
+                .partial_cmp(&r.envelope().lower.nth(axis))
                 .unwrap()
         });
     }
