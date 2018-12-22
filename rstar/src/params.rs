@@ -29,7 +29,7 @@ use crate::{RTree, RTreeObject};
 /// // Using the r-tree should allow inference for the point type
 /// large_node_tree.insert([1.0, -1.0f32]);
 /// // There is also a bulk load method with parameters:
-/// # let some_elements = &mut [[0.0, 0.0]];
+/// # let some_elements = vec![[0.0, 0.0]];
 /// let tree: LargeNodeRTree<_> = RTree::bulk_load_with_params(some_elements);
 /// # }
 /// ```

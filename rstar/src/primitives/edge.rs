@@ -18,7 +18,7 @@ use num_traits::{One, Zero};
 ///
 /// let line_1 = Line::new([0.0, 0.0], [1.0, 1.0]);
 /// let line_2 = Line::new([0.0, 0.0], [-1.0, 1.0]);
-/// let tree = RTree::bulk_load(&mut [line_1, line_2]);
+/// let tree = RTree::bulk_load(vec![line_1, line_2]);
 ///
 /// assert!(tree.contains(&line_1));
 /// ```

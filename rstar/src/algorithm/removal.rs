@@ -71,9 +71,9 @@ mod test {
     #[test]
     fn test_remove_and_insert() {
         const SIZE: usize = 1000;
-        let mut points = create_random_points(SIZE, SEED_1);
+        let points = create_random_points(SIZE, SEED_1);
         let later_insertions = create_random_points(SIZE, SEED_2);
-        let mut tree = RTree::bulk_load(&mut points);
+        let mut tree = RTree::bulk_load(points.clone());
         for (point_to_remove, point_to_add) in points.iter().zip(later_insertions.iter()) {
             assert!(tree.remove_at_point(point_to_remove).is_some());
             tree.insert(*point_to_add);
@@ -90,9 +90,9 @@ mod test {
     #[test]
     fn test_remove_and_insert_rectangles() {
         const SIZE: usize = 1000;
-        let mut initial_rectangles = create_random_rectangles(SIZE, SEED_1);
+        let initial_rectangles = create_random_rectangles(SIZE, SEED_1);
         let new_rectangles = create_random_rectangles(SIZE, SEED_2);
-        let mut tree = RTree::bulk_load(&mut initial_rectangles);
+        let mut tree = RTree::bulk_load(initial_rectangles.clone());
 
         for (rectangle_to_remove, rectangle_to_add) in
             initial_rectangles.iter().zip(new_rectangles.iter())
@@ -117,8 +117,8 @@ mod test {
 
     #[test]
     fn test_remove_at_point() {
-        let mut points = create_random_points(1000, SEED_1);
-        let mut tree = RTree::bulk_load(&mut points);
+        let points = create_random_points(1000, SEED_1);
+        let mut tree = RTree::bulk_load(points.clone());
         for point in &points {
             let size_before_removal = tree.size();
             assert!(tree.remove_at_point(point).is_some());
@@ -132,12 +132,12 @@ mod test {
         let points = create_random_points(1000, SEED_1);
         let offsets = create_random_points(1000, SEED_2);
         let scaled = offsets.iter().map(|p| p.mul(0.05));
-        let mut edges: Vec<_> = points
+        let edges: Vec<_> = points
             .iter()
             .zip(scaled)
             .map(|(from, offset)| Line::new(*from, from.add(&offset)))
             .collect();
-        let mut tree = RTree::bulk_load(&mut edges);
+        let mut tree = RTree::bulk_load(edges.clone());
         for edge in &edges {
             let size_before_removal = tree.size();
             assert!(tree.remove(edge).is_some());

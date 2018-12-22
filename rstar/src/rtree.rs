@@ -191,6 +191,19 @@ where
     pub fn new() -> Self {
         Self::new_with_params()
     }
+
+    /// Creates a new r-tree with some elements already inserted.
+    ///
+    /// This method should be the preferred way for creating r-trees. It both
+    /// runs faster and yields an r-tree with better internal structure that
+    /// improves query performance.
+    ///
+    /// # Runtime
+    /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
+    /// elements.
+    pub fn bulk_load(elements: Vec<T>) -> Self {
+        Self::bulk_load_with_params(elements)
+    }
 }
 
 impl<T, Params> RTree<T, Params>
@@ -206,6 +219,20 @@ where
         RTree {
             root: ParentNodeData::new_root::<Params>(),
             size: 0,
+            _params: Default::default(),
+        }
+    }
+
+    /// Creates a new r-tree with some given elements and configurable parameters.
+    ///
+    /// For more information refer to [bulk_load_with_params](#methods.bulk_load_with_params)
+    /// and [RTreeParameters](traits.RTreeParameters.html).
+    pub fn bulk_load_with_params(elements: Vec<T>) -> Self {
+        let size = elements.len();
+        let root = bulk_load::bulk_load_with_params::<_, Params>(elements);
+        RTree {
+            root,
+            size,
             _params: Default::default(),
         }
     }
@@ -234,7 +261,7 @@ where
     /// # Example
     /// ```
     /// use rstar::RTree;
-    /// let tree = RTree::bulk_load(&mut[[0.0, 0.1], [0.3, 0.2], [0.4, 0.2]]);
+    /// let tree = RTree::bulk_load(vec![[0.0, 0.1], [0.3, 0.2], [0.4, 0.2]]);
     /// for point in tree.iter() {
     ///     println!("This tree contains point {:?}", point);
     /// }
@@ -265,7 +292,7 @@ where
     /// # Example
     /// ```
     /// use rstar::{RTree, AABB};
-    /// let mut tree = RTree::bulk_load(&mut [
+    /// let mut tree = RTree::bulk_load(vec![
     ///   [0.0, 0.0],
     ///   [0.0, 1.0],
     ///   [1.0, 1.0]
@@ -345,7 +372,7 @@ where
     /// use rstar::RTree;
     /// use rstar::primitives::Rectangle;
     ///
-    /// let tree = RTree::bulk_load(&mut [
+    /// let tree = RTree::bulk_load(vec![
     ///   Rectangle::from_corners([0.0, 0.0], [2.0, 2.0]),
     ///   Rectangle::from_corners([1.0, 1.0], [3.0, 3.0])
     /// ]);
@@ -379,7 +406,7 @@ where
     /// use rstar::RTree;
     /// use rstar::primitives::Rectangle;
     ///
-    /// let mut tree = RTree::bulk_load(&mut [
+    /// let mut tree = RTree::bulk_load(vec![
     ///   Rectangle::from_corners([0.0, 0.0], [2.0, 2.0]),
     ///   Rectangle::from_corners([1.0, 1.0], [3.0, 3.0])
     /// ]);
@@ -456,7 +483,7 @@ where
     /// # Example
     /// ```
     /// use rstar::RTree;
-    /// let tree = RTree::bulk_load(&mut [
+    /// let tree = RTree::bulk_load(vec![
     ///   [0.0, 0.0],
     ///   [0.0, 1.0],
     /// ]);
@@ -485,7 +512,7 @@ where
     /// # Example
     /// ```
     /// use rstar::RTree;
-    /// let tree = RTree::bulk_load(&mut [
+    /// let tree = RTree::bulk_load(vec![
     ///   [0.0, 0.0],
     ///   [0.0, 1.0],
     /// ]);
@@ -522,22 +549,10 @@ where
 
 impl<T, Params> RTree<T, Params>
 where
-    T: RTreeObject + Clone,
+    T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    /// Creates a new r-tree with some given elements and configurable parameters.
-    ///
-    /// For more information refer to [bulk_load_with_params](#methods.bulk_load_with_params)
-    /// and [RTreeParameters](traits.RTreeParameters.html).
-    pub fn bulk_load_with_params(elements: &mut [T]) -> Self {
-        let root = bulk_load::bulk_load_with_params::<_, Params>(elements);
-        RTree {
-            root,
-            size: elements.len(),
-            _params: Default::default(),
-        }
-    }
 }
 
 impl<'a, T, Params> IntoIterator for &'a RTree<T, Params>
@@ -563,25 +578,6 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()
-    }
-}
-
-impl<T> RTree<T>
-where
-    T: RTreeObject + Clone,
-    <T::Envelope as Envelope>::Point: Point,
-{
-    /// Creates a new r-tree with some elements already inserted.
-    ///
-    /// This method should be the preferred way for creating r-trees. It both
-    /// runs faster and yields an r-tree with better internal structure that
-    /// improves query performance.
-    ///
-    /// # Runtime
-    /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
-    /// elements.
-    pub fn bulk_load(elements: &mut [T]) -> Self {
-        Self::bulk_load_with_params(elements)
     }
 }
 
@@ -630,7 +626,7 @@ mod test {
 
     #[test]
     fn test_fmt_debug() {
-        let tree = RTree::bulk_load(&mut [[0, 1], [0, 1]]);
+        let tree = RTree::bulk_load(vec![[0, 1], [0, 1]]);
         let debug: String = format!("{:?}", tree);
         assert_eq!(debug, "RTree { size: 2, items: {[0, 1], [0, 1]} }");
     }

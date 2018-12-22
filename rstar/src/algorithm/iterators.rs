@@ -132,8 +132,8 @@ mod test {
     #[test]
     fn test_locate_all() {
         const NUM_RECTANGLES: usize = 400;
-        let mut rectangles = create_random_rectangles(NUM_RECTANGLES, SEED_1);
-        let tree = RTree::bulk_load(&mut rectangles);
+        let rectangles = create_random_rectangles(NUM_RECTANGLES, SEED_1);
+        let tree = RTree::bulk_load(rectangles.clone());
 
         let query_points = create_random_points(20, SEED_1);
 
@@ -157,8 +157,8 @@ mod test {
 
     #[test]
     fn test_locate_in_envelope() {
-        let mut points = create_random_points(100, SEED_1);
-        let tree = RTree::bulk_load(&mut points);
+        let points = create_random_points(100, SEED_1);
+        let tree = RTree::bulk_load(points.clone());
         let envelope = AABB::from_corners([0.5, 0.5], [1.0, 1.0]);
         let contained_in_envelope: Vec<_> = points
             .iter()

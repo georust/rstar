@@ -52,8 +52,8 @@ pub fn main() {
         .build_glium()
         .unwrap();
 
-    let mut points = random_points_with_seed(10000, *b"abcdefghijklm1+nnonrestrictively");
-    let mut rtree: RTree<Point, Params> = RTree::bulk_load_with_params(&mut points);
+    let points = random_points_with_seed(10000, *b"abcdefghijklm1+nnonrestrictively");
+    let mut rtree: RTree<Point, Params> = RTree::bulk_load_with_params(points);
 
     let mut render_data = RenderData::new(&display);
     render_data.update_rtree_buffers(&display, &rtree);
