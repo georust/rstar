@@ -1,5 +1,5 @@
 use crate::primitives::*;
-use crate::RTreeObject;
+use crate::{Point, RTreeObject};
 use rand::distributions::{Distribution, Uniform};
 use rand::{Rng, SeedableRng};
 use rand_hc::Hc128Rng;
@@ -9,15 +9,18 @@ pub type Seed = [u8; 32];
 pub const SEED_1: &Seed = b"wPYxAkIiHcEmSBAxQFoXFrpYToCe1B71";
 pub const SEED_2: &Seed = b"4KbTVjPT4DXSwWAsQM5dkWWywPKZRfCX";
 
-pub fn create_random_integers(num_points: usize, seed: &Seed) -> Vec<[i32; 2]> {
+pub fn create_random_integers<P: Point<Scalar = i32>>(num_points: usize, seed: &Seed) -> Vec<P> {
     let mut result = Vec::with_capacity(num_points);
     let mut rng = Hc128Rng::from_seed(*seed);
     let range = Uniform::from(-1000..1000);
 
     for _ in 0..num_points {
-        let x = range.sample(&mut rng);
-        let y = range.sample(&mut rng);
-        result.push([x, y]);
+        let buffer = range
+            .sample_iter(&mut rng)
+            .take(P::DIMENSIONS)
+            .collect::<Vec<_>>();
+        let p = Point::generate(|index| buffer[index]);
+        result.push(p);
     }
     result
 }

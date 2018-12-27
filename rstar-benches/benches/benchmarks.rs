@@ -25,7 +25,7 @@ impl RTreeParams for Params {
 }
 
 fn bulk_load_baseline(c: &mut Criterion) {
-    let sizes: Vec<_> = (1..=1).map(|i| i * i * 1000).collect();
+    let sizes: Vec<_> = (1..=3).map(|i| i * i * 1000).collect();
 
     c.bench_function_over_inputs(
         "Bulk load baseline",
@@ -41,7 +41,7 @@ fn bulk_load_baseline(c: &mut Criterion) {
 }
 
 fn bulk_load_comparison(c: &mut Criterion) {
-    let sizes: Vec<_> = (1..=3).map(|i| i * 40000).collect();
+    let sizes: Vec<_> = (1..=3).map(|i| i * 1000).collect();
     let rstar_bench = ParameterizedBenchmark::new(
         "rstar",
         |b: &mut Bencher, size: &usize| {
@@ -99,7 +99,7 @@ fn bulk_load_query_quality(c: &mut Criterion) {
 
     let query_points = create_random_points(25, SEED_2);
     let query_points_cloned_1 = query_points.clone();
-    c.bench_function("bulk load queries (balanced)", move |b| {
+    c.bench_function("bulk load queries", move |b| {
         b.iter(|| {
             for query_point in &query_points {
                 tree_balanced.nearest_neighbor(&query_point).is_some();

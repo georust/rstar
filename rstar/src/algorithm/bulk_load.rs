@@ -4,7 +4,7 @@ use crate::params::RTreeParams;
 use crate::point::Point;
 use crate::structures::node::{ParentNodeData, RTreeNode};
 
-pub fn bulk_load<T, Params>(elements: Vec<T>) -> ParentNodeData<T>
+pub fn bulk_load<T, Params>(elements: Vec<T>, depth: usize) -> ParentNodeData<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
@@ -16,50 +16,79 @@ where
         let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
         return ParentNodeData::new_parent(elements);
     }
-
-    let depth = (elements.len() as f32).log(m as f32).ceil() as usize;
     let n_subtree = (m as f32).powi(depth as i32 - 1);
     let remaining_clusters = (elements.len() as f32 / n_subtree).ceil() as usize;
-    let num_vertical_slices = (remaining_clusters as f32).sqrt().ceil() as usize;
-    let vertical_slice_num_elements =
-        (elements.len() + num_vertical_slices - 1) / num_vertical_slices;
-    let mut children = Vec::with_capacity(m + 1);
-    for slice in create_clusters(elements, vertical_slice_num_elements, 0) {
-        let num_clusters_per_slice =
-            (remaining_clusters + num_vertical_slices - 1) / num_vertical_slices;
-        let cluster_num_elements =
-            (slice.len() + num_clusters_per_slice - 1) / num_clusters_per_slice;
 
-        for cluster in create_clusters(slice, cluster_num_elements, 1) {
-            let child = bulk_load::<_, Params>(cluster);
-            children.push(RTreeNode::Parent(child));
-        }
-    }
-    ParentNodeData::new_parent(children)
+    let max_dimension = <T::Envelope as Envelope>::Point::DIMENSIONS;
+    let number_of_clusters_on_axis = (remaining_clusters as f32)
+        .powf(1. / max_dimension as f32)
+        .ceil() as usize;
+    let mut resulting_children = Vec::with_capacity(m + 1);
+
+    partition_along_axis::<_, Params>(
+        &mut resulting_children,
+        elements,
+        number_of_clusters_on_axis,
+        max_dimension,
+        depth,
+    );
+
+    ParentNodeData::new_parent(resulting_children)
 }
 
-struct ClusterIterator<T: RTreeObject> {
+struct SlabIterator<T: RTreeObject> {
     remaining: Vec<T>,
-    cluster_size: usize,
+    slab_size: usize,
     cluster_dimension: usize,
 }
 
-fn create_clusters<T>(
+fn create_slabs<T>(
     elements: Vec<T>,
-    cluster_size: usize,
+    slab_size: usize,
     cluster_dimension: usize,
 ) -> impl Iterator<Item = Vec<T>>
 where
     T: RTreeObject,
 {
-    ClusterIterator {
+    SlabIterator {
         remaining: elements,
-        cluster_size,
+        slab_size,
         cluster_dimension,
     }
 }
 
-impl<T> Iterator for ClusterIterator<T>
+fn partition_along_axis<T, Params>(
+    result: &mut Vec<RTreeNode<T>>,
+    elements: Vec<T>,
+    number_of_clusters_on_axis: usize,
+    current_axis: usize,
+    depth: usize,
+) where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    if current_axis == 0 {
+        let child = bulk_load::<_, Params>(elements, depth - 1);
+        result.push(RTreeNode::Parent(child));
+    } else {
+        let slab_size = div_up(elements.len(), number_of_clusters_on_axis);
+        for slab in create_slabs(elements, slab_size, current_axis - 1) {
+            partition_along_axis::<_, Params>(
+                result,
+                slab,
+                number_of_clusters_on_axis,
+                current_axis - 1,
+                depth,
+            );
+        }
+    }
+}
+
+fn div_up(dividend: usize, divisor: usize) -> usize {
+    (dividend + divisor - 1) / divisor
+}
+
+impl<T> Iterator for SlabIterator<T>
 where
     T: RTreeObject,
 {
@@ -68,17 +97,11 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.remaining.len() {
             0 => None,
-            len if len <= self.cluster_size => {
-                ::std::mem::replace(&mut self.remaining, vec![]).into()
-            }
+            len if len <= self.slab_size => ::std::mem::replace(&mut self.remaining, vec![]).into(),
             _ => {
-                let cluster_dimension = self.cluster_dimension;
-                T::Envelope::partition_envelopes(
-                    cluster_dimension,
-                    &mut self.remaining,
-                    self.cluster_size,
-                );
-                let off_split = self.remaining.split_off(self.cluster_size);
+                let slab_axis = self.cluster_dimension;
+                T::Envelope::partition_envelopes(slab_axis, &mut self.remaining, self.slab_size);
+                let off_split = self.remaining.split_off(self.slab_size);
                 ::std::mem::replace(&mut self.remaining, off_split).into()
             }
         }
@@ -91,40 +114,42 @@ where
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    bulk_load::<_, Params>(elements)
+    let m = Params::MAX_SIZE;
+    let depth = (elements.len() as f32).log(m as f32).ceil() as usize;
+    bulk_load::<_, Params>(elements, depth)
 }
 
 #[cfg(test)]
 mod test {
-    use super::create_clusters;
-    use crate::rtree::RTree;
+    use super::create_slabs;
     use crate::test_utilities::{create_random_integers, SEED_1};
+    use crate::{Point, RTree};
     use std::collections::HashSet;
 
     #[test]
-    fn test_create_clusters() {
+    fn test_create_slabs() {
         const SIZE: usize = 374;
-        const CLUSTER_SIZE: usize = 10;
+        const SLAB_SIZE: usize = 10;
         let elements: Vec<_> = (0..SIZE as i32).map(|i| [-i, -i]).collect();
-        let clusters: Vec<_> = create_clusters(elements, CLUSTER_SIZE, 0).collect();
-        assert_eq!(clusters.len(), (SIZE + CLUSTER_SIZE) / CLUSTER_SIZE);
-        for cluster in &clusters[0..clusters.len() - 1] {
-            assert_eq!(cluster.len(), CLUSTER_SIZE);
+        let slabs: Vec<_> = create_slabs(elements, SLAB_SIZE, 0).collect();
+        assert_eq!(slabs.len(), (SIZE + SLAB_SIZE) / SLAB_SIZE);
+        for slab in &slabs[0..slabs.len() - 1] {
+            assert_eq!(slab.len(), SLAB_SIZE);
         }
         let mut total_size = 0;
-        let mut max_element_for_last_cluster = i32::min_value();
-        for cluster in &clusters {
-            total_size += cluster.len();
-            let current_max = cluster.iter().max_by_key(|point| point[0]).unwrap();
-            assert!(current_max[0] > max_element_for_last_cluster);
-            max_element_for_last_cluster = current_max[0];
+        let mut max_element_for_last_slab = i32::min_value();
+        for slab in &slabs {
+            total_size += slab.len();
+            let current_max = slab.iter().max_by_key(|point| point[0]).unwrap();
+            assert!(current_max[0] > max_element_for_last_slab);
+            max_element_for_last_slab = current_max[0];
         }
         assert_eq!(total_size, SIZE);
     }
 
     #[test]
     fn test_bulk_load_small() {
-        let random_points = create_random_integers(50, SEED_1);
+        let random_points = create_random_integers::<[i32; 2]>(50, SEED_1);
         let tree = RTree::bulk_load(random_points.clone());
         let set1: HashSet<_> = tree.iter().collect();
         let set2: HashSet<_> = random_points.iter().collect();
@@ -134,7 +159,7 @@ mod test {
 
     #[test]
     fn test_bulk_load() {
-        let random_points = create_random_integers(1000, SEED_1);
+        let random_points = create_random_integers::<[i32; 2]>(1000, SEED_1);
         let tree = RTree::bulk_load(random_points.clone());
         let set1: HashSet<_> = tree.iter().collect();
         let set2: HashSet<_> = random_points.iter().collect();
@@ -144,9 +169,22 @@ mod test {
 
     #[test]
     fn test_bulk_load_with_different_sizes() {
-        for i in 0..100 {
-            let random_points = create_random_integers(i * 7, SEED_1);
-            RTree::bulk_load(random_points);
+        for size in (0..100).map(|i| i * 7) {
+            test_bulk_load_with_size_and_dimension::<[i32; 2]>(size);
+            test_bulk_load_with_size_and_dimension::<[i32; 3]>(size);
+            test_bulk_load_with_size_and_dimension::<[i32; 4]>(size);
         }
+    }
+
+    fn test_bulk_load_with_size_and_dimension<P>(size: usize)
+    where
+        P: Point<Scalar = i32> + Eq + std::hash::Hash,
+    {
+        let random_points = create_random_integers::<P>(size, SEED_1);
+        let expected: HashSet<_> = random_points.iter().cloned().collect();
+        let tree = RTree::bulk_load(random_points);
+        let actual: HashSet<_> = tree.iter().cloned().collect();
+        assert_eq!(actual, expected);
+        assert_eq!(tree.size(), size);
     }
 }

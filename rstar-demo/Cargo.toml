@@ -1,14 +1,12 @@
 [package]
 name = "rstar-demo"
 version = "0.1.0"
+authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
+edition = "2018"
 
 [dependencies]
-num-traits = "0.2"
-glfw = "0.8"
-glium = "0.15"
 rand = "0.6"
-rand_hc = "0.1.0"
+kiss3d = "0.17"
+nalgebra = "0.16"
 
-[dependencies.rstar]
-path = "../rstar"
-features = ["debug"]
+rstar = { path="../rstar", features=["debug"] }
