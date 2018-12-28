@@ -25,13 +25,17 @@ where
         .ceil() as usize;
     let mut resulting_children = Vec::with_capacity(m + 1);
 
-    partition_along_axis::<_, Params>(
-        &mut resulting_children,
+    let start_state = PartitioningState {
         elements,
-        number_of_clusters_on_axis,
-        max_dimension,
+        current_axis: max_dimension,
+    };
+
+    resulting_children.extend(PartitioningIterator::<_, Params> {
+        queue: vec![start_state],
         depth,
-    );
+        number_of_clusters_on_axis,
+        _params: Default::default(),
+    });
 
     ParentNodeData::new_parent(resulting_children)
 }
@@ -57,7 +61,48 @@ where
     }
 }
 
-fn partition_along_axis<T, Params>(
+struct PartitioningState<T: RTreeObject> {
+    elements: Vec<T>,
+    current_axis: usize,
+}
+
+struct PartitioningIterator<T: RTreeObject, Params: RTreeParams> {
+    queue: Vec<PartitioningState<T>>,
+    depth: usize,
+    number_of_clusters_on_axis: usize,
+    _params: std::marker::PhantomData<Params>,
+}
+
+impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningIterator<T, Params> {
+    type Item = RTreeNode<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(next) = self.queue.pop() {
+            let PartitioningState {
+                elements,
+                current_axis,
+            } = next;
+            if current_axis == 0 {
+                let data = bulk_load::<_, Params>(elements, self.depth - 1);
+                return RTreeNode::Parent(data).into();
+            } else {
+                let slab_size = div_up(elements.len(), self.number_of_clusters_on_axis);
+                self.queue
+                    .extend(
+                        create_slabs(elements, slab_size, current_axis - 1).map(|slab| {
+                            PartitioningState {
+                                elements: slab,
+                                current_axis: current_axis - 1,
+                            }
+                        }),
+                    );
+            }
+        }
+        None
+    }
+}
+
+/* fn partition_along_axis<T, Params>(
     result: &mut Vec<RTreeNode<T>>,
     elements: Vec<T>,
     number_of_clusters_on_axis: usize,
@@ -83,7 +128,7 @@ fn partition_along_axis<T, Params>(
         }
     }
 }
-
+ */
 fn div_up(dividend: usize, divisor: usize) -> usize {
     (dividend + divisor - 1) / divisor
 }
