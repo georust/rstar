@@ -33,7 +33,7 @@ use crate::{RTree, RTreeObject};
 /// let tree: LargeNodeRTree<_> = RTree::bulk_load_with_params(some_elements);
 /// # }
 /// ```
-pub trait RTreeParams {
+pub trait RTreeParams: Send + Sync {
     /// The minimum size of an internal node. Must be at most half as large as `MAX_SIZE`.
     /// Choosing a value around one half or one third of `MAX_SIZE` is recommended. Higher
     /// values should yield slightly better tree quality while lower values may benefit

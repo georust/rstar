@@ -206,6 +206,29 @@ where
     }
 }
 
+impl<T> RTree<T>
+where
+    T: RTreeObject + Send + Sync + 'static,
+    T::Envelope: Send + Sync,
+{
+    /// TODO
+    pub fn bulk_load_parallel(elements: Vec<T>) -> Self {
+        Self::bulk_load_with_params_parallel(elements)
+    }
+}
+
+impl<T, Params> RTree<T, Params>
+where
+    Params: RTreeParams,
+    T: RTreeObject + Send + Sync + 'static,
+    T::Envelope: Send + Sync,
+{
+    /// TODO
+    pub fn bulk_load_with_params_parallel(elements: Vec<T>) -> Self {
+        Self::new_from_bulk_loading(elements, bulk_load::bulk_load_parallel::<_, Params>)
+    }
+}
+
 impl<T, Params> RTree<T, Params>
 where
     Params: RTreeParams,
@@ -228,13 +251,7 @@ where
     /// For more information refer to [bulk_load_with_params](#methods.bulk_load_with_params)
     /// and [RTreeParameters](traits.RTreeParameters.html).
     pub fn bulk_load_with_params(elements: Vec<T>) -> Self {
-        let size = elements.len();
-        let root = bulk_load::bulk_load_with_params::<_, Params>(elements);
-        RTree {
-            root,
-            size,
-            _params: Default::default(),
-        }
+        Self::new_from_bulk_loading(elements, bulk_load::bulk_load_sequential::<_, Params>)
     }
 
     /// Returns the number of objects in an r-tree.
@@ -337,6 +354,23 @@ where
             &mut self.root,
             SelectInEnvelopeFuncIntersecting::new(*envelope),
         )
+    }
+
+    fn new_from_bulk_loading(
+        elements: Vec<T>,
+        root_loader: impl Fn(Vec<T>) -> ParentNodeData<T>,
+    ) -> Self {
+        let size = elements.len();
+        let root = if size == 0 {
+            ParentNodeData::new_root::<Params>()
+        } else {
+            root_loader(elements)
+        };
+        RTree {
+            root,
+            size,
+            _params: Default::default(),
+        }
     }
 }
 

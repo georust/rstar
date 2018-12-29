@@ -19,6 +19,7 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 num-traits = "0.2"
 pdqselect = "0.1"
+threadpool = "1.7"
 
 [features]
 default = []

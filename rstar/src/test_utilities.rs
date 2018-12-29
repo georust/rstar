@@ -12,7 +12,7 @@ pub const SEED_2: &Seed = b"4KbTVjPT4DXSwWAsQM5dkWWywPKZRfCX";
 pub fn create_random_integers<P: Point<Scalar = i32>>(num_points: usize, seed: &Seed) -> Vec<P> {
     let mut result = Vec::with_capacity(num_points);
     let mut rng = Hc128Rng::from_seed(*seed);
-    let range = Uniform::from(-1000..1000);
+    let range = Uniform::from(-100_000..100_000);
 
     for _ in 0..num_points {
         let buffer = range

@@ -37,6 +37,7 @@ fn main() {
     let mut camera = ArcBall::new(Point3::new(3.0, 2.5, 2.0), Point3::origin());
 
     let points = create_random_points(300);
+
     let mut tree = RTree::bulk_load_with_params(points);
     let mut render_data = create_render_data_for_tree(&tree);
 
