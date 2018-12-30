@@ -23,10 +23,7 @@ use num_traits::{One, Zero};
 /// assert!(tree.contains(&line_1));
 /// ```
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(
-    feature = "serde_serialize",
-    derive(serde_derive::Serialize, serde_derive::Deserialize)
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Line<P>
 where
     P: Point,
