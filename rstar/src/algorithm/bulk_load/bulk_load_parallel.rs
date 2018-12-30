@@ -1,4 +1,4 @@
-use super::bulk_load_common::{calculate_number_of_clusters_on_axis, SlabIterator};
+use super::bulk_load_common::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 use super::bulk_load_sequential::bulk_load_sequential;
 use crate::envelope::Envelope;
 use crate::object::RTreeObject;
@@ -8,6 +8,11 @@ use crate::structures::node::{ParentNodeData, RTreeNode};
 use std::sync::mpsc::{channel, Sender};
 use threadpool::ThreadPool;
 
+/// Packs all given elements into a single RTree parent node
+///
+/// The root's child nodes are calculated in parallel on several threads. Each thread performs sequential bulk loading.
+/// This coarsely grained work distribution may not always achieve best thread utilization but minimizes
+///  synchronization overhead.
 pub fn bulk_load_parallel<T, Params>(elements: Vec<T>) -> ParentNodeData<T>
 where
     T: RTreeObject + Send + Sync + 'static,
@@ -15,93 +20,85 @@ where
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    let max_size = Params::MAX_SIZE;
-    if elements.len() <= max_size {
-        // Reached leaf level
-        let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
-        return ParentNodeData::new_parent(elements);
+    if elements.len() <= Params::MAX_SIZE {
+        // Partitioning the root doesn't make sense if it has only leafs.
+        bulk_load_sequential::<_, Params>(elements)
+    } else {
+        let (result_channel, receiver) = channel();
+        let expected_number_of_children =
+            partition_root_in_parallel::<_, Params>(elements, &result_channel);
+        ParentNodeData::new_parent(receiver.iter().take(expected_number_of_children).collect())
     }
-    let number_of_clusters_on_axis =
-        calculate_number_of_clusters_on_axis::<T, Params>(elements.len());
-
-    let initial_state = PartitioningState::CreatePartitions {
-        elements,
-        current_axis: <T::Envelope as Envelope>::Point::DIMENSIONS,
-    };
-
-    let (sender, receiver) = channel();
-
-    let mut iterator = PartitioningIterator::<_, Params> {
-        queue: vec![initial_state],
-        number_of_clusters_on_axis,
-        sender,
-        pool: Default::default(),
-        _params: Default::default(),
-    };
-
-    let expected = iterator.partition_along_axis();
-    ParentNodeData::new_parent(receiver.iter().take(expected).collect())
 }
 
-enum PartitioningState<T: RTreeObject + Send + Sync> {
+enum PartitioningWorkItem<T: RTreeObject + Send + Sync> {
     CreatePartitions {
         elements: Vec<T>,
         current_axis: usize,
     },
-    CreateSlabs(SlabIterator<T>),
+    // This work item consists of a (costly) call of `.next()`.
+    // Creating partition groups can be time consuming as it requires a selection algorithm.
+    CreatePartitionGroups(ClusterGroupIterator<T>),
 }
 
-struct PartitioningIterator<T: RTreeObject + Send + Sync, Params: RTreeParams> {
-    queue: Vec<PartitioningState<T>>,
-    number_of_clusters_on_axis: usize,
-    sender: Sender<RTreeNode<T>>,
-    pool: ThreadPool,
-    _params: std::marker::PhantomData<Params>,
-}
-
-impl<T, Params> PartitioningIterator<T, Params>
+/// This method is similar to the sequentially performing partitioning iterator. It sends all
+/// resulting children over a result channel.
+/// The method returns the number of children the root will be split into.
+fn partition_root_in_parallel<T, Params>(
+    elements: Vec<T>,
+    result_channel: &Sender<RTreeNode<T>>,
+) -> usize
 where
     T: RTreeObject + Send + Sync + 'static,
-    T::Envelope: Send + Sync,
+    T::Envelope: Send + Sync + 'static,
     Params: RTreeParams,
 {
-    fn partition_along_axis(&mut self) -> usize {
-        let mut expected_children = 0;
-        while let Some(next) = self.queue.pop() {
-            match next {
-                PartitioningState::CreatePartitions {
-                    elements,
-                    current_axis,
-                } => {
-                    if current_axis == 0 {
-                        let sender_copy = self.sender.clone();
-                        self.pool.execute(move || {
-                            let data = bulk_load_sequential::<_, Params>(elements);
-                            sender_copy.send(RTreeNode::Parent(data)).unwrap();
-                        });
-                        expected_children += 1;
-                    } else {
-                        let slab_iterator = SlabIterator::new(
-                            elements,
-                            self.number_of_clusters_on_axis,
-                            current_axis - 1,
-                        );
-                        self.queue
-                            .push(PartitioningState::CreateSlabs(slab_iterator));
-                    }
+    let pool = ThreadPool::default();
+    let number_of_clusters_on_axis =
+        calculate_number_of_clusters_on_axis::<T, Params>(elements.len());
+
+    let mut expected_children = 0;
+    let mut queue = vec![PartitioningWorkItem::CreatePartitions {
+        elements,
+        current_axis: <T::Envelope as Envelope>::Point::DIMENSIONS,
+    }];
+    while let Some(next) = queue.pop() {
+        match next {
+            PartitioningWorkItem::CreatePartitions {
+                elements,
+                current_axis,
+            } => {
+                if current_axis == 0 {
+                    let result_channel_copy = result_channel.clone();
+                    pool.execute(move || {
+                        // All spawned sub tasks perform the loading sequentially to minimize
+                        // synchronization overhead
+                        let data = bulk_load_sequential::<_, Params>(elements);
+                        result_channel_copy.send(RTreeNode::Parent(data)).unwrap();
+                    });
+                    expected_children += 1;
+                } else {
+                    let slab_iterator = ClusterGroupIterator::new(
+                        elements,
+                        number_of_clusters_on_axis,
+                        current_axis - 1,
+                    );
+                    queue.push(PartitioningWorkItem::CreatePartitionGroups(slab_iterator));
                 }
-                PartitioningState::CreateSlabs(mut iter) => {
-                    if let Some(slab) = iter.next() {
-                        let current_axis = iter.cluster_dimension();
-                        self.queue.push(PartitioningState::CreateSlabs(iter));
-                        self.queue.push(PartitioningState::CreatePartitions {
-                            elements: slab,
-                            current_axis,
-                        });
-                    }
+            }
+            PartitioningWorkItem::CreatePartitionGroups(mut iter) => {
+                if let Some(slab) = iter.next() {
+                    let current_axis = iter.cluster_dimension();
+                    queue.push(PartitioningWorkItem::CreatePartitionGroups(iter));
+                    // In order to start working in parallel as soon as possible, a partitioning task should be
+                    // put onto the work stack last.
+                    queue.push(PartitioningWorkItem::CreatePartitions {
+                        elements: slab,
+                        current_axis,
+                    });
                 }
             }
         }
-        expected_children
     }
+    expected_children
 }

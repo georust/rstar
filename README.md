@@ -10,6 +10,11 @@ A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) imple
 
 Please refer to the [crate README](rstar/README.md) for more information.
 
+# Demo
+To run the rstar-demo, checkout the repository and run `cargo run rstar-demo` in the
+repository root.
+![Demo Image](rtree-example.png)
+
 # License
 
 Licensed under either of

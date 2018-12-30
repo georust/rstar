@@ -1,19 +1,20 @@
 use crate::{Envelope, Point, RTreeObject, RTreeParams};
 
-pub struct SlabIterator<T: RTreeObject> {
+/// Partitions elements into groups of clusters along a specific axis.
+pub struct ClusterGroupIterator<T: RTreeObject> {
     remaining: Vec<T>,
     slab_size: usize,
     cluster_dimension: usize,
 }
 
-impl<T: RTreeObject> SlabIterator<T> {
+impl<T: RTreeObject> ClusterGroupIterator<T> {
     pub fn new(
         elements: Vec<T>,
         number_of_clusters_on_axis: usize,
         cluster_dimension: usize,
     ) -> Self {
         let slab_size = div_up(elements.len(), number_of_clusters_on_axis);
-        SlabIterator {
+        ClusterGroupIterator {
             remaining: elements,
             slab_size,
             cluster_dimension,
@@ -25,7 +26,7 @@ impl<T: RTreeObject> SlabIterator<T> {
     }
 }
 
-impl<T: RTreeObject> Iterator for SlabIterator<T> {
+impl<T: RTreeObject> Iterator for ClusterGroupIterator<T> {
     type Item = Vec<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -42,17 +43,43 @@ impl<T: RTreeObject> Iterator for SlabIterator<T> {
     }
 }
 
+/// Calculates the desired number of clusters on any axis
+///
+/// A 'cluster' refers to a set of elements that will finally form an rtree node.
+pub fn calculate_number_of_clusters_on_axis<T, Params>(number_of_elements: usize) -> usize
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    let max_size = Params::MAX_SIZE as f32;
+    // The depth of the resulting tree, assuming all leaf nodes will be filled up to MAX_SIZE
+    let depth = (number_of_elements as f32).log(max_size).ceil() as usize;
+    // The number of elements each subtree will hold
+    let n_subtree = (max_size as f32).powi(depth as i32 - 1);
+    // How many clusters will this node contain
+    let number_of_clusters = (number_of_elements as f32 / n_subtree).ceil();
+
+    let max_dimension = <T::Envelope as Envelope>::Point::DIMENSIONS as f32;
+    // Try to split all clusters among all dimensions as evenly as possible by taking the nth root.
+    number_of_clusters.powf(1. / max_dimension).ceil() as usize
+}
+
+fn div_up(dividend: usize, divisor: usize) -> usize {
+    (dividend + divisor - 1) / divisor
+}
+
 #[cfg(test)]
 mod test {
-    use super::SlabIterator;
+    use super::ClusterGroupIterator;
 
     #[test]
-    fn test_create_slabs() {
+    fn test_cluster_group_iterator() {
         const SIZE: usize = 374;
         const NUMBER_OF_CLUSTERS_ON_AXIS: usize = 5;
         let elements: Vec<_> = (0..SIZE as i32).map(|i| [-i, -i]).collect();
         let slab_size = (elements.len()) / NUMBER_OF_CLUSTERS_ON_AXIS + 1;
-        let slabs: Vec<_> = SlabIterator::new(elements, NUMBER_OF_CLUSTERS_ON_AXIS, 0).collect();
+        let slabs: Vec<_> =
+            ClusterGroupIterator::new(elements, NUMBER_OF_CLUSTERS_ON_AXIS, 0).collect();
         assert_eq!(slabs.len(), NUMBER_OF_CLUSTERS_ON_AXIS);
         for slab in &slabs[0..slabs.len() - 1] {
             assert_eq!(slab.len(), slab_size);
@@ -67,24 +94,4 @@ mod test {
         }
         assert_eq!(total_size, SIZE);
     }
-}
-
-pub fn calculate_number_of_clusters_on_axis<T, Params>(number_of_elements: usize) -> usize
-where
-    T: RTreeObject,
-    Params: RTreeParams,
-{
-    let m = Params::MAX_SIZE;
-    let depth = (number_of_elements as f32).log(m as f32).ceil() as usize;
-    let n_subtree = (m as f32).powi(depth as i32 - 1);
-    let remaining_clusters = (number_of_elements as f32 / n_subtree).ceil() as usize;
-
-    let max_dimension = <T::Envelope as Envelope>::Point::DIMENSIONS;
-    (remaining_clusters as f32)
-        .powf(1. / max_dimension as f32)
-        .ceil() as usize
-}
-
-fn div_up(dividend: usize, divisor: usize) -> usize {
-    (dividend + divisor - 1) / divisor
 }

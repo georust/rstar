@@ -3,6 +3,5 @@
 members = [
     "rstar",
     "rstar-demo",
-    "rstar-benches",
-    "rstar-temp"
+    "rstar-benches"
 ]
