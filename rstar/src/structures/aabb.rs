@@ -2,6 +2,9 @@ use crate::point::{max_inline, Point, PointExt};
 use crate::{Envelope, RTreeObject};
 use num_traits::{Bounded, One, Signed, Zero};
 
+#[cfg(feature = "serde_serialize")]
+use serde_derive::{Deserialize, Serialize};
+
 /// An n-dimensional axis aligned bounding box (AABB).
 ///
 /// An object's AABB is the smallest box totally encompassing an object
@@ -16,6 +19,7 @@ use num_traits::{Bounded, One, Signed, Zero};
 /// `P`: The struct is generic over which point type is used. Using an n-dimensional point
 /// type will result in an n-dimensional bounding box.
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Ord, PartialOrd)]
+#[cfg_attr(feature = "serde_serialize", derive(Serialize, Deserialize))]
 pub struct AABB<P>
 where
     P: Point,

@@ -19,6 +19,7 @@ A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) imple
    - Lines
    - Rectangles
  - Small number of dependencies
+ - Serde support with the `serde_serialize` feature
 
 # Project state
 The project is being actively developed, feature requests and PRs are welcome!

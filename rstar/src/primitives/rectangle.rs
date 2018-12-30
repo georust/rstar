@@ -13,6 +13,10 @@ use crate::structures::aabb::AABB;
 /// # Type parameters
 /// `P`: The rectangle's point type.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
+#[cfg_attr(
+    feature = "serde_serialize",
+    derive(serde_derive::Serialize, serde_derive::Deserialize)
+)]
 pub struct Rectangle<P>
 where
     P: Point,

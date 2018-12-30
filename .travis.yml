@@ -5,7 +5,7 @@ rust:
 sudo: required
 cache: cargo
 script:
-  - cargo build -p rstar-benches && cargo test -p rstar
+  - cargo build -p rstar-benches && cargo test --all-features -p rstar
 
 addons:
   apt:

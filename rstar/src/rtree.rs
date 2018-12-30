@@ -9,6 +9,9 @@ use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
 use crate::structures::node::ParentNodeData;
 use crate::Point;
 
+#[cfg(feature = "serde_serialize")]
+use serde::{Deserialize, Serialize};
+
 impl<T> Default for RTree<T>
 where
     T: RTreeObject,
@@ -119,8 +122,23 @@ where
 ///    possible.
 ///
 /// For the edge case that all elements are overlapping (e.g, one and the same element
-///  is `n` times), the performance of most operations usually degrades to `O(n)`.
+/// is contained `n` times), the performance of most operations usually degrades to `O(n)`.
+///
+/// # (De)Serialization
+/// Enable the `serde_serialize` for [Serde](https://crates.io/crates/serde) support.
+///
 #[derive(Clone)]
+#[cfg_attr(
+    feature = "serde_serialize",
+    derive(serde_derive::Serialize, serde_derive::Deserialize)
+)]
+#[cfg_attr(
+    feature = "serde_serialize",
+    serde(bound(
+        serialize = "T: Serialize, T::Envelope: Serialize",
+        deserialize = "T: Deserialize<'de>, T::Envelope: Deserialize<'de>"
+    ))
+)]
 pub struct RTree<T, Params = DefaultParams>
 where
     Params: RTreeParams,
@@ -645,7 +663,7 @@ mod test {
     use super::RTree;
     use crate::algorithm::rstar::RStarInsertionStrategy;
     use crate::params::RTreeParams;
-    use crate::test_utilities::{create_random_points, SEED_1};
+    use crate::test_utilities::{create_random_integers, create_random_points, SEED_1};
 
     struct TestParams;
     impl RTreeParams for TestParams {
@@ -688,5 +706,21 @@ mod test {
         let tree = RTree::bulk_load(vec![[0, 1], [0, 1]]);
         let debug: String = format!("{:?}", tree);
         assert_eq!(debug, "RTree { size: 2, items: {[0, 1], [0, 1]} }");
+    }
+
+    #[cfg(feature = "serde_serialize")]
+    #[test]
+    fn test_serialization() {
+        use serde_json;
+        const SIZE: usize = 20;
+        let points = create_random_integers::<[i32; 2]>(SIZE, SEED_1);
+        let tree = RTree::bulk_load(points.clone());
+        let json = serde_json::to_string(&tree).expect("Serializing tree failed");
+        let parsed: RTree<[i32; 2]> =
+            serde_json::from_str(&json).expect("Deserializing tree failed");
+        assert_eq!(parsed.size(), SIZE);
+        for point in &points {
+            assert!(parsed.contains(point));
+        }
     }
 }

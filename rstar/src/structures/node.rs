@@ -2,17 +2,38 @@ use crate::envelope::Envelope;
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 
+#[cfg(feature = "serde_serialize")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone)]
-#[doc(hidden)]
+#[cfg_attr(
+    feature = "serde_serialize",
+    derive(serde_derive::Serialize, serde_derive::Deserialize)
+)]
+#[cfg_attr(
+    feature = "serde_serialize",
+    serde(bound(
+        serialize = "T: Serialize, T::Envelope: Serialize",
+        deserialize = "T: Deserialize<'de>, T::Envelope: Deserialize<'de>"
+    ))
+)]
+
+/// An internal tree node. Only exposed for the debug feature used by the rstar demo.
 pub enum RTreeNode<T>
 where
     T: RTreeObject,
 {
+    /// A leaf node, only containing the r-tree object
     Leaf(T),
+    /// A parent node containing several child nodes
     Parent(ParentNodeData<T>),
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "serde_serialize",
+    derive(serde_derive::Serialize, serde_derive::Deserialize)
+)]
 pub struct ParentNodeData<T>
 where
     T: RTreeObject,

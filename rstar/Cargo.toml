@@ -1,6 +1,6 @@
 [package]
 name = "rstar"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
 description = "R*-tree library for the rust ecosystem"
 documentation = "https://docs.rs/rstar/"
@@ -20,12 +20,16 @@ maintenance = { status = "actively-developed" }
 num-traits = "0.2"
 pdqselect = "0.1"
 threadpool = "1.7"
+serde = { version = "1.0", optional = true }
+serde_derive = { version = "1.0", optional = true }
 
 [features]
 default = []
 debug = []
+serde_serialize = ["serde", "serde_derive"]
 
 [dev-dependencies]
 rand = "0.6"
 rand_hc = "0.1"
 approx = "0.3"
+serde_json = "1.0"
