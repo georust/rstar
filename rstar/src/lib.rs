@@ -18,7 +18,7 @@
 //! the [primitives module](primitives/index.html) may be of interest for a quick start.
 //!
 //! # (De)Serialization
-//! Enable the `serde` for [Serde](https://crates.io/crates/serde) support.
+//! Enable the `serde` feature for [Serde](https://crates.io/crates/serde) support.
 //!
 #![deny(missing_docs)]
 mod algorithm;
