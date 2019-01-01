@@ -4,7 +4,7 @@ use crate::{Envelope, Point, RTreeObject, RTreeParams};
 pub struct ClusterGroupIterator<T: RTreeObject> {
     remaining: Vec<T>,
     slab_size: usize,
-    cluster_dimension: usize,
+    pub cluster_dimension: usize,
 }
 
 impl<T: RTreeObject> ClusterGroupIterator<T> {
@@ -19,10 +19,6 @@ impl<T: RTreeObject> ClusterGroupIterator<T> {
             slab_size,
             cluster_dimension,
         }
-    }
-
-    pub fn cluster_dimension(&self) -> usize {
-        self.cluster_dimension
     }
 }
 

@@ -88,7 +88,7 @@ where
             }
             PartitioningWorkItem::CreatePartitionGroups(mut iter) => {
                 if let Some(slab) = iter.next() {
-                    let current_axis = iter.cluster_dimension();
+                    let current_axis = iter.cluster_dimension;
                     queue.push(PartitioningWorkItem::CreatePartitionGroups(iter));
                     // In order to start working in parallel as soon as possible, a partitioning task should be
                     // put onto the work stack last.

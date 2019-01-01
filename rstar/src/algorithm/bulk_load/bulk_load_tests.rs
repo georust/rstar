@@ -34,6 +34,17 @@ where
     create_and_check_bulk_loading_with_points(&random_points);
 }
 
+#[cfg(not(feature = "threadpool"))]
+fn create_and_check_bulk_loading_with_points<P>(points: &[P])
+where
+    P: RTreeObject + Send + Sync + Eq + Clone + Debug + Hash + 'static,
+    P::Envelope: Send + Sync,
+{
+    println!("Testing sequential loading ({} points)", points.len());
+    create_and_check_method(points, RTree::bulk_load);
+}
+
+#[cfg(feature = "threadpool")]
 fn create_and_check_bulk_loading_with_points<P>(points: &[P])
 where
     P: RTreeObject + Send + Sync + Eq + Clone + Debug + Hash + 'static,
