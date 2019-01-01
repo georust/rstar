@@ -2,8 +2,8 @@ use crate::point::{max_inline, Point, PointExt};
 use crate::{Envelope, RTreeObject};
 use num_traits::{Bounded, One, Signed, Zero};
 
-#[cfg(feature = "serde_serialize")]
-use serde_derive::{Deserialize, Serialize};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// An n-dimensional axis aligned bounding box (AABB).
 ///
@@ -11,7 +11,7 @@ use serde_derive::{Deserialize, Serialize};
 /// while being aligned to the current coordinate system.
 /// Although these structures are commonly called bounding _boxes_, they exist in any
 /// dimension.
-///  
+///
 /// Note that AABBs cannot be inserted into r-trees. Use the
 /// [Rectangle](primitives/struct.Rectangle.html) struct for this purpose.
 ///
@@ -19,7 +19,7 @@ use serde_derive::{Deserialize, Serialize};
 /// `P`: The struct is generic over which point type is used. Using an n-dimensional point
 /// type will result in an n-dimensional bounding box.
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Ord, PartialOrd)]
-#[cfg_attr(feature = "serde_serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AABB<P>
 where
     P: Point,

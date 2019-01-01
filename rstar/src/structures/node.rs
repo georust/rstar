@@ -2,16 +2,13 @@ use crate::envelope::Envelope;
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 
-#[cfg(feature = "serde_serialize")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
-    feature = "serde_serialize",
-    derive(serde_derive::Serialize, serde_derive::Deserialize)
-)]
-#[cfg_attr(
-    feature = "serde_serialize",
+    feature = "serde",
     serde(bound(
         serialize = "T: Serialize, T::Envelope: Serialize",
         deserialize = "T: Deserialize<'de>, T::Envelope: Deserialize<'de>"
@@ -30,10 +27,7 @@ where
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_serialize",
-    derive(serde_derive::Serialize, serde_derive::Deserialize)
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ParentNodeData<T>
 where
     T: RTreeObject,

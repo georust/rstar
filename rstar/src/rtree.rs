@@ -9,7 +9,7 @@ use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
 use crate::structures::node::ParentNodeData;
 use crate::Point;
 
-#[cfg(feature = "serde_serialize")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 impl<T> Default for RTree<T>
@@ -125,15 +125,12 @@ where
 /// is contained `n` times), the performance of most operations usually degrades to `O(n)`.
 ///
 /// # (De)Serialization
-/// Enable the `serde_serialize` for [Serde](https://crates.io/crates/serde) support.
+/// Enable the `serde` for [Serde](https://crates.io/crates/serde) support.
 ///
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
-    feature = "serde_serialize",
-    derive(serde_derive::Serialize, serde_derive::Deserialize)
-)]
-#[cfg_attr(
-    feature = "serde_serialize",
+    feature = "serde",
     serde(bound(
         serialize = "T: Serialize, T::Envelope: Serialize",
         deserialize = "T: Deserialize<'de>, T::Envelope: Deserialize<'de>"
@@ -708,7 +705,7 @@ mod test {
         assert_eq!(debug, "RTree { size: 2, items: {[0, 1], [0, 1]} }");
     }
 
-    #[cfg(feature = "serde_serialize")]
+    #[cfg(feature = "serde")]
     #[test]
     fn test_serialization() {
         use serde_json;
