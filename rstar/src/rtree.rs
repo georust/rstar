@@ -5,7 +5,7 @@ use crate::algorithm::removal;
 use crate::algorithm::selection_functions::*;
 use crate::envelope::Envelope;
 use crate::object::{PointDistance, RTreeObject};
-use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
+use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
 use crate::structures::node::ParentNodeData;
 use crate::Point;
 
@@ -284,6 +284,7 @@ where
     /// The tree's compile time parameters must be specified. Refer to the
     /// [RTreeParams](trait.RTreeParams.html) trait for more information and a usage example.
     pub fn new_with_params() -> Self {
+        verify_parameters::<T, Params>();
         RTree {
             root: ParentNodeData::new_root::<Params>(),
             size: 0,
@@ -407,6 +408,7 @@ where
         elements: Vec<T>,
         root_loader: impl Fn(Vec<T>) -> ParentNodeData<T>,
     ) -> Self {
+        verify_parameters::<T, Params>();
         let size = elements.len();
         let root = if size == 0 {
             ParentNodeData::new_root::<Params>()

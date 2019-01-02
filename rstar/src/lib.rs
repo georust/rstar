@@ -20,7 +20,8 @@
 //! # (De)Serialization
 //! Enable the `serde` feature for [Serde](https://crates.io/crates/serde) support.
 //!
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
+
 mod algorithm;
 mod envelope;
 mod object;

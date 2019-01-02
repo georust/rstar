@@ -1,5 +1,5 @@
 use crate::algorithm::rstar::RStarInsertionStrategy;
-use crate::{RTree, RTreeObject};
+use crate::{Envelope, Point, RTree, RTreeObject};
 
 /// Defines static parameters for an r-tree.
 ///
@@ -45,6 +45,9 @@ pub trait RTreeParams: Send + Sync {
     /// but increase the average query time.
     const MAX_SIZE: usize;
 
+    /// The number of nodes that the insertion strategy tries to reinsert sometimes to
+    /// maintain a good tree quality. Must be smaller than `MAX_SIZE` - `MIN_SIZE`.
+    /// Larger values will improve query times but increase insertion time.
     const REINSERTION_COUNT: usize;
 
     /// The insertion strategy which is used when calling [insert](struct.RTree.html#method.insert).
@@ -80,4 +83,31 @@ pub trait InsertionStrategy {
     where
         Params: RTreeParams,
         T: RTreeObject;
+}
+
+pub fn verify_parameters<T: RTreeObject, P: RTreeParams>() {
+    assert!(
+        P::MAX_SIZE >= 4,
+        "MAX_SIZE too small. Must be larger than 4."
+    );
+
+    let max_min_size = (P::MAX_SIZE + 1) / 2;
+    assert!(
+        P::MIN_SIZE <= max_min_size,
+        "MIN_SIZE too large. Must be less or equal to {:?}",
+        max_min_size
+    );
+
+    let max_reinsertion_count = P::MAX_SIZE - P::MIN_SIZE;
+    assert!(
+        P::REINSERTION_COUNT < max_reinsertion_count,
+        "REINSERTION_COUNT too large. Must be smaller than {:?}",
+        max_reinsertion_count
+    );
+
+    let dimension = <T::Envelope as Envelope>::Point::DIMENSIONS;
+    assert!(
+        dimension > 1,
+        "Point dimension too small - must be at least 2"
+    );
 }
