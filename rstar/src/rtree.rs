@@ -668,11 +668,13 @@ mod test {
     use crate::algorithm::rstar::RStarInsertionStrategy;
     use crate::params::RTreeParams;
     use crate::test_utilities::{create_random_points, SEED_1};
+    use crate::DefaultParams;
 
     struct TestParams;
     impl RTreeParams for TestParams {
         const MIN_SIZE: usize = 10;
         const MAX_SIZE: usize = 20;
+        const REINSERTION_COUNT: usize = 1;
         type DefaultInsertionStrategy = RStarInsertionStrategy;
     }
 
@@ -698,6 +700,7 @@ mod test {
         let mut tree = RTree::new();
         for p in &points {
             tree.insert(*p);
+            tree.root.sanity_check::<DefaultParams>();
         }
         assert_eq!(tree.size(), NUM_POINTS);
         for p in &points {

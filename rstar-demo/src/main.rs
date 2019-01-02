@@ -21,6 +21,7 @@ struct Params;
 impl RTreeParams for Params {
     const MIN_SIZE: usize = 5;
     const MAX_SIZE: usize = 9;
+    const REINSERTION_COUNT: usize = 3;
     type DefaultInsertionStrategy = RStarInsertionStrategy;
 }
 
@@ -36,7 +37,7 @@ fn main() {
 
     let mut camera = ArcBall::new(Point3::new(3.0, 2.5, 2.0), Point3::origin());
 
-    let points = create_random_points(300);
+    let points = create_random_points(50);
 
     let mut tree = RTree::bulk_load_with_params(points);
     let mut render_data = create_render_data_for_tree(&tree);

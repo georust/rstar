@@ -21,6 +21,7 @@ struct Params;
 impl RTreeParams for Params {
     const MIN_SIZE: usize = 2;
     const MAX_SIZE: usize = 40;
+    const REINSERTION_COUNT: usize = 1;
     type DefaultInsertionStrategy = RStarInsertionStrategy;
 }
 
@@ -91,7 +92,7 @@ fn nearest_neighbor(c: &mut Criterion) {
 fn bulk_load_query_quality(c: &mut Criterion) {
     const SIZE: usize = 100_000;
     let points: Vec<_> = create_random_points(SIZE, SEED_1);
-    let tree_balanced = RTree::<_, Params>::bulk_load_with_params(points.clone());
+    let tree_bulk_loaded = RTree::<_, Params>::bulk_load_with_params(points.clone());
     let mut tree_sequential = RTree::new();
     for point in &points {
         tree_sequential.insert(*point);
@@ -102,7 +103,7 @@ fn bulk_load_query_quality(c: &mut Criterion) {
     c.bench_function("bulk load queries", move |b| {
         b.iter(|| {
             for query_point in &query_points {
-                tree_balanced.nearest_neighbor(&query_point).is_some();
+                tree_bulk_loaded.nearest_neighbor(&query_point).is_some();
             }
         })
     })

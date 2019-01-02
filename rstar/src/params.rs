@@ -17,6 +17,7 @@ use crate::{RTree, RTreeObject};
 /// {
 ///     const MIN_SIZE: usize = 10;
 ///     const MAX_SIZE: usize = 30;
+///     const REINSERTION_COUNT: usize = 5;
 ///     type DefaultInsertionStrategy = RStarInsertionStrategy;
 /// }
 ///
@@ -44,6 +45,8 @@ pub trait RTreeParams: Send + Sync {
     /// but increase the average query time.
     const MAX_SIZE: usize;
 
+    const REINSERTION_COUNT: usize;
+
     /// The insertion strategy which is used when calling [insert](struct.RTree.html#method.insert).
     type DefaultInsertionStrategy: InsertionStrategy;
 }
@@ -55,6 +58,7 @@ pub struct DefaultParams;
 impl RTreeParams for DefaultParams {
     const MIN_SIZE: usize = 3;
     const MAX_SIZE: usize = 6;
+    const REINSERTION_COUNT: usize = 2;
     type DefaultInsertionStrategy = RStarInsertionStrategy;
 }
 

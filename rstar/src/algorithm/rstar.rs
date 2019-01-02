@@ -1,7 +1,7 @@
 use crate::envelope::Envelope;
 use crate::object::RTreeObject;
 use crate::params::{InsertionStrategy, RTreeParams};
-use crate::point::Point;
+use crate::point::{Point, PointExt};
 use crate::rtree::{root_mut, RTree};
 use crate::structures::node::{envelope_for_children, ParentNodeData, RTreeNode};
 use num_traits::{Bounded, Zero};
@@ -21,6 +21,7 @@ where
     T: RTreeObject,
 {
     Split(RTreeNode<T>),
+    Reinsert(Vec<RTreeNode<T>>, usize),
     Complete,
 }
 
@@ -30,19 +31,30 @@ impl InsertionStrategy for RStarInsertionStrategy {
         Params: RTreeParams,
         T: RTreeObject,
     {
-        let mut insertion_stack = vec![RTreeNode::Leaf(t)];
-
+        let first = recursive_insert::<_, Params>(root_mut(tree), RTreeNode::Leaf(t), 0);
+        let mut insertion_stack = vec![first];
+        let mut start_insertion_height = 0;
         while let Some(next) = insertion_stack.pop() {
-            match recursive_insert::<_, Params>(root_mut(tree), next) {
+            match next {
                 InsertionResult::Split(node) => {
                     // The root node was split, create a new root and increase height
-                    let old_root =
-                        ::std::mem::replace(root_mut(tree), ParentNodeData::new_root::<Params>());
+                    let new_root = ParentNodeData::new_root::<Params>();
+                    let old_root = ::std::mem::replace(root_mut(tree), new_root);
                     let new_envelope = old_root.envelope.merged(&node.envelope());
                     let root = root_mut(tree);
                     root.envelope = new_envelope;
                     root.children.push(RTreeNode::Parent(old_root));
                     root.children.push(node);
+                    start_insertion_height += 1;
+                }
+                InsertionResult::Reinsert(nodes_to_reinsert, target_height) => {
+                    let final_height = target_height + start_insertion_height;
+                    let root = root_mut(tree);
+                    insertion_stack.extend(
+                        nodes_to_reinsert
+                            .into_iter()
+                            .map(|node| forced_insertion::<T, Params>(root, node, final_height)),
+                    );
                 }
                 InsertionResult::Complete => (),
             }
@@ -50,7 +62,43 @@ impl InsertionStrategy for RStarInsertionStrategy {
     }
 }
 
-fn recursive_insert<T, Params>(node: &mut ParentNodeData<T>, t: RTreeNode<T>) -> InsertionResult<T>
+fn forced_insertion<T, Params>(
+    node: &mut ParentNodeData<T>,
+    t: RTreeNode<T>,
+    target_height: usize,
+) -> InsertionResult<T>
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    node.envelope.merge(&t.envelope());
+    let expand_index = choose_subtree(node, &t);
+
+    if target_height == 0 || node.children.len() < expand_index {
+        // Force insertion into this node
+        node.children.push(t);
+        return resolve_overflow_without_reinsertion::<_, Params>(node);
+    }
+
+    if let RTreeNode::Parent(ref mut follow) = node.children[expand_index] {
+        match forced_insertion::<_, Params>(follow, t, target_height - 1) {
+            InsertionResult::Split(child) => {
+                node.envelope.merge(&child.envelope());
+                node.children.push(child);
+                resolve_overflow_without_reinsertion::<_, Params>(node)
+            }
+            other => other,
+        }
+    } else {
+        unreachable!("This is a bug in rstar.")
+    }
+}
+
+fn recursive_insert<T, Params>(
+    node: &mut ParentNodeData<T>,
+    t: RTreeNode<T>,
+    current_height: usize,
+) -> InsertionResult<T>
 where
     T: RTreeObject,
     Params: RTreeParams,
@@ -61,11 +109,11 @@ where
     if node.children.len() < expand_index {
         // Force insertion into this node
         node.children.push(t);
-        return resolve_overflow::<_, Params>(node);
+        return resolve_overflow::<_, Params>(node, current_height);
     }
 
     let expand = if let RTreeNode::Parent(ref mut follow) = node.children[expand_index] {
-        recursive_insert::<_, Params>(follow, t)
+        recursive_insert::<_, Params>(follow, t, current_height + 1)
     } else {
         panic!("This is a bug in rstar.")
     };
@@ -74,9 +122,13 @@ where
         InsertionResult::Split(child) => {
             node.envelope.merge(&child.envelope());
             node.children.push(child);
-            resolve_overflow::<_, Params>(node)
+            resolve_overflow::<_, Params>(node, current_height)
         }
-        InsertionResult::Complete => InsertionResult::Complete,
+        InsertionResult::Reinsert(a, b) => {
+            node.envelope = envelope_for_children(&node.children);
+            InsertionResult::Reinsert(a, b)
+        }
+        other => other,
     }
 }
 
@@ -147,7 +199,10 @@ where
     min_index
 }
 
-fn resolve_overflow<T, Params>(node: &mut ParentNodeData<T>) -> InsertionResult<T>
+// Does never return a request for reinsertion
+fn resolve_overflow_without_reinsertion<T, Params>(
+    node: &mut ParentNodeData<T>,
+) -> InsertionResult<T>
 where
     T: RTreeObject,
     Params: RTreeParams,
@@ -155,6 +210,24 @@ where
     if node.children.len() > Params::MAX_SIZE {
         let off_split = split::<_, Params>(node);
         InsertionResult::Split(off_split)
+    } else {
+        InsertionResult::Complete
+    }
+}
+
+fn resolve_overflow<T, Params>(
+    node: &mut ParentNodeData<T>,
+    current_depth: usize,
+) -> InsertionResult<T>
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    if Params::REINSERTION_COUNT == 0 {
+        resolve_overflow_without_reinsertion::<_, Params>(node)
+    } else if node.children.len() > Params::MAX_SIZE {
+        let nodes_for_reinsertion = get_nodes_for_reinsertion::<_, Params>(node);
+        InsertionResult::Reinsert(nodes_for_reinsertion, current_depth)
     } else {
         InsertionResult::Complete
     }
@@ -239,7 +312,7 @@ where
     best_axis
 }
 
-/* fn reinsert<T, Params>(node: &mut ParentNodeData<T>) -> Vec<RTreeNode<T>>
+fn get_nodes_for_reinsertion<T, Params>(node: &mut ParentNodeData<T>) -> Vec<RTreeNode<T>>
 where
     T: RTreeObject,
     Params: RTreeParams,
@@ -261,4 +334,4 @@ where
         .split_off(num_children - Params::REINSERTION_COUNT);
     node.envelope = envelope_for_children(&node.children);
     result
-} */
+}
