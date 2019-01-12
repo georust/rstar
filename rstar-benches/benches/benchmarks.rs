@@ -11,7 +11,7 @@ use rand_hc::Hc128Rng;
 
 use rstar::{RStarInsertionStrategy, RTree, RTreeParams};
 
-use criterion::{Bencher, Criterion, ParameterizedBenchmark};
+use criterion::{Bencher, Criterion, Fun};
 
 const SEED_1: &[u8; 32] = b"Gv0aHMtHkBGsUXNspGU9fLRuCWkZWHZx";
 const SEED_2: &[u8; 32] = b"km7DO4GeaFZfTcDXVpnO7ZJlgUY7hZiS";
@@ -25,71 +25,47 @@ impl RTreeParams for Params {
     type DefaultInsertionStrategy = RStarInsertionStrategy;
 }
 
+const DEFAULT_BENCHMARK_TREE_SIZE: usize = 2000;
+
 fn bulk_load_baseline(c: &mut Criterion) {
-    let sizes: Vec<_> = (1..=3).map(|i| i * i * 1000).collect();
+    c.bench_function("Bulk load baseline", move |b| {
+        let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
 
-    c.bench_function_over_inputs(
-        "Bulk load baseline",
-        move |b, size| {
-            let points: Vec<_> = create_random_points(*size, SEED_1);
-
-            b.iter(|| {
-                RTree::<_, Params>::bulk_load_with_params(points.clone());
-            });
-        },
-        sizes,
-    );
+        b.iter(|| {
+            RTree::<_, Params>::bulk_load_with_params(points.clone());
+        });
+    });
 }
 
 fn bulk_load_comparison(c: &mut Criterion) {
-    let sizes: Vec<_> = (1..=3).map(|i| i * 1000).collect();
-    let rstar_bench = ParameterizedBenchmark::new(
-        "rstar",
-        |b: &mut Bencher, size: &usize| {
-            let points: Vec<_> = create_random_points(*size, SEED_1);
-            b.iter(|| RTree::<_, Params>::bulk_load_with_params(points.clone()));
-        },
-        sizes,
-    )
-    .with_function("spade", |b: &mut Bencher, size: &usize| {
-        let points: Vec<_> = create_random_points(*size, SEED_1);
-
+    let rstar_bench = Fun::new("rstar", |b: &mut Bencher, _| {
+        let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
+        b.iter(|| RTree::<_, Params>::bulk_load_with_params(points.clone()));
+    });
+    let spade_bench = Fun::new("spade", |b: &mut Bencher, _| {
+        let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
         b.iter(move || {
             spade::rtree::RTree::bulk_load(points.clone());
         });
-    })
-    .with_function("rstar sequential", |b: &mut Bencher, size: &usize| {
-        let points: Vec<_> = create_random_points(*size, SEED_1);
+    });
+    let rstar_sequential = Fun::new("rstar sequential", |b: &mut Bencher, _| {
+        let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
         b.iter(move || {
             let mut rtree = rstar::RTree::new();
             for point in &points {
                 rtree.insert(*point);
             }
         });
-    })
-    .with_function("spade sequential", |b: &mut Bencher, size: &usize| {
-        let points: Vec<_> = create_random_points(*size, SEED_1);
-        b.iter(move || {
-            let mut rtree = spade::rtree::RTree::new();
-            for point in &points {
-                rtree.insert(*point);
-            }
-        });
     });
 
-    c.bench("bulk load comparison", rstar_bench);
+    c.bench_functions(
+        "bulk load comparison",
+        vec![rstar_bench, spade_bench, rstar_sequential],
+        (),
+    );
 }
 
-fn nearest_neighbor(c: &mut Criterion) {
-    let points: Vec<_> = create_random_points(10000, SEED_1);
-    let tree = RTree::<_, Params>::bulk_load_with_params(points);
-    let query_point = [0.4, -0.4];
-    c.bench_function("nearest_neighbor", move |b| {
-        b.iter(|| tree.nearest_neighbor(&query_point).is_some())
-    });
-}
-
-fn bulk_load_query_quality(c: &mut Criterion) {
+fn tree_creation_quality(c: &mut Criterion) {
     const SIZE: usize = 100_000;
     let points: Vec<_> = create_random_points(SIZE, SEED_1);
     let tree_bulk_loaded = RTree::<_, Params>::bulk_load_with_params(points.clone());
@@ -98,16 +74,16 @@ fn bulk_load_query_quality(c: &mut Criterion) {
         tree_sequential.insert(*point);
     }
 
-    let query_points = create_random_points(25, SEED_2);
+    let query_points = create_random_points(100, SEED_2);
     let query_points_cloned_1 = query_points.clone();
-    c.bench_function("bulk load queries", move |b| {
+    c.bench_function("bulk load quality", move |b| {
         b.iter(|| {
             for query_point in &query_points {
                 tree_bulk_loaded.nearest_neighbor(&query_point).is_some();
             }
         })
     })
-    .bench_function("bulk load queries (sequential)", move |b| {
+    .bench_function("sequential load quality", move |b| {
         b.iter(|| {
             for query_point in &query_points_cloned_1 {
                 tree_sequential.nearest_neighbor(&query_point).is_some();
@@ -117,22 +93,20 @@ fn bulk_load_query_quality(c: &mut Criterion) {
 }
 
 fn locate_successful(c: &mut Criterion) {
-    let points: Vec<_> = create_random_points(10000, SEED_1);
+    let points: Vec<_> = create_random_points(100_000, SEED_1);
     let query_point = points[500];
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
-    assert!(tree.locate_at_point(&query_point).is_some());
     c.bench_function("locate_at_point (successful)", move |b| {
         b.iter(|| tree.locate_at_point(&query_point))
     });
 }
 
 fn locate_unsuccessful(c: &mut Criterion) {
-    let points: Vec<_> = create_random_points(10000, SEED_1);
+    let points: Vec<_> = create_random_points(100_000, SEED_1);
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
-    let query_point = [0.0, 0.0];
-    assert!(tree.locate_at_point(&query_point).is_none());
+    let query_point = [0.7, 0.7];
     c.bench_function("locate_at_point (unsuccessful)", move |b| {
-        b.iter(|| tree.locate_at_point(&query_point))
+        b.iter(|| tree.locate_at_point(&query_point).is_none())
     });
 }
 
@@ -140,8 +114,7 @@ criterion_group!(
     benches,
     bulk_load_baseline,
     bulk_load_comparison,
-    bulk_load_query_quality,
-    nearest_neighbor,
+    tree_creation_quality,
     locate_successful,
     locate_unsuccessful
 );

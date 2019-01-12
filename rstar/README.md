@@ -21,6 +21,18 @@ A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) imple
  - Small number of dependencies
  - Serde support with the `serde` feature
 
+# Benchmarks
+All benchmarks are performed on a i7-8550U CPU @ 1.80Ghz and with uniformly distributed points. The underlying point type is `[f64; 2]`.
+
+| Benchmark                      | Tree size | Time      |
+|-------------------------------------|-----:|----------:|
+| bulk loading                        | 2000 | 229.82 us |
+| sequentially loading                | 2000 | 1.4477 ms |
+| nearest neighbor (bulk loaded tree) | 100k |   1.32 us |
+| nearest neighbor (sequential tree)  | 100k |   1.56 us |
+| successful point lookup             | 100k | 177.32 ns |
+| unsuccessful point lookup           | 100k | 273.51 ns |
+
 # Project state
 The project is being actively developed, feature requests and PRs are welcome!
 
