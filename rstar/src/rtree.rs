@@ -12,12 +12,13 @@ use crate::Point;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-impl<T> Default for RTree<T>
+impl<T, Params> Default for RTree<T, Params>
 where
     T: RTreeObject,
+    Params: RTreeParams,
 {
     fn default() -> Self {
-        Self::new()
+        Self::new_with_params()
     }
 }
 
@@ -715,6 +716,12 @@ mod test {
         let tree = RTree::bulk_load(vec![[0, 1], [0, 1]]);
         let debug: String = format!("{:?}", tree);
         assert_eq!(debug, "RTree { size: 2, items: {[0, 1], [0, 1]} }");
+    }
+
+    #[test]
+    fn test_default() {
+        let tree: RTree<[f32; 2]> = Default::default();
+        assert_eq!(tree.size(), 0);
     }
 
     #[cfg(feature = "serde")]
