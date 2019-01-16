@@ -9,11 +9,11 @@ use crate::structures::aabb::AABB;
 /// [primitives](mod.primitives.html) module.
 ///
 /// The only property required of such an object is its [envelope](traits.Envelope.html).
-/// Most simply, this method should return the [axis aligned bounding box](structs.AABB.html)
+/// Most simply, this method should return the [axis aligned bounding box](struct.AABB.html)
 /// of the object, other envelope types may be supported in the future.
 ///
 /// # Type parameters
-/// `Envelope`: The objects envelope type. At the moment, only [AABB](structs.AABB.html) is
+/// `Envelope`: The objects envelope type. At the moment, only [AABB](struct.AABB.html) is
 /// feasible.
 ///
 /// # Example implementation
