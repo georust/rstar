@@ -11,7 +11,7 @@ use crate::structures::aabb::AABB;
 /// with more than two dimensions by using an appropriate point type.
 ///
 /// # Type parameters
-/// `P`: The rectangle's point type.
+/// `P`: The rectangle's [Point](../trait.Point.html) type.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Rectangle<P>
@@ -30,7 +30,7 @@ where
         AABB::from_corners(corner_1, corner_2).into()
     }
 
-    /// Creates a new rectangle defined by it's [axis aligned bounding box](struct.AABB.html).
+    /// Creates a new rectangle defined by it's [axis aligned bounding box](../struct.AABB.html).
     pub fn from_aabb(aabb: AABB<P>) -> Self {
         Rectangle { aabb }
     }

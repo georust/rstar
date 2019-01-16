@@ -9,7 +9,7 @@ use num_traits::{One, Zero};
 ///
 /// This struct can be inserted directly into an r-tree.
 /// # Type parameters
-/// `P`: The line's [Point](trait.Point.html) type.
+/// `P`: The line's [Point](../trait.Point.html) type.
 ///
 /// # Example
 /// ```

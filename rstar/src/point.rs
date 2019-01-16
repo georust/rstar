@@ -102,7 +102,7 @@ impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialO
 
 /// Defines a point type that is compatible with rstar.
 ///
-/// `Point` is implemented out of the box for arrays like `[f32; 2]` or `[f64; 7]` (up to dimension 8).
+/// `Point` is implemented out of the box for arrays like `[f32; 2]` or `[f64; 7]` (up to dimension 9).
 ///
 /// # Implementation example
 /// Supporting a custom point type might look like this:
