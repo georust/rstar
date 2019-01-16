@@ -381,9 +381,38 @@ where
 
     /// Returns all elements whose envelope intersects a given envelope.
     ///
-    /// Usually, an envelope is an axis [aligned bounding box](struct.AABB.html).
+    /// Any element fully contained within an envelope is also returned by this method. Two
+    /// envelopes that "touch" each other (e.g. by sharing only a common corner) are also
+    /// considered to intersect. Usually, an envelope is an [axis aligned bounding box](struct.AABB.html).
     /// This method will return all elements whose AABB has some common area with
     /// a given AABB.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::{RTree, AABB};
+    /// use rstar::primitives::Rectangle;
+    ///
+    /// let left_piece = AABB::from_corners([0.0, 0.0], [0.4, 1.0]);
+    /// let right_piece = AABB::from_corners([0.6, 0.0], [1.0, 1.0]);
+    /// let middle_piece = AABB::from_corners([0.25, 0.0], [0.75, 1.0]);
+    ///
+    /// let mut tree = RTree::<Rectangle<_>>::bulk_load(vec![
+    ///   left_piece.into(),
+    ///   right_piece.into(),
+    ///   middle_piece.into(),
+    /// ]);
+    ///
+    /// let elements_intersecting_left_piece = tree.locate_in_envelope_intersecting(&left_piece);
+    /// // The left piece should not intersect the right piece!
+    /// assert_eq!(elements_intersecting_left_piece.count(), 2);
+    /// let elements_intersecting_middle = tree.locate_in_envelope_intersecting(&middle_piece);
+    /// // Only the middle piece intersects all pieces within the tree
+    /// assert_eq!(elements_intersecting_middle.count(), 3);
+    ///
+    /// let large_piece = AABB::from_corners([-100., -100.], [100., 100.]);
+    /// let elements_intersecting_large_piece = tree.locate_in_envelope_intersecting(&large_piece);
+    /// // Any element that is fully contained should also be returned:
+    /// assert_eq!(elements_intersecting_large_piece.count(), 3);
     pub fn locate_in_envelope_intersecting(
         &self,
         envelope: &T::Envelope,
