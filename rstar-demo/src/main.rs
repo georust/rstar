@@ -7,7 +7,7 @@ use kiss3d::window::Window;
 use nalgebra::{Point2, Point3, Vector2};
 use rand::distributions::Uniform;
 use rand::Rng;
-use rstar::{root, Point, RStarInsertionStrategy, RTree, RTreeNode, RTreeParams, AABB};
+use rstar::{Point, RStarInsertionStrategy, RTree, RTreeNode, RTreeParams, AABB};
 
 mod three_d;
 mod two_d;

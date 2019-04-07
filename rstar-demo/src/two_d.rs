@@ -4,10 +4,10 @@ pub type LineRenderData2D = (Point2<f32>, Point2<f32>, Point3<f32>);
 
 pub fn create_render_data_for_tree_2d(tree: &DemoTree2D) -> RenderData {
     let mut lines = Vec::new();
-    let mut to_visit = vec![(root(tree), 0)];
+    let mut to_visit = vec![(tree.root(), 0)];
     while let Some((cur, depth)) = to_visit.pop() {
-        push_rectangle(&mut lines, get_color_for_depth(depth), &cur.envelope);
-        for child in &cur.children {
+        push_rectangle(&mut lines, get_color_for_depth(depth), &cur.envelope());
+        for child in cur.children() {
             match child {
                 RTreeNode::Leaf(point) => {
                     push_2d_point(&mut lines, *point);

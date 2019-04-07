@@ -36,14 +36,10 @@ mod rtree;
 #[cfg(test)]
 mod test_utilities;
 
-#[cfg(feature = "debug")]
-pub use crate::node::RTreeNode;
-#[cfg(feature = "debug")]
-pub use crate::rtree::root;
-
 pub use crate::aabb::AABB;
 pub use crate::algorithm::rstar::RStarInsertionStrategy;
 pub use crate::envelope::Envelope;
+pub use crate::node::{ParentNodeData, RTreeNode};
 pub use crate::object::{PointDistance, RTreeObject};
 pub use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
 pub use crate::point::{Point, RTreeNum};

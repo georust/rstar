@@ -7,10 +7,10 @@ pub fn create_render_data_for_tree_3d(tree: &DemoTree3D) -> RenderData {
     let mut vertices = Vec::new();
     let mut lines = Vec::new();
     let vertex_color = [0.0, 0.0, 1.0].into();
-    let mut to_visit = vec![(root(tree), 0)];
+    let mut to_visit = vec![(tree.root(), 0)];
     while let Some((cur, depth)) = to_visit.pop() {
-        push_cuboid(&mut lines, get_color_for_depth(depth), &cur.envelope);
-        for child in &cur.children {
+        push_cuboid(&mut lines, get_color_for_depth(depth), &cur.envelope());
+        for child in cur.children() {
             match child {
                 RTreeNode::Leaf(point) => vertices.push((
                     Point3::new(point[0] as f32, point[1] as f32, point[2] as f32),

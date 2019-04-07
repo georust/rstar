@@ -9,4 +9,4 @@ rand = "0.6"
 kiss3d = "0.17"
 nalgebra = "0.16"
 
-rstar = { path="../rstar", features=["debug"] }
+rstar = { path="../rstar" }

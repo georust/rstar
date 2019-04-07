@@ -3,7 +3,7 @@ use crate::node::{envelope_for_children, ParentNodeData, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::{InsertionStrategy, RTreeParams};
 use crate::point::{Point, PointExt};
-use crate::rtree::{root_mut, RTree};
+use crate::rtree::RTree;
 use num_traits::{Bounded, Zero};
 
 /// Inserts points according to the r-star heuristic.
@@ -31,7 +31,7 @@ impl InsertionStrategy for RStarInsertionStrategy {
         Params: RTreeParams,
         T: RTreeObject,
     {
-        let first = recursive_insert::<_, Params>(root_mut(tree), RTreeNode::Leaf(t), 0);
+        let first = recursive_insert::<_, Params>(tree.root_mut(), RTreeNode::Leaf(t), 0);
         let mut insertion_stack = vec![first];
         let mut start_insertion_height = 0;
         while let Some(next) = insertion_stack.pop() {
@@ -39,9 +39,9 @@ impl InsertionStrategy for RStarInsertionStrategy {
                 InsertionResult::Split(node) => {
                     // The root node was split, create a new root and increase height
                     let new_root = ParentNodeData::new_root::<Params>();
-                    let old_root = ::std::mem::replace(root_mut(tree), new_root);
+                    let old_root = ::std::mem::replace(tree.root_mut(), new_root);
                     let new_envelope = old_root.envelope.merged(&node.envelope());
-                    let root = root_mut(tree);
+                    let root = tree.root_mut();
                     root.envelope = new_envelope;
                     root.children.push(RTreeNode::Parent(old_root));
                     root.children.push(node);
@@ -49,7 +49,7 @@ impl InsertionStrategy for RStarInsertionStrategy {
                 }
                 InsertionResult::Reinsert(nodes_to_reinsert, target_height) => {
                     let final_height = target_height + start_insertion_height;
-                    let root = root_mut(tree);
+                    let root = tree.root_mut();
                     insertion_stack.extend(
                         nodes_to_reinsert
                             .into_iter()

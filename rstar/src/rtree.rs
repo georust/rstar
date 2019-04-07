@@ -147,24 +147,6 @@ where
     _params: ::std::marker::PhantomData<Params>,
 }
 
-#[cfg(feature = "debug")]
-#[doc(hidden)]
-pub fn root<T, Params>(tree: &RTree<T, Params>) -> &ParentNodeData<T>
-where
-    T: RTreeObject,
-    Params: RTreeParams,
-{
-    &tree.root
-}
-
-pub fn root_mut<T, Params>(tree: &mut RTree<T, Params>) -> &mut ParentNodeData<T>
-where
-    T: RTreeObject,
-    Params: RTreeParams,
-{
-    &mut tree.root
-}
-
 struct DebugHelper<'a, T, Params>
 where
     T: RTreeObject + ::std::fmt::Debug + 'a,
@@ -380,6 +362,19 @@ where
             &mut self.root,
             SelectInEnvelopeFuncIntersecting::new(*envelope),
         )
+    }
+
+    /// Returns the tree's root node.
+    ///
+    /// Usually, you will not require to call this method. However, for debugging purposes or for
+    /// advanced algorithms, knowledge about the trees internal structure may be required.
+    /// For these cases, this method serves as an entry point for further processing.
+    pub fn root(&self) -> &ParentNodeData<T> {
+        &self.root
+    }
+
+    pub(crate) fn root_mut(&mut self) -> &mut ParentNodeData<T> {
+        &mut self.root
     }
 
     fn new_from_bulk_loading(

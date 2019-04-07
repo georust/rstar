@@ -15,7 +15,9 @@ use serde::{Deserialize, Serialize};
     ))
 )]
 
-/// An internal tree node. Only exposed for the debug feature used by the rstar demo.
+/// An internal tree node.
+///
+/// For most applications, using this type should not be required.
 pub enum RTreeNode<T>
 where
     T: RTreeObject,
@@ -26,14 +28,18 @@ where
     Parent(ParentNodeData<T>),
 }
 
+/// Represents an internal parent node.
+///
+/// For most applications, using this type should not be required. Allows read access to this
+/// node's envelope and its children.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ParentNodeData<T>
 where
     T: RTreeObject,
 {
-    pub children: Vec<RTreeNode<T>>,
-    pub envelope: T::Envelope,
+    pub(crate) children: Vec<RTreeNode<T>>,
+    pub(crate) envelope: T::Envelope,
 }
 
 impl<T> RTreeObject for RTreeNode<T>
@@ -67,7 +73,17 @@ impl<T> ParentNodeData<T>
 where
     T: RTreeObject,
 {
-    pub fn new_root<Params>() -> Self
+    /// Returns this node's children
+    pub fn children(&self) -> &[RTreeNode<T>] {
+        &self.children
+    }
+
+    /// Returns the smallest envelope that encompasses all children.
+    pub fn envelope(&self) -> T::Envelope {
+        self.envelope
+    }
+
+    pub(crate) fn new_root<Params>() -> Self
     where
         Params: RTreeParams,
     {
@@ -77,12 +93,13 @@ where
         }
     }
 
-    pub fn new_parent(children: Vec<RTreeNode<T>>) -> Self {
+    pub(crate) fn new_parent(children: Vec<RTreeNode<T>>) -> Self {
         let envelope = envelope_for_children(&children);
 
         ParentNodeData { envelope, children }
     }
 
+    #[cfg(test)]
     pub fn sanity_check<Params>(&self) -> Option<usize>
     where
         Params: RTreeParams,
@@ -96,6 +113,7 @@ where
         }
     }
 
+    #[cfg(test)]
     fn sanity_check_inner<Params>(&self, height: usize, leaf_height: &mut Option<usize>)
     where
         Params: RTreeParams,
@@ -124,34 +142,6 @@ where
             }
         }
         assert_eq!(self.envelope, envelope);
-    }
-}
-
-impl<T> ParentNodeData<T>
-where
-    T: RTreeObject + PartialEq,
-{
-    pub fn contains(&self, t: &T) -> bool {
-        let mut todo_list = Vec::with_capacity(20);
-        todo_list.push(self);
-        let t_envelope = t.envelope();
-        while let Some(next) = todo_list.pop() {
-            if next.envelope.contains_envelope(&t_envelope) {
-                for child in &next.children {
-                    match child {
-                        RTreeNode::Parent(ref data) => {
-                            todo_list.push(data);
-                        }
-                        RTreeNode::Leaf(ref obj) => {
-                            if obj == t {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        false
     }
 }
 
