@@ -1,4 +1,5 @@
 use crate::algorithm::bulk_load;
+use crate::algorithm::intersection_iterator::IntersectionIterator;
 use crate::algorithm::iterators::*;
 use crate::algorithm::nearest_neighbor;
 use crate::algorithm::removal;
@@ -362,6 +363,17 @@ where
             &mut self.root,
             SelectInEnvelopeFuncIntersecting::new(*envelope),
         )
+    }
+
+    /// Gets all possible intersecting objects of this and another tree.
+    ///
+    /// This will return all objects whose _envelopes_ intersect. No geometric intersection
+    /// checking is performed.
+    pub fn intersection_candidates_with_other_tree<'a>(
+        &'a self,
+        other: &'a Self,
+    ) -> IntersectionIterator<T> {
+        IntersectionIterator::new(self.root(), other.root())
     }
 
     /// Returns the tree's root node.
