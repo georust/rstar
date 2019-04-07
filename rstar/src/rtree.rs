@@ -217,61 +217,11 @@ where
     /// This method implements the overlap minimizing top down bulk loading algorithm
     /// as described in [this paper](http://ceur-ws.org/Vol-74/files/FORUM_18.pdf).
     ///
-    /// There is also a [multi threaded variant](#method.bulk_load_parallel)
-    /// of this method if the `threadpool`
-    /// feature is enabled.
-    ///
     /// # Runtime
     /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
     /// elements.
     pub fn bulk_load(elements: Vec<T>) -> Self {
         Self::bulk_load_with_params(elements)
-    }
-}
-
-#[cfg(feature = "threadpool")]
-impl<T> RTree<T>
-where
-    T: RTreeObject + Send + Sync + 'static,
-    T::Envelope: Send + Sync,
-{
-    /// Creates a new r-tree with some elements already inserted.
-    ///
-    /// See [bulk_load](#method.bulk_load) for general information.
-    /// This method performs the loading on multiple threads in parallel.
-    /// However, as there is some synchronization overhead, this method may
-    /// perform slower for only a few objects. The break even point may be around
-    /// 40000 elements but will vary depending on the number of available cores.
-    ///
-    /// # Runtime
-    /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
-    /// elements.
-    pub fn bulk_load_parallel(elements: Vec<T>) -> Self {
-        Self::bulk_load_with_params_parallel(elements)
-    }
-}
-
-#[cfg(feature = "threadpool")]
-impl<T, Params> RTree<T, Params>
-where
-    Params: RTreeParams,
-    T: RTreeObject + Send + Sync + 'static,
-    T::Envelope: Send + Sync,
-{
-    /// Creates a new r-tree with some elements already inserted and configurable parameters.
-    ///
-    /// See [bulk_load_with_params](#method.bulk_load_with_params) for general information.
-    /// This method performs the loading on multiple threads in parallel.
-    /// However, as there is some synchronization overhead, this method may
-    /// perform slower for only a few objects. The break even point may be around
-    /// 40000 elements but will vary depending on the number of available cores
-    /// and the used rtree parameters.
-    ///
-    /// # Runtime
-    /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
-    /// elements.
-    pub fn bulk_load_with_params_parallel(elements: Vec<T>) -> Self {
-        Self::new_from_bulk_loading(elements, bulk_load::bulk_load_parallel::<_, Params>)
     }
 }
 
@@ -296,9 +246,7 @@ where
     /// Creates a new r-tree with some given elements and configurable parameters.
     ///
     /// For more information refer to [bulk_load](#method.bulk_load)
-    /// and [RTreeParameters](traits.RTreeParameters.html). There is also a [multi threaded
-    /// variant](#method.bulk_load_with_params_parallel) of this method if the `threadpool`
-    /// feature is enabled.
+    /// and [RTreeParameters](traits.RTreeParameters.html).
     pub fn bulk_load_with_params(elements: Vec<T>) -> Self {
         Self::new_from_bulk_loading(elements, bulk_load::bulk_load_sequential::<_, Params>)
     }

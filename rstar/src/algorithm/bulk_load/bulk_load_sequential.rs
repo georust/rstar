@@ -4,7 +4,7 @@ use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::point::Point;
 
-use super::bulk_load_common::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
+use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
 fn bulk_load_recursive<T, Params>(elements: Vec<T>, depth: usize) -> ParentNodeData<T>
 where
@@ -93,4 +93,56 @@ where
     let m = Params::MAX_SIZE;
     let depth = (elements.len() as f32).log(m as f32).ceil() as usize;
     bulk_load_recursive::<_, Params>(elements, depth)
+}
+
+#[cfg(test)]
+mod test {
+    use crate::test_utilities::*;
+    use crate::{Point, RTree, RTreeObject};
+    use std::collections::HashSet;
+    use std::fmt::Debug;
+    use std::hash::Hash;
+
+    #[test]
+    fn test_bulk_load_small() {
+        let random_points = create_random_integers::<[i32; 2]>(50, SEED_1);
+        create_and_check_bulk_loading_with_points(&random_points);
+    }
+
+    #[test]
+    fn test_bulk_load_large() {
+        let random_points = create_random_integers::<[i32; 2]>(3000, SEED_1);
+        create_and_check_bulk_loading_with_points(&random_points);
+    }
+
+    #[test]
+    fn test_bulk_load_with_different_sizes() {
+        for size in (0..100).map(|i| i * 7) {
+            test_bulk_load_with_size_and_dimension::<[i32; 2]>(size);
+            test_bulk_load_with_size_and_dimension::<[i32; 3]>(size);
+            test_bulk_load_with_size_and_dimension::<[i32; 4]>(size);
+        }
+    }
+
+    fn test_bulk_load_with_size_and_dimension<P>(size: usize)
+    where
+        P: Point<Scalar = i32> + RTreeObject + Send + Sync + Eq + Clone + Debug + Hash + 'static,
+        P::Envelope: Send + Sync,
+    {
+        let random_points = create_random_integers::<P>(size, SEED_1);
+        create_and_check_bulk_loading_with_points(&random_points);
+    }
+
+    fn create_and_check_bulk_loading_with_points<P>(points: &[P])
+    where
+        P: RTreeObject + Send + Sync + Eq + Clone + Debug + Hash + 'static,
+        P::Envelope: Send + Sync,
+    {
+        let tree = RTree::bulk_load(points.into());
+        let set1: HashSet<_> = tree.iter().collect();
+        let set2: HashSet<_> = points.iter().collect();
+        assert_eq!(set1, set2);
+        assert_eq!(tree.size(), points.len());
+    }
+
 }

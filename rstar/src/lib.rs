@@ -21,6 +21,7 @@
 //! Enable the `serde` feature for [Serde](https://crates.io/crates/serde) support.
 //!
 #![deny(missing_docs)]
+#![deny(unsafe_code)]
 
 mod aabb;
 mod algorithm;
