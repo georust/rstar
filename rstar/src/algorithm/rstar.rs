@@ -1,9 +1,9 @@
 use crate::envelope::Envelope;
+use crate::node::{envelope_for_children, ParentNodeData, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::{InsertionStrategy, RTreeParams};
 use crate::point::{Point, PointExt};
 use crate::rtree::{root_mut, RTree};
-use crate::structures::node::{envelope_for_children, ParentNodeData, RTreeNode};
 use num_traits::{Bounded, Zero};
 
 /// Inserts points according to the r-star heuristic.

@@ -4,9 +4,9 @@ use crate::algorithm::nearest_neighbor;
 use crate::algorithm::removal;
 use crate::algorithm::selection_functions::*;
 use crate::envelope::Envelope;
+use crate::node::ParentNodeData;
 use crate::object::{PointDistance, RTreeObject};
 use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
-use crate::structures::node::ParentNodeData;
 use crate::Point;
 
 #[cfg(feature = "serde")]

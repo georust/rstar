@@ -1,6 +1,6 @@
 use crate::algorithm::selection_functions::*;
+use crate::node::{ParentNodeData, RTreeNode};
 use crate::object::RTreeObject;
-use crate::structures::node::{ParentNodeData, RTreeNode};
 
 pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunction<T>>;
 pub type LocateAllAtPointMut<'a, T> = SelectionIteratorMut<'a, T, SelectAtPointFunction<T>>;
@@ -123,10 +123,10 @@ where
 
 #[cfg(test)]
 mod test {
+    use crate::aabb::AABB;
     use crate::envelope::Envelope;
     use crate::object::RTreeObject;
     use crate::rtree::RTree;
-    use crate::structures::aabb::AABB;
     use crate::test_utilities::{create_random_points, create_random_rectangles, SEED_1};
 
     #[test]

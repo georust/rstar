@@ -1,6 +1,6 @@
+use crate::aabb::AABB;
 use crate::envelope::Envelope;
 use crate::point::{Point, PointExt};
-use crate::structures::aabb::AABB;
 
 /// An object that can be inserted into an r-tree.
 ///

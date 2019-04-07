@@ -22,27 +22,28 @@
 //!
 #![deny(missing_docs)]
 
+mod aabb;
 mod algorithm;
 mod envelope;
+mod node;
 mod object;
 mod params;
 mod point;
 pub mod primitives;
 mod rtree;
-mod structures;
 
 #[cfg(test)]
 mod test_utilities;
 
 #[cfg(feature = "debug")]
-pub use crate::rtree::root;
+pub use crate::node::RTreeNode;
 #[cfg(feature = "debug")]
-pub use crate::structures::node::RTreeNode;
+pub use crate::rtree::root;
 
+pub use crate::aabb::AABB;
 pub use crate::algorithm::rstar::RStarInsertionStrategy;
 pub use crate::envelope::Envelope;
 pub use crate::object::{PointDistance, RTreeObject};
 pub use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
 pub use crate::point::{Point, RTreeNum};
 pub use crate::rtree::RTree;
-pub use crate::structures::aabb::AABB;

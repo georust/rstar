@@ -1,10 +1,10 @@
 use super::bulk_load_common::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 use super::bulk_load_sequential::bulk_load_sequential;
 use crate::envelope::Envelope;
+use crate::node::{ParentNodeData, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::point::Point;
-use crate::structures::node::{ParentNodeData, RTreeNode};
 use std::sync::mpsc::{channel, Sender};
 use threadpool::ThreadPool;
 

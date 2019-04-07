@@ -1,8 +1,8 @@
+use crate::aabb::AABB;
 use crate::envelope::Envelope;
 use crate::object::PointDistance;
 use crate::object::RTreeObject;
 use crate::point::{Point, PointExt};
-use crate::structures::aabb::AABB;
 use num_traits::{One, Zero};
 
 /// A line defined by a start and and end point.

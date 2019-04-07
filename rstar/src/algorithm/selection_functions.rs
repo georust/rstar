@@ -1,7 +1,7 @@
 use crate::envelope::Envelope;
+use crate::node::RTreeNode;
 use crate::object::PointDistance;
 use crate::object::RTreeObject;
-use crate::structures::node::RTreeNode;
 
 pub trait SelectionFunction<T>
 where

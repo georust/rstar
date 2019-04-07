@@ -1,7 +1,7 @@
 use crate::algorithm::selection_functions::SelectionFunction;
+use crate::node::{ParentNodeData, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
-use crate::structures::node::{ParentNodeData, RTreeNode};
 
 /// Default removal strategy to remove elements from an r-tree. A [trait.RemovalFunction]
 /// specifies which elements shall be removed.
@@ -56,7 +56,7 @@ where
     }
     if result.is_some() {
         // Update the envelope, it may have become smaller
-        node.envelope = crate::structures::node::envelope_for_children(&node.children);
+        node.envelope = crate::node::envelope_for_children(&node.children);
     }
     result
 }
