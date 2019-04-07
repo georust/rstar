@@ -4,7 +4,7 @@ use crate::algorithm::nearest_neighbor;
 use crate::algorithm::removal;
 use crate::algorithm::selection_functions::*;
 use crate::envelope::Envelope;
-use crate::node::ParentNodeData;
+use crate::node::ParentNode;
 use crate::object::{PointDistance, RTreeObject};
 use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
 use crate::Point;
@@ -142,7 +142,7 @@ where
     Params: RTreeParams,
     T: RTreeObject,
 {
-    root: ParentNodeData<T>,
+    root: ParentNode<T>,
     size: usize,
     _params: ::std::marker::PhantomData<Params>,
 }
@@ -219,7 +219,7 @@ where
     pub fn new_with_params() -> Self {
         verify_parameters::<T, Params>();
         RTree {
-            root: ParentNodeData::new_root::<Params>(),
+            root: ParentNode::new_root::<Params>(),
             size: 0,
             _params: Default::default(),
         }
@@ -367,24 +367,24 @@ where
     /// Returns the tree's root node.
     ///
     /// Usually, you will not require to call this method. However, for debugging purposes or for
-    /// advanced algorithms, knowledge about the trees internal structure may be required.
-    /// For these cases, this method serves as an entry point for further processing.
-    pub fn root(&self) -> &ParentNodeData<T> {
+    /// advanced algorithms, knowledge about the tree's internal structure may be required.
+    /// For these cases, this method serves as an entry point.
+    pub fn root(&self) -> &ParentNode<T> {
         &self.root
     }
 
-    pub(crate) fn root_mut(&mut self) -> &mut ParentNodeData<T> {
+    pub(crate) fn root_mut(&mut self) -> &mut ParentNode<T> {
         &mut self.root
     }
 
     fn new_from_bulk_loading(
         elements: Vec<T>,
-        root_loader: impl Fn(Vec<T>) -> ParentNodeData<T>,
+        root_loader: impl Fn(Vec<T>) -> ParentNode<T>,
     ) -> Self {
         verify_parameters::<T, Params>();
         let size = elements.len();
         let root = if size == 0 {
-            ParentNodeData::new_root::<Params>()
+            ParentNode::new_root::<Params>()
         } else {
             root_loader(elements)
         };

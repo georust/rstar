@@ -1,4 +1,4 @@
-use crate::node::{ParentNodeData, RTreeNode};
+use crate::node::{ParentNode, RTreeNode};
 use crate::point::{min_inline, Point};
 use crate::{Envelope, PointDistance, RTreeObject};
 use num_traits::Bounded;
@@ -46,7 +46,7 @@ impl<'a, T> NearestNeighborIterator<'a, T>
 where
     T: PointDistance,
 {
-    pub fn new(root: &'a ParentNodeData<T>, query_point: <T::Envelope as Envelope>::Point) -> Self {
+    pub fn new(root: &'a ParentNode<T>, query_point: <T::Envelope as Envelope>::Point) -> Self {
         let mut result = NearestNeighborIterator {
             nodes: BinaryHeap::with_capacity(20),
             query_point,
@@ -110,7 +110,7 @@ where
 }
 
 pub fn nearest_neighbor<'a, T>(
-    node: &'a ParentNodeData<T>,
+    node: &'a ParentNode<T>,
     query_point: <T::Envelope as Envelope>::Point,
 ) -> Option<&'a T>
 where
@@ -118,7 +118,7 @@ where
 {
     fn extend_heap<'a, T>(
         nodes: &mut BinaryHeap<RTreeNodeDistanceWrapper<'a, T>>,
-        node: &'a ParentNodeData<T>,
+        node: &'a ParentNode<T>,
         query_point: <T::Envelope as Envelope>::Point,
         min_max_distance: &mut <<T::Envelope as Envelope>::Point as Point>::Scalar,
     ) where

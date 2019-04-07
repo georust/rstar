@@ -1,5 +1,5 @@
 use crate::algorithm::selection_functions::SelectionFunction;
-use crate::node::{ParentNodeData, RTreeNode};
+use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 
@@ -12,7 +12,7 @@ use crate::params::RTreeParams;
 /// returned.
 ///
 /// If a tree node becomes empty by the removal, it is also removed from its parent node.
-pub fn remove<T, Params, R>(node: &mut ParentNodeData<T>, removal_function: &R) -> Option<T>
+pub fn remove<T, Params, R>(node: &mut ParentNode<T>, removal_function: &R) -> Option<T>
 where
     T: RTreeObject,
     Params: RTreeParams,

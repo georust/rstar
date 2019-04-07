@@ -39,7 +39,7 @@ mod test_utilities;
 pub use crate::aabb::AABB;
 pub use crate::algorithm::rstar::RStarInsertionStrategy;
 pub use crate::envelope::Envelope;
-pub use crate::node::{ParentNodeData, RTreeNode};
+pub use crate::node::{ParentNode, RTreeNode};
 pub use crate::object::{PointDistance, RTreeObject};
 pub use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
 pub use crate::point::{Point, RTreeNum};

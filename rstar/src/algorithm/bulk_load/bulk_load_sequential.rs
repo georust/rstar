@@ -1,12 +1,12 @@
 use crate::envelope::Envelope;
-use crate::node::{ParentNodeData, RTreeNode};
+use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::point::Point;
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
-fn bulk_load_recursive<T, Params>(elements: Vec<T>, depth: usize) -> ParentNodeData<T>
+fn bulk_load_recursive<T, Params>(elements: Vec<T>, depth: usize) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
@@ -16,7 +16,7 @@ where
     if elements.len() <= m {
         // Reached leaf level
         let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
-        return ParentNodeData::new_parent(elements);
+        return ParentNode::new_parent(elements);
     }
     let number_of_clusters_on_axis =
         calculate_number_of_clusters_on_axis::<T, Params>(elements.len());
@@ -30,7 +30,7 @@ where
         }],
         _params: Default::default(),
     };
-    ParentNodeData::new_parent(iterator.collect())
+    ParentNode::new_parent(iterator.collect())
 }
 
 /// Represents a partitioning task that still needs to be done.
@@ -84,7 +84,7 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
 /// A multi dimensional implementation of the OMT bulk loading algorithm.
 ///
 /// See http://ceur-ws.org/Vol-74/files/FORUM_18.pdf
-pub fn bulk_load_sequential<T, Params>(elements: Vec<T>) -> ParentNodeData<T>
+pub fn bulk_load_sequential<T, Params>(elements: Vec<T>) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,

@@ -1,5 +1,5 @@
 use crate::algorithm::selection_functions::*;
-use crate::node::{ParentNodeData, RTreeNode};
+use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 
 pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunction<T>>;
@@ -27,7 +27,7 @@ where
     T: RTreeObject,
     Func: SelectionFunction<T>,
 {
-    pub fn new(root: &'a ParentNodeData<T>, func: Func) -> Self {
+    pub fn new(root: &'a ParentNode<T>, func: Func) -> Self {
         let current_nodes: Vec<_> = root
             .children
             .iter()
@@ -81,7 +81,7 @@ where
     T: RTreeObject,
     Func: SelectionFunction<T>,
 {
-    pub fn new(root: &'a mut ParentNodeData<T>, func: Func) -> Self {
+    pub fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
         let current_nodes = root
             .children
             .iter_mut()

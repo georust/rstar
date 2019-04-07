@@ -25,7 +25,7 @@ where
     /// A leaf node, only containing the r-tree object
     Leaf(T),
     /// A parent node containing several child nodes
-    Parent(ParentNodeData<T>),
+    Parent(ParentNode<T>),
 }
 
 /// Represents an internal parent node.
@@ -34,7 +34,7 @@ where
 /// node's envelope and its children.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ParentNodeData<T>
+pub struct ParentNode<T>
 where
     T: RTreeObject,
 {
@@ -69,7 +69,7 @@ where
     }
 }
 
-impl<T> ParentNodeData<T>
+impl<T> ParentNode<T>
 where
     T: RTreeObject,
 {
@@ -87,7 +87,7 @@ where
     where
         Params: RTreeParams,
     {
-        ParentNodeData {
+        ParentNode {
             envelope: Envelope::new_empty(),
             children: Vec::with_capacity(Params::MAX_SIZE + 1),
         }
@@ -96,7 +96,7 @@ where
     pub(crate) fn new_parent(children: Vec<RTreeNode<T>>) -> Self {
         let envelope = envelope_for_children(&children);
 
-        ParentNodeData { envelope, children }
+        ParentNode { envelope, children }
     }
 
     #[cfg(test)]
