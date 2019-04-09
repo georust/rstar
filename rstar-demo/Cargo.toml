@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 rand = "0.6"
-kiss3d = "0.17"
-nalgebra = "0.16"
+kiss3d = "0.19"
+nalgebra = "0.18"
 
 rstar = { path="../rstar" }

@@ -6,8 +6,8 @@ authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
 [dev-dependencies]
 rand = "0.6"
 rand_hc = "0.1"
-criterion = "*"
-spade = "*"
+criterion = "0.2"
+spade = "1.7"
 rstar = { path = "../rstar" }
 
 [[bench]]
