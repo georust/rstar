@@ -3,6 +3,7 @@ use crate::Envelope;
 use crate::RTreeNode;
 use crate::RTreeNode::*;
 use crate::RTreeObject;
+use itertools::iproduct;
 
 pub struct IntersectionIterator<'a, T>
 where
@@ -16,9 +17,38 @@ where
     T: RTreeObject,
 {
     pub(crate) fn new(root1: &'a ParentNode<T>, root2: &'a ParentNode<T>) -> Self {
-        let mut todo_list = Vec::new();
-        extend_with_parent_intersections(root1, root2, &mut todo_list);
-        IntersectionIterator { todo_list }
+        let mut intersections = IntersectionIterator {
+            todo_list: Vec::new(),
+        };
+        intersections.add_intersecting_children(root1, root2);
+        intersections
+    }
+
+    fn push_if_intersecting(&mut self, node1: &'a RTreeNode<T>, node2: &'a RTreeNode<T>) {
+        if node1.envelope().intersects(&node2.envelope()) {
+            self.todo_list.push((node1, node2));
+        }
+    }
+
+    fn add_intersecting_children(
+        &mut self,
+        parent1: &'a ParentNode<T>,
+        parent2: &'a ParentNode<T>,
+    ) {
+        if !parent1.envelope().intersects(&parent2.envelope()) {
+            return;
+        }
+        let children1 = parent1
+            .children()
+            .iter()
+            .filter(|c1| c1.envelope().intersects(&parent2.envelope()));
+        let children2 = parent2
+            .children()
+            .iter()
+            .filter(|c2| c2.envelope().intersects(&parent1.envelope()));
+        for (c1, c2) in iproduct!(children1, children2) {
+            self.push_if_intersecting(c1, c2);
+        }
     }
 }
 
@@ -30,34 +60,19 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(next) = self.todo_list.pop() {
-            if !next.0.envelope().intersects(&next.1.envelope()) {
-                continue;
-            }
             match next {
                 (Leaf(t1), Leaf(t2)) => return Some((&t1, &t2)),
                 (leaf @ Leaf(_), Parent(p)) | (Parent(p), leaf @ Leaf(_)) => {
-                    self.todo_list.extend(p.children.iter().map(|c| (c, leaf)));
+                    p.children()
+                        .iter()
+                        .for_each(|c| self.push_if_intersecting(c, leaf));
                 }
                 (Parent(p1), Parent(p2)) => {
-                    extend_with_parent_intersections(p1, p2, &mut self.todo_list)
+                    self.add_intersecting_children(p1, p2);
                 }
             }
         }
         None
-    }
-}
-
-fn extend_with_parent_intersections<'a, T: RTreeObject>(
-    parent1: &'a ParentNode<T>,
-    parent2: &'a ParentNode<T>,
-    result: &mut Vec<((&'a RTreeNode<T>, &'a RTreeNode<T>))>,
-) {
-    for child1 in &parent1.children {
-        if child1.envelope().intersects(&parent2.envelope) {
-            for child2 in &parent2.children {
-                result.push((child1, child2))
-            }
-        }
     }
 }
 

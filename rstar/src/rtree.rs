@@ -267,9 +267,9 @@ where
         RTreeIterator::new(&self.root, SelectAllFunc)
     }
 
-    /// Returns an iterator over all mutable elements contained in the tree.nearest_neighbor
+    /// Returns an iterator over all mutable elements contained in the tree.
     ///
-    /// The order in which the elements are returned is not specified.nearest_neighbor
+    /// The order in which the elements are returned is not specified.
     ///
     /// *Note*: It is a logic error to change an inserted item's position or dimensions. This
     /// method is primarily meant for own implementations of [RTreeObject](trait.RTreeObject.html)
