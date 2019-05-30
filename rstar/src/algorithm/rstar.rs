@@ -138,9 +138,11 @@ where
 {
     let all_leaves = match node.children.first() {
         Some(RTreeNode::Leaf(_)) => return usize::max_value(),
-        Some(RTreeNode::Parent(ref data)) => {
-            data.children.first().map(|n| n.is_leaf()).unwrap_or(true)
-        }
+        Some(RTreeNode::Parent(ref data)) => data
+            .children
+            .first()
+            .map(RTreeNode::is_leaf)
+            .unwrap_or(true),
         _ => return usize::max_value(),
     };
 

@@ -125,11 +125,20 @@ where
         T: PointDistance + 'a,
     {
         for child in &node.children {
-            let distance = match child {
-                RTreeNode::Parent(ref data) => data.envelope.distance_2(&query_point),
-                RTreeNode::Leaf(ref t) => t.distance_2(&query_point),
+            let distance_if_less_or_equal = match child {
+                RTreeNode::Parent(ref data) => {
+                    let distance = data.envelope.distance_2(&query_point);
+                    if distance <= *min_max_distance {
+                        Some(distance)
+                    } else {
+                        None
+                    }
+                }
+                RTreeNode::Leaf(ref t) => {
+                    t.distance_2_if_less_or_equal(&query_point, *min_max_distance)
+                }
             };
-            if &distance <= min_max_distance {
+            if let Some(distance) = distance_if_less_or_equal {
                 *min_max_distance = min_inline(
                     *min_max_distance,
                     child.envelope().min_max_dist_2(&query_point),

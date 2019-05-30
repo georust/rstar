@@ -161,6 +161,34 @@ pub trait PointDistance: RTreeObject {
     fn contains_point(&self, point: &<Self::Envelope as Envelope>::Point) -> bool {
         self.distance_2(point) <= num_traits::zero()
     }
+
+    /// Returns the squared distance to this object or `None` if the distance
+    /// is larger than a given maximum value.
+    ///
+    /// Some algorithms do need to know an object's distance only
+    /// if it less than or equal to a maximum value. In these cases, it may be
+    /// faster to calculate a lower bound of the distance first and returning
+    /// early if the object cannot be closer than the given maximum.
+    ///
+    /// The provided default implementation will use the distance to the object's
+    /// envelope as a lower bound.
+    ///
+    /// If performance is critical and the object's distance calculation is fast,
+    /// it may be beneficial to overwrite this implementation.
+    fn distance_2_if_less_or_equal(
+        &self,
+        point: &<Self::Envelope as Envelope>::Point,
+        max_distance_2: <<Self::Envelope as Envelope>::Point as Point>::Scalar,
+    ) -> Option<<<Self::Envelope as Envelope>::Point as Point>::Scalar> {
+        let envelope_distance = self.envelope().distance_2(point);
+        if envelope_distance <= max_distance_2 {
+            let distance_2 = self.distance_2(point);
+            if distance_2 <= max_distance_2 {
+                return Some(distance_2);
+            }
+        }
+        None
+    }
 }
 
 impl<P> RTreeObject for P
@@ -184,5 +212,18 @@ where
 
     fn contains_point(&self, point: &<Self::Envelope as Envelope>::Point) -> bool {
         self == point
+    }
+
+    fn distance_2_if_less_or_equal(
+        &self,
+        point: &<Self::Envelope as Envelope>::Point,
+        max_distance_2: <<Self::Envelope as Envelope>::Point as Point>::Scalar,
+    ) -> Option<P::Scalar> {
+        let distance_2 = <Self as PointExt>::distance_2(self, point);
+        if distance_2 <= max_distance_2 {
+            Some(distance_2)
+        } else {
+            None
+        }
     }
 }

@@ -12,6 +12,8 @@ pub type LocateInEnvelopeIntersectingMut<'a, T> =
     SelectionIteratorMut<'a, T, SelectInEnvelopeFuncIntersecting<T>>;
 pub type RTreeIterator<'a, T> = SelectionIterator<'a, T, SelectAllFunc>;
 pub type RTreeIteratorMut<'a, T> = SelectionIteratorMut<'a, T, SelectAllFunc>;
+pub type LocateWithinDistanceIterator<'a, T> =
+    SelectionIterator<'a, T, SelectWithinDistanceFunction<T>>;
 
 pub struct SelectionIterator<'a, T, Func>
 where
@@ -168,6 +170,7 @@ mod test {
         let len = contained_in_envelope.len();
         assert!(10 < len && len < 90, "unexpected point distribution");
         let located: Vec<_> = tree.locate_in_envelope(&envelope).cloned().collect();
+        assert_eq!(len, located.len());
         for point in &contained_in_envelope {
             assert!(located.contains(point));
         }
@@ -196,6 +199,30 @@ mod test {
         for p in &points {
             assert!(tree.iter().any(|q| q == p));
             assert!(tree.iter_mut().any(|q| q == p));
+        }
+    }
+
+    #[test]
+    fn test_locate_within_distance() {
+        use crate::primitives::Line;
+
+        let points = create_random_points(100, SEED_1);
+        let tree = RTree::bulk_load(points.clone());
+        let circle_radius_2 = 0.3;
+        let circle_origin = [0.2, 0.6];
+        let contained_in_circle: Vec<_> = points
+            .iter()
+            .filter(|point| Line::new(circle_origin, **point).length_2() <= circle_radius_2)
+            .cloned()
+            .collect();
+        let located: Vec<_> = tree
+            .locate_within_distance(circle_origin, circle_radius_2)
+            .cloned()
+            .collect();
+
+        assert_eq!(located.len(), contained_in_circle.len());
+        for point in &contained_in_circle {
+            assert!(located.contains(point));
         }
     }
 }

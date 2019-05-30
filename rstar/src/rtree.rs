@@ -569,6 +569,23 @@ where
         }
     }
 
+    /// Returns all elements of the tree within a certain distance.
+    ///
+    /// The elements may be returned in any order. Each returned element
+    /// will have a squared distance less or equal to the given squared distance.
+    ///
+    /// This method makes use of [distance_2_if_less_or_equal](trait.PointDistance.html#method.distance_2_if_less_or_equal).
+    /// If performance is critical and the distance calculation to the object is fast,
+    /// overwriting this function may be beneficial.
+    pub fn locate_within_distance(
+        &self,
+        query_point: <T::Envelope as Envelope>::Point,
+        max_squared_radius: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+    ) -> LocateWithinDistanceIterator<T> {
+        let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
+        LocateWithinDistanceIterator::new(self.root(), selection_function)
+    }
+
     /// Returns all elements of the tree sorted by their distance to a given point.
     ///
     /// # Runtime

@@ -98,6 +98,19 @@ where
     fn contains_point(&self, point: &<Self::Envelope as Envelope>::Point) -> bool {
         self.aabb.contains_point(point)
     }
+
+    fn distance_2_if_less_or_equal(
+        &self,
+        point: &<Self::Envelope as Envelope>::Point,
+        max_distance_2: <<Self::Envelope as Envelope>::Point as Point>::Scalar,
+    ) -> Option<<<Self::Envelope as Envelope>::Point as Point>::Scalar> {
+        let distance_2 = self.distance_2(point);
+        if distance_2 <= max_distance_2 {
+            Some(distance_2)
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
