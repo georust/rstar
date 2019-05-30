@@ -59,6 +59,19 @@ impl<P> Line<P>
 where
     P: Point,
 {
+    /// Returns the squared length of this line.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::primitives::Line;
+    ///
+    /// let line = Line::new([3, 3], [7, 6]);
+    /// assert_eq!(line.length_2(), 25);
+    /// ```
+    pub fn length_2(&self) -> P::Scalar {
+        self.from.sub(&self.to).length_2()
+    }
+
     fn project_point(&self, query_point: &P) -> P::Scalar {
         let (ref p1, ref p2) = (self.from, self.to);
         let dir = p2.sub(p1);
@@ -119,5 +132,11 @@ mod test {
         assert_abs_diff_eq!(edge.distance_2(&[0.0, 1.0]), 0.5 * 0.5);
         assert_abs_diff_eq!(edge.distance_2(&[1.0, 1.0]), 0.5 * 0.5);
         assert_abs_diff_eq!(edge.distance_2(&[1.0, 3.0]), 0.5 * 0.5 + 1.0);
+    }
+
+    #[test]
+    fn length_2() {
+        let line = Line::new([1, -1], [5, 5]);
+        assert_eq!(line.length_2(), 16 + 36);
     }
 }
