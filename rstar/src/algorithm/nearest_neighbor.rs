@@ -42,12 +42,12 @@ where
     }
 }
 
-impl<'a, T> NearestNeighborIterator<'a, T>
+impl<'a, T> NearestNeighborDistanceIterator<'a, T>
 where
     T: PointDistance,
 {
     pub fn new(root: &'a ParentNode<T>, query_point: <T::Envelope as Envelope>::Point) -> Self {
-        let mut result = NearestNeighborIterator {
+        let mut result = NearestNeighborDistanceIterator {
             nodes: BinaryHeap::with_capacity(20),
             query_point,
         };
@@ -56,7 +56,7 @@ where
     }
 
     fn extend_heap(&mut self, children: &'a [RTreeNode<T>]) {
-        let &mut NearestNeighborIterator {
+        let &mut NearestNeighborDistanceIterator {
             ref mut nodes,
             ref query_point,
         } = self;
@@ -74,11 +74,11 @@ where
     }
 }
 
-impl<'a, T> Iterator for NearestNeighborIterator<'a, T>
+impl<'a, T> Iterator for NearestNeighborDistanceIterator<'a, T>
 where
     T: PointDistance,
 {
-    type Item = &'a T;
+    type Item = (&'a T, <<T::Envelope as Envelope>::Point as Point>::Scalar);
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(current) = self.nodes.pop() {
@@ -91,9 +91,9 @@ where
                 }
                 RTreeNodeDistanceWrapper {
                     node: RTreeNode::Leaf(ref t),
-                    ..
+                    distance,
                 } => {
-                    return Some(t);
+                    return Some((t, distance));
                 }
             }
         }
@@ -101,12 +101,41 @@ where
     }
 }
 
-pub struct NearestNeighborIterator<'a, T>
+pub struct NearestNeighborDistanceIterator<'a, T>
 where
     T: PointDistance + 'a,
 {
     nodes: BinaryHeap<RTreeNodeDistanceWrapper<'a, T>>,
     query_point: <T::Envelope as Envelope>::Point,
+}
+
+impl<'a, T> NearestNeighborIterator<'a, T> 
+where
+    T: PointDistance,
+{
+    pub fn new(root: &'a ParentNode<T>, query_point: <T::Envelope as Envelope>::Point) -> Self {
+        NearestNeighborIterator { 
+            iter: NearestNeighborDistanceIterator::new(root, query_point)
+        }
+    }
+}
+
+impl<'a, T> Iterator for NearestNeighborIterator<'a, T>
+where
+    T: PointDistance,
+{
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(t, _distance)| t)
+    }
+}
+
+pub struct NearestNeighborIterator<'a, T>
+where
+    T: PointDistance + 'a,
+{
+    iter: NearestNeighborDistanceIterator<'a, T>,
 }
 
 pub fn nearest_neighbor<'a, T>(
