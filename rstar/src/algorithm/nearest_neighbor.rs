@@ -109,13 +109,13 @@ where
     query_point: <T::Envelope as Envelope>::Point,
 }
 
-impl<'a, T> NearestNeighborIterator<'a, T> 
+impl<'a, T> NearestNeighborIterator<'a, T>
 where
     T: PointDistance,
 {
     pub fn new(root: &'a ParentNode<T>, query_point: <T::Envelope as Envelope>::Point) -> Self {
-        NearestNeighborIterator { 
-            iter: NearestNeighborDistanceIterator::new(root, query_point)
+        NearestNeighborIterator {
+            iter: NearestNeighborDistanceIterator::new(root, query_point),
         }
     }
 }
@@ -219,10 +219,8 @@ mod test {
     #[test]
     fn test_nearest_neighbor() {
         let points = create_random_points(1000, SEED_1);
-        let mut tree = RTree::new();
-        for p in &points {
-            tree.insert(*p);
-        }
+        let tree = RTree::bulk_load(points.clone());
+
         let sample_points = create_random_points(100, SEED_2);
         for sample_point in &sample_points {
             let mut nearest = None;
@@ -242,10 +240,7 @@ mod test {
     #[test]
     fn test_nearest_neighbor_iterator() {
         let mut points = create_random_points(1000, SEED_1);
-        let mut tree = RTree::new();
-        for p in &points {
-            tree.insert(*p);
-        }
+        let tree = RTree::bulk_load(points.clone());
 
         let sample_points = create_random_points(50, SEED_2);
         for sample_point in &sample_points {
@@ -256,6 +251,22 @@ mod test {
             });
             let collected: Vec<_> = tree.nearest_neighbor_iter(sample_point).cloned().collect();
             assert_eq!(points, collected);
+        }
+    }
+
+    #[test]
+    fn test_nearest_neighbor_iterator_with_distance() {
+        let points = create_random_points(1000, SEED_2);
+        let tree = RTree::bulk_load(points.clone());
+
+        let sample_points = create_random_points(50, SEED_1);
+        for sample_point in &sample_points {
+            let mut last_distance = 0.0;
+            for (point, distance) in tree.nearest_neighbor_iter_with_distance(&sample_point) {
+                assert_eq!(point.distance_2(sample_point), distance);
+                assert!(last_distance < distance);
+                last_distance = distance;
+            }
         }
     }
 }
