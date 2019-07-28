@@ -1,6 +1,6 @@
 [package]
 name = "rstar"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
 description = "R*-tree library for the rust ecosystem"
 documentation = "https://docs.rs/rstar/"
@@ -27,7 +27,7 @@ default = []
 debug = []
 
 [dev-dependencies]
-rand = "0.6"
-rand_hc = "0.1"
+rand = "0.7"
+rand_hc = "0.2"
 approx = "0.3"
 serde_json = "1.0"

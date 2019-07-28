@@ -5,8 +5,8 @@ authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-rand = "0.6"
-kiss3d = "0.19"
+rand = "0.7"
+kiss3d = "0.20"
 nalgebra = "0.18"
 
 rstar = { path="../rstar" }
