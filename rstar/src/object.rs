@@ -12,6 +12,9 @@ use crate::point::{Point, PointExt};
 /// Most simply, this method should return the [axis aligned bounding box](struct.AABB.html)
 /// of the object, other envelope types may be supported in the future.
 ///
+/// *Note*: It is a logic error if an objects envelope changes after insertion into
+/// an r-tree.
+///
 /// # Type parameters
 /// `Envelope`: The objects envelope type. At the moment, only [AABB](struct.AABB.html) is
 /// feasible.

@@ -500,6 +500,11 @@ where
 {
     /// Returns `true` if a given element is equal (`==`) to an element in the
     /// r-tree.
+    ///
+    /// This method will only work correctly if two equal elements also have the
+    /// same envelope.
+    ///
+    /// # Example
     /// ```
     /// use rstar::RTree;
     ///
@@ -516,6 +521,10 @@ where
     ///
     /// If multiple elements equal to the given elements are contained in the tree, only
     /// one of them is removed and returned.
+    ///
+    /// This method will only work correctly if two equal elements also have the
+    /// same envelope.
+    ///
     /// # Example
     /// ```
     /// use rstar::RTree;
