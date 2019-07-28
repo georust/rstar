@@ -166,7 +166,7 @@ pub trait PointDistance: RTreeObject {
     /// is larger than a given maximum value.
     ///
     /// Some algorithms do need to know an object's distance only
-    /// if it less than or equal to a maximum value. In these cases, it may be
+    /// if it is less than or equal to a maximum value. In these cases, it may be
     /// faster to calculate a lower bound of the distance first and returning
     /// early if the object cannot be closer than the given maximum.
     ///
