@@ -159,9 +159,9 @@ where
         }
         let mut result = Zero::zero();
         for i in 0..P::DIMENSIONS {
-            let mut p = min;
-            // Only set one component to the maximum distance
-            *p.nth_mut(i) = max.nth(i);
+            let mut p = max;
+            // Only set one component to the minimum distance
+            *p.nth_mut(i) = min.nth(i);
             let new_dist = p.length_2();
             if new_dist < result || i == 0 {
                 result = new_dist
