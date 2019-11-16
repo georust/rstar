@@ -5,7 +5,7 @@ use crate::{Point, RTreeObject};
 /// An envelope defines how different bounding boxes of inserted children in an r-tree can interact,
 /// e.g. how they can be merged or intersected.
 /// This trait is not meant to be implemented by the user. Currently, only one implementation
-/// exists (AABB)[struct.AABB.html] and should be used, but more implementations are possible.
+/// exists ([AABB](struct.AABB.html)) and should be used.
 pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
     /// The envelope's point type.
     type Point: Point;
@@ -47,8 +47,8 @@ pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
     /// Returns the envelope's center point.
     fn center(&self) -> Self::Point;
 
-    /// Returns a value proportional to the envelope's margin.
-    fn margin_value(&self) -> <Self::Point as Point>::Scalar;
+    /// Returns a value proportional to the envelope's perimeter.
+    fn perimeter_value(&self) -> <Self::Point as Point>::Scalar;
 
     /// Sorts a given set of objects with envelopes along one of their axis.
     fn sort_envelopes<T: RTreeObject<Envelope = Self>>(axis: usize, envelopes: &mut [T]);

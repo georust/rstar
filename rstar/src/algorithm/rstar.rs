@@ -299,10 +299,11 @@ where
                 second_modified.merge(&child.envelope());
             }
 
-            let margin_value = first_modified.margin_value() + second_modified.margin_value();
-            if best_goodness > margin_value {
+            let perimeter_value =
+                first_modified.perimeter_value() + second_modified.perimeter_value();
+            if best_goodness > perimeter_value {
                 best_axis = axis;
-                best_goodness = margin_value;
+                best_goodness = perimeter_value;
             }
         }
     }

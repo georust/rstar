@@ -184,7 +184,7 @@ where
         .area()
     }
 
-    fn margin_value(&self) -> P::Scalar {
+    fn perimeter_value(&self) -> P::Scalar {
         let diag = self.upper.sub(&self.lower);
         let zero = P::Scalar::zero();
         max_inline(diag.fold(zero, |acc, value| acc + value), zero)
