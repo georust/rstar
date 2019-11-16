@@ -3,7 +3,6 @@ use crate::Envelope;
 use crate::RTreeNode;
 use crate::RTreeNode::*;
 use crate::RTreeObject;
-use itertools::iproduct;
 
 pub struct IntersectionIterator<'a, T>
 where
@@ -42,12 +41,16 @@ where
             .children()
             .iter()
             .filter(|c1| c1.envelope().intersects(&parent2.envelope()));
-        let children2 = parent2
-            .children()
-            .iter()
-            .filter(|c2| c2.envelope().intersects(&parent1.envelope()));
-        for (c1, c2) in iproduct!(children1, children2) {
-            self.push_if_intersecting(c1, c2);
+
+        for child1 in children1 {
+            let children2 = parent2
+                .children()
+                .iter()
+                .filter(|c2| c2.envelope().intersects(&parent1.envelope()));
+
+            for child2 in children2 {
+                self.push_if_intersecting(child1, child2);
+            }
         }
     }
 }
