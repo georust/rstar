@@ -30,11 +30,11 @@ where
     Func: SelectionFunction<T>,
 {
     pub fn new(root: &'a ParentNode<T>, func: Func) -> Self {
-        let current_nodes: Vec<_> = root
-            .children
-            .iter()
-            .filter(|child| func.should_unpack_node(child))
-            .collect();
+        let should_unpack_node = |node: &&RTreeNode<T>| match node {
+            RTreeNode::Leaf(ref t) => func.should_unpack_leaf(t),
+            RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
+        };
+        let current_nodes: Vec<_> = root.children.iter().filter(should_unpack_node).collect();
         SelectionIterator {
             func,
             current_nodes,
@@ -173,6 +173,41 @@ mod test {
         assert_eq!(len, located.len());
         for point in &contained_in_envelope {
             assert!(located.contains(point));
+        }
+    }
+
+    #[test]
+    fn test_locate_with_selection_func() {
+        use crate::SelectionFunction;
+
+        struct SelectLeftOfZeroPointFiveFunc;
+
+        impl SelectionFunction<[f64; 2]> for SelectLeftOfZeroPointFiveFunc {
+            fn should_unpack_parent(&self, parent_envelope: &AABB<[f64; 2]>) -> bool {
+                parent_envelope.lower()[0] < 0.5 || parent_envelope.upper()[0] < 0.5
+            }
+
+            fn should_unpack_leaf(&self, child: &[f64; 2]) -> bool {
+                child[0] < 0.5
+            }
+        }
+
+        let func = SelectLeftOfZeroPointFiveFunc;
+
+        let points = create_random_points(100, SEED_1);
+        let tree = RTree::bulk_load(points.clone());
+        let iterative_count = points
+            .iter()
+            .filter(|leaf| func.should_unpack_leaf(leaf))
+            .count();
+        let selected = tree
+            .locate_with_selection_function(func)
+            .collect::<Vec<_>>();
+
+        assert_eq!(iterative_count, selected.len());
+        assert!(iterative_count > 20); // Make sure that we do test something interesting
+        for point in &selected {
+            assert!(point[0] < 0.5);
         }
     }
 

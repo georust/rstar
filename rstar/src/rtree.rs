@@ -365,6 +365,28 @@ where
         )
     }
 
+    /// Locates elements in the r-tree defined by a selection function.
+    ///
+    /// Refer to the documentation of [`SelectionFunction`](trait.SelectionFunction.html) for
+    /// more information.
+    ///
+    /// Usually, other `locate` methods should cover most common use cases. This method is only required
+    /// in more specific situations.
+    pub fn locate_with_selection_function<S: SelectionFunction<T>>(
+        &self,
+        selection_function: S,
+    ) -> impl Iterator<Item = &T> {
+        SelectionIterator::new(&self.root, selection_function)
+    }
+
+    /// Mutable variant of [`locate_with_selection_function`](#method.locate_with_selection_function).
+    pub fn locate_with_selection_function_mut<S: SelectionFunction<T>>(
+        &mut self,
+        selection_function: S,
+    ) -> impl Iterator<Item = &mut T> {
+        SelectionIteratorMut::new(&mut self.root, selection_function)
+    }
+
     /// Gets all possible intersecting objects of this and another tree.
     ///
     /// This will return all objects whose _envelopes_ intersect. No geometric intersection

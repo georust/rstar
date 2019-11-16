@@ -1,25 +1,37 @@
 use crate::envelope::Envelope;
-use crate::node::RTreeNode;
 use crate::object::PointDistance;
 use crate::object::RTreeObject;
 use crate::Point;
 
+/// Advanced trait to iterate through an r-tree. Usually it should no be required to be implemented.
+///
+/// It is important to know some details about the inner structure of
+/// r-trees to comprehend this trait. Any node in an r-tree is either a *leaf* (containing exactly one `T: RTreeObject`) or
+/// a *parent* (containing multiple nodes).
+/// The main benefit of r-trees lies in their ability to efficiently guide searches through
+/// the tree. This is done by *pruning*: Knowing the envelopes of parent nodes
+/// often allows to completely skip them and all contained children during a search instead having
+/// to iterate through them, e.g. when searching for elements in a non-intersecting envelope.
+/// This often reduces the expected time from `O(n)` to `O(log(n))`.
+///
+/// This trait can be used to define searches through the r-tree by defining if a node
+/// should be further investigated ("unpacked") or pruned.
+///
+/// Usually, the various `locate_[...]` methods of [`RTree`](struct.RTree.html) should cover most
+/// common searches. Otherwise, implementing `SelectionFunction` and using
+/// [`locate_with_selection_function`](struct.RTree.html#method.locate_with_selection_function)
+/// can be used to tailor a custom search.
 pub trait SelectionFunction<T>
 where
     T: RTreeObject,
 {
+    /// Return `true` if a parent node should be unpacked during a search.
+    ///
+    /// The parent node's envelope is given to guide the decision.
     fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool;
 
-    fn should_unpack_leaf(&self, leaf: &T) -> bool {
-        self.should_unpack_parent(&leaf.envelope())
-    }
-
-    fn should_unpack_node(&self, node: &RTreeNode<T>) -> bool {
-        match node {
-            RTreeNode::Parent(ref data) => self.should_unpack_parent(&data.envelope),
-            RTreeNode::Leaf(ref t) => self.should_unpack_leaf(t),
-        }
-    }
+    /// Returns `true` if a given child node should be returned during a search.
+    fn should_unpack_leaf(&self, leaf: &T) -> bool;
 }
 
 pub struct SelectInEnvelopeFunction<T>
@@ -74,6 +86,10 @@ where
     fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
         self.envelope.intersects(&envelope)
     }
+
+    fn should_unpack_leaf(&self, leaf: &T) -> bool {
+        leaf.envelope().intersects(&self.envelope)
+    }
 }
 
 pub struct SelectAllFunc;
@@ -83,6 +99,10 @@ where
     T: RTreeObject,
 {
     fn should_unpack_parent(&self, _: &T::Envelope) -> bool {
+        true
+    }
+
+    fn should_unpack_leaf(&self, _: &T) -> bool {
         true
     }
 }
