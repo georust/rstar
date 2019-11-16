@@ -6,7 +6,7 @@ use crate::point::{Point, PointExt};
 ///
 /// This trait must be implemented for any object that should be inserted into an r-tree.
 /// Some simple objects that already implement this trait can be found in the
-/// [primitives](mod.primitives.html) module.
+/// [primitives](primitives/index.html) module.
 ///
 /// The only property required of such an object is its [envelope](traits.Envelope.html).
 /// Most simply, this method should return the [axis aligned bounding box](struct.AABB.html)

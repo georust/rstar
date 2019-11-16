@@ -102,6 +102,11 @@ impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialO
 
 /// Defines a point type that is compatible with rstar.
 ///
+/// This trait should be used for interoperability with other point types, not to define custom objects
+/// that can be inserted into r-trees. Use [`RTreeObject`](trait.RTreeObject.html) or
+/// [`PointWithData`](primitives/struct.PointWithData.html) instead.
+/// This trait defines points, not points with metadata.
+/// 
 /// `Point` is implemented out of the box for arrays like `[f32; 2]` or `[f64; 7]` (up to dimension 9).
 ///
 /// # Implementation example
