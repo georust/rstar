@@ -19,7 +19,6 @@ mod buttons {
     pub const SWITCH_RENDER_MODE: Key = Key::F;
     pub const RESET_EMPTY: Key = Key::R;
     pub const RESET_BULK_LOAD: Key = Key::T;
-
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

@@ -45,7 +45,7 @@ use crate::point::{Point, PointExt};
 ///     use rstar::{RTree, AABB};
 ///
 ///     let mut tree = RTree::new();
-///     
+///
 ///     // Insert a few players...
 ///     tree.insert(Player {
 ///         name: "Forlorn Freeman".into(),
@@ -62,7 +62,7 @@ use crate::point::{Point, PointExt};
 ///         x_coordinate: 0.,
 ///         y_coordinate: 2.,
 ///     });
-///     
+///
 ///     // Now we are ready to ask some questions!
 ///     let envelope = AABB::from_point([0.5, 0.5]);
 ///     let likely_sarah_croft = tree.locate_in_envelope(&envelope).next();
@@ -104,7 +104,7 @@ pub trait RTreeObject {
 ///
 /// impl RTreeObject for Circle {
 ///     type Envelope = AABB<[f32; 2]>;
-///     
+///
 ///     fn envelope(&self) -> Self::Envelope {
 ///         let corner_1 = [self.origin[0] - self.radius, self.origin[1] - self.radius];
 ///         let corner_2 = [self.origin[0] + self.radius, self.origin[1] + self.radius];

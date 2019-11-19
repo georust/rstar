@@ -144,5 +144,4 @@ mod test {
         assert_eq!(set1, set2);
         assert_eq!(tree.size(), points.len());
     }
-
 }
