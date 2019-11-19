@@ -143,7 +143,7 @@ impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialO
 ///       _ => unreachable!()
 ///     }
 ///   }
-///   
+///
 ///   fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar
 ///   {
 ///     match index {
