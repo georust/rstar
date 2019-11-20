@@ -207,3 +207,36 @@ where
             .is_some()
     }
 }
+
+pub struct SelectByAddressFunction<T>
+where
+    T: RTreeObject,
+{
+    envelope: T::Envelope,
+    element_address: *const T,
+}
+
+impl<T> SelectByAddressFunction<T>
+where
+    T: RTreeObject,
+{
+    pub fn new(envelope: T::Envelope, element_address: &T) -> Self {
+        Self {
+            envelope,
+            element_address,
+        }
+    }
+}
+
+impl<T> SelectionFunction<T> for SelectByAddressFunction<T>
+where
+    T: RTreeObject,
+{
+    fn should_unpack_parent(&self, parent_envelope: &T::Envelope) -> bool {
+        parent_envelope.contains_envelope(&self.envelope)
+    }
+
+    fn should_unpack_leaf(&self, leaf: &T) -> bool {
+        std::ptr::eq(self.element_address, leaf)
+    }
+}

@@ -654,6 +654,43 @@ where
 
 impl<T, Params> RTree<T, Params>
 where
+    Params: RTreeParams,
+    T: PointDistance + PartialEq,
+{
+    /// Removes the nearest neighbor for a given point and returns it.
+    ///
+    /// The distance is calculated by calling
+    /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2)
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// let mut tree = RTree::bulk_load(vec![
+    ///   [0.0, 0.0],
+    ///   [0.0, 1.0],
+    /// ]);
+    /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), Some([0.0, 0.0]));
+    /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), Some([0.0, 1.0]));
+    /// ```
+    pub fn pop_nearest_neighbor(
+        &mut self,
+        query_point: &<T::Envelope as Envelope>::Point,
+    ) -> Option<T> {
+        if let Some(neighbor) = self.nearest_neighbor(query_point) {
+            let removal_function = SelectByAddressFunction::new(neighbor.envelope(), neighbor);
+            let result = removal::remove::<_, Params, _>(&mut self.root, &removal_function);
+            if result.is_some() {
+                self.size -= 1;
+            }
+            result
+        } else {
+            None
+        }
+    }
+}
+
+impl<T, Params> RTree<T, Params>
+where
     T: RTreeObject,
     Params: RTreeParams,
 {
