@@ -428,6 +428,22 @@ where
             _params: Default::default(),
         }
     }
+
+    /// Removes and returns a single element from the tree. The element to remove is specified
+    /// by a [`SelectionFunction`](trait.SelectionFunction.html).
+    ///
+    /// See also: [`remove`](#method.remove), [`remove_at_point`](#method.remove_at_point)
+    ///
+    pub fn remove_with_selection_function<F>(&mut self, function: F) -> Option<T>
+    where
+        F: SelectionFunction<T>,
+    {
+        let result = removal::remove::<_, Params, _>(&mut self.root, &function);
+        if result.is_some() {
+            self.size -= 1;
+        }
+        result
+    }
 }
 
 impl<T, Params> RTree<T, Params>
@@ -507,11 +523,7 @@ where
     ///```
     pub fn remove_at_point(&mut self, point: &<T::Envelope as Envelope>::Point) -> Option<T> {
         let removal_function = SelectAtPointFunction::new(*point);
-        let result = removal::remove::<_, Params, _>(&mut self.root, &removal_function);
-        if result.is_some() {
-            self.size -= 1;
-        }
-        result
+        self.remove_with_selection_function(removal_function)
     }
 }
 
@@ -561,11 +573,7 @@ where
     /// ```
     pub fn remove(&mut self, t: &T) -> Option<T> {
         let removal_function = SelectEqualsFunction::new(t);
-        let result = removal::remove::<_, Params, _>(&mut self.root, &removal_function);
-        if result.is_some() {
-            self.size -= 1;
-        }
-        result
+        self.remove_with_selection_function(removal_function)
     }
 }
 
@@ -650,17 +658,11 @@ where
     ) -> impl Iterator<Item = (&T, <<T::Envelope as Envelope>::Point as Point>::Scalar)> {
         nearest_neighbor::NearestNeighborDistanceIterator::new(&self.root, *query_point)
     }
-}
 
-impl<T, Params> RTree<T, Params>
-where
-    Params: RTreeParams,
-    T: PointDistance + PartialEq,
-{
     /// Removes the nearest neighbor for a given point and returns it.
     ///
     /// The distance is calculated by calling
-    /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2)
+    /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2).
     ///
     /// # Example
     /// ```
@@ -671,6 +673,7 @@ where
     /// ]);
     /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), Some([0.0, 0.0]));
     /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), Some([0.0, 1.0]));
+    /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), None);
     /// ```
     pub fn pop_nearest_neighbor(
         &mut self,
@@ -678,11 +681,7 @@ where
     ) -> Option<T> {
         if let Some(neighbor) = self.nearest_neighbor(query_point) {
             let removal_function = SelectByAddressFunction::new(neighbor.envelope(), neighbor);
-            let result = removal::remove::<_, Params, _>(&mut self.root, &removal_function);
-            if result.is_some() {
-                self.size -= 1;
-            }
-            result
+            self.remove_with_selection_function(removal_function)
         } else {
             None
         }
