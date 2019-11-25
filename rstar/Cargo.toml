@@ -1,6 +1,6 @@
 [package]
 name = "rstar"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
 description = "R*-tree library for the rust ecosystem"
 documentation = "https://docs.rs/rstar/"
@@ -8,7 +8,7 @@ repository = "https://github.com/Stoeoef/rstar"
 license = "MIT/Apache-2.0"
 readme = "README.md"
 edition = "2018"
-keywords = ["rtree", "rstar", "spatial", "nearest-neighbor"]
+keywords = ["rtree", "r-tree", "rstar", "spatial", "nearest-neighbor"]
 categories = ["data-structures", "algorithms"]
 
 [badges]
