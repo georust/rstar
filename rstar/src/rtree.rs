@@ -396,7 +396,7 @@ where
         other: &'a RTree<U>,
     ) -> IntersectionIterator<T, U>
     where
-        U: RTreeObject<Envelope=T::Envelope>
+        U: RTreeObject<Envelope = T::Envelope>,
     {
         IntersectionIterator::new(self.root(), other.root())
     }

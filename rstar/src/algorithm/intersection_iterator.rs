@@ -4,7 +4,7 @@ use crate::RTreeNode;
 use crate::RTreeNode::*;
 use crate::RTreeObject;
 
-pub struct IntersectionIterator<'a, T, U=T>
+pub struct IntersectionIterator<'a, T, U = T>
 where
     T: RTreeObject,
     U: RTreeObject,
@@ -15,7 +15,7 @@ where
 impl<'a, T, U> IntersectionIterator<'a, T, U>
 where
     T: RTreeObject,
-    U: RTreeObject<Envelope=T::Envelope>,
+    U: RTreeObject<Envelope = T::Envelope>,
 {
     pub(crate) fn new(root1: &'a ParentNode<T>, root2: &'a ParentNode<U>) -> Self {
         let mut intersections = IntersectionIterator {
@@ -60,7 +60,7 @@ where
 impl<'a, T, U> Iterator for IntersectionIterator<'a, T, U>
 where
     T: RTreeObject,
-    U: RTreeObject<Envelope=T::Envelope>
+    U: RTreeObject<Envelope = T::Envelope>,
 {
     type Item = (&'a T, &'a U);
 
@@ -72,7 +72,7 @@ where
                     p.children()
                         .iter()
                         .for_each(|c| self.push_if_intersecting(leaf, c));
-                },
+                }
                 (Parent(p), leaf @ Leaf(_)) => {
                     p.children()
                         .iter()
