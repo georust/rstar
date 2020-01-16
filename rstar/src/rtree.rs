@@ -391,10 +391,13 @@ where
     ///
     /// This will return all objects whose _envelopes_ intersect. No geometric intersection
     /// checking is performed.
-    pub fn intersection_candidates_with_other_tree<'a>(
+    pub fn intersection_candidates_with_other_tree<'a, U>(
         &'a self,
-        other: &'a Self,
-    ) -> IntersectionIterator<T> {
+        other: &'a RTree<U>,
+    ) -> IntersectionIterator<T, U>
+    where
+        U: RTreeObject<Envelope=T::Envelope>
+    {
         IntersectionIterator::new(self.root(), other.root())
     }
 
