@@ -178,11 +178,14 @@ pub trait Point: Copy + Clone + PartialEq + Debug {
 
 impl<T> PointExt for T where T: Point {}
 
+/// Utility functions for Point
 pub trait PointExt: Point {
+    /// Returns a new Point with all components set to zero.
     fn new() -> Self {
         Self::from_value(Zero::zero())
     }
 
+    /// Applies `f` on each pair of components of `self` and `other`.
     fn component_wise(
         &self,
         other: &Self,
@@ -191,6 +194,7 @@ pub trait PointExt: Point {
         Self::generate(|i| f(self.nth(i), other.nth(i)))
     }
 
+    /// Returns whether all pairs of components of `self` and `other` pass test closure `f`. Short circuits if any result is false.
     fn all_component_wise(
         &self,
         other: &Self,
@@ -205,11 +209,19 @@ pub trait PointExt: Point {
         true
     }
 
+    /// Returns the dot product of `self` and `rhs`.
     fn dot(&self, rhs: &Self) -> Self::Scalar {
         self.component_wise(rhs, |l, r| l * r)
             .fold(Zero::zero(), |acc, val| acc + val)
     }
 
+    /// Folds (aka reduces or injects) the Point component wise using `f` and returns the result.
+    /// fold() takes two arguments: an initial value, and a closure with two arguments: an 'accumulator', and the value of the current component. 
+    /// The closure returns the value that the accumulator will have for the next iteration.
+    ///
+    /// The `start_value` is the value the accumulator will have on the first call of the closure.
+    ///
+    /// After applying the closure to every component of the Point, fold() returns the accumulator.
     fn fold<T>(&self, start_value: T, f: impl Fn(T, Self::Scalar) -> T) -> T {
         let mut accumulated = start_value;
         // TODO: Maybe do this by proper iteration
@@ -219,38 +231,47 @@ pub trait PointExt: Point {
         accumulated
     }
 
+    /// Returns a new Point with every component set to `value`
     fn from_value(value: Self::Scalar) -> Self {
         Self::generate(|_| value)
     }
 
+    /// Returns a new Point with each component set to the smallest of each component pair of `self` and `other`.
     fn min_point(&self, other: &Self) -> Self {
         self.component_wise(other, min_inline)
     }
 
+    /// Returns a new Point with each component set to the biggest of each component pair of `self` and `other`.
     fn max_point(&self, other: &Self) -> Self {
         self.component_wise(other, max_inline)
     }
 
+    /// Returns the squared length of this Point as if it was a vector.
     fn length_2(&self) -> Self::Scalar {
         self.fold(Zero::zero(), |acc, cur| cur * cur + acc)
     }
 
+    /// Substracts `other` from `self` component wise
     fn sub(&self, other: &Self) -> Self {
         self.component_wise(other, |l, r| l - r)
     }
 
+    /// Adds `other` to `self` component wise
     fn add(&self, other: &Self) -> Self {
         self.component_wise(other, |l, r| l + r)
     }
 
+    /// Multiplies `self` with `scalar` component wise
     fn mul(&self, scalar: Self::Scalar) -> Self {
         self.map(|coordinate| coordinate * scalar)
     }
 
+    /// Applies `f` to `self` component wise
     fn map(&self, f: impl Fn(Self::Scalar) -> Self::Scalar) -> Self {
         Self::generate(|i| f(self.nth(i)))
     }
 
+    /// Returns the squared distance between `self` and `other`
     fn distance_2(&self, other: &Self) -> Self::Scalar {
         self.sub(other).length_2()
     }
