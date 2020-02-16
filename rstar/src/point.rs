@@ -216,8 +216,8 @@ pub trait PointExt: Point {
     }
 
     /// Folds (aka reduces or injects) the Point component wise using `f` and returns the result.
-    /// fold() takes two arguments: an initial value, and a closure with two arguments: an 'accumulator', and the value of the current component. 
-    /// The closure returns the value that the accumulator will have for the next iteration.
+    /// fold() takes two arguments: an initial value, and a closure with two arguments: an 'accumulator', and the value of the current component.
+    /// The closure returns the value that the accumulator should have for the next iteration.
     ///
     /// The `start_value` is the value the accumulator will have on the first call of the closure.
     ///
@@ -231,17 +231,17 @@ pub trait PointExt: Point {
         accumulated
     }
 
-    /// Returns a new Point with every component set to `value`
+    /// Returns a Point with every component set to `value`.
     fn from_value(value: Self::Scalar) -> Self {
         Self::generate(|_| value)
     }
 
-    /// Returns a new Point with each component set to the smallest of each component pair of `self` and `other`.
+    /// Returns a Point with each component set to the smallest of each component pair of `self` and `other`.
     fn min_point(&self, other: &Self) -> Self {
         self.component_wise(other, min_inline)
     }
 
-    /// Returns a new Point with each component set to the biggest of each component pair of `self` and `other`.
+    /// Returns a Point with each component set to the biggest of each component pair of `self` and `other`.
     fn max_point(&self, other: &Self) -> Self {
         self.component_wise(other, max_inline)
     }
@@ -251,27 +251,27 @@ pub trait PointExt: Point {
         self.fold(Zero::zero(), |acc, cur| cur * cur + acc)
     }
 
-    /// Substracts `other` from `self` component wise
+    /// Substracts `other` from `self` component wise.
     fn sub(&self, other: &Self) -> Self {
         self.component_wise(other, |l, r| l - r)
     }
 
-    /// Adds `other` to `self` component wise
+    /// Adds `other` to `self` component wise.
     fn add(&self, other: &Self) -> Self {
         self.component_wise(other, |l, r| l + r)
     }
 
-    /// Multiplies `self` with `scalar` component wise
+    /// Multiplies `self` with `scalar` component wise.
     fn mul(&self, scalar: Self::Scalar) -> Self {
         self.map(|coordinate| coordinate * scalar)
     }
 
-    /// Applies `f` to `self` component wise
+    /// Applies `f` to `self` component wise.
     fn map(&self, f: impl Fn(Self::Scalar) -> Self::Scalar) -> Self {
         Self::generate(|i| f(self.nth(i)))
     }
 
-    /// Returns the squared distance between `self` and `other`
+    /// Returns the squared distance between `self` and `other`.
     fn distance_2(&self, other: &Self) -> Self::Scalar {
         self.sub(other).length_2()
     }
