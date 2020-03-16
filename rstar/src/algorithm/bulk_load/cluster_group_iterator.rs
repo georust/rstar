@@ -1,5 +1,6 @@
 use crate::{Envelope, Point, RTreeObject, RTreeParams};
 use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
 use num_traits::float::Float;
 /// Partitions elements into groups of clusters along a specific axis.
 pub struct ClusterGroupIterator<T: RTreeObject> {

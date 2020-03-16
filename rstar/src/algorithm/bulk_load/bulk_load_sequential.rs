@@ -4,6 +4,7 @@ use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::point::Point;
 use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
 use num_traits::float::Float;
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
