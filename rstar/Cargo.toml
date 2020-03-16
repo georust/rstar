@@ -17,13 +17,16 @@ codecov = { repository = "Stoeoef/rstar", branch = "master", service = "github" 
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-num-traits = "0.2"
-pdqselect = "0.1"
+num-traits = { version = "0.2", default-features = false, features = ["libm"] }
+pdqselect = { version = "0.1", default-features = false }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 
 [features]
-default = []
+default = ["std"]
 debug = []
+std = [
+    "num-traits/std"
+]
 
 [dev-dependencies]
 rand = "0.7"

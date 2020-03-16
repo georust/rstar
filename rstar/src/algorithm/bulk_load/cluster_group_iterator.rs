@@ -1,5 +1,6 @@
 use crate::{Envelope, Point, RTreeObject, RTreeParams};
-
+use alloc::vec::Vec;
+use num_traits::float::Float;
 /// Partitions elements into groups of clusters along a specific axis.
 pub struct ClusterGroupIterator<T: RTreeObject> {
     remaining: Vec<T>,
@@ -28,12 +29,12 @@ impl<T: RTreeObject> Iterator for ClusterGroupIterator<T> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.remaining.len() {
             0 => None,
-            len if len <= self.slab_size => ::std::mem::replace(&mut self.remaining, vec![]).into(),
+            len if len <= self.slab_size => ::core::mem::replace(&mut self.remaining, vec![]).into(),
             _ => {
                 let slab_axis = self.cluster_dimension;
                 T::Envelope::partition_envelopes(slab_axis, &mut self.remaining, self.slab_size);
                 let off_split = self.remaining.split_off(self.slab_size);
-                ::std::mem::replace(&mut self.remaining, off_split).into()
+                ::core::mem::replace(&mut self.remaining, off_split).into()
             }
         }
     }

@@ -3,6 +3,8 @@ use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::point::Point;
+use alloc::vec::Vec;
+use num_traits::float::Float;
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
@@ -47,7 +49,7 @@ struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
     work_queue: Vec<PartitioningState<T>>,
     depth: usize,
     number_of_clusters_on_axis: usize,
-    _params: std::marker::PhantomData<Params>,
+    _params: core::marker::PhantomData<Params>,
 }
 
 impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Params> {
@@ -99,9 +101,9 @@ where
 mod test {
     use crate::test_utilities::*;
     use crate::{Point, RTree, RTreeObject};
-    use std::collections::HashSet;
-    use std::fmt::Debug;
-    use std::hash::Hash;
+    use core::collections::HashSet;
+    use core::fmt::Debug;
+    use core::hash::Hash;
 
     #[test]
     fn test_bulk_load_small() {

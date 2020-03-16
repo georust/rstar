@@ -2,7 +2,7 @@ use crate::node::{ParentNode, RTreeNode};
 use crate::point::{min_inline, Point};
 use crate::{Envelope, PointDistance, RTreeObject};
 use num_traits::Bounded;
-use std::collections::binary_heap::BinaryHeap;
+use alloc::collections::binary_heap::BinaryHeap;
 
 struct RTreeNodeDistanceWrapper<'a, T>
 where
@@ -25,7 +25,7 @@ impl<'a, T> PartialOrd for RTreeNodeDistanceWrapper<'a, T>
 where
     T: PointDistance,
 {
-    fn partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<::core::cmp::Ordering> {
         // Inverse comparison creates a min heap
         other.distance.partial_cmp(&self.distance)
     }
@@ -37,7 +37,7 @@ impl<'a, T> Ord for RTreeNodeDistanceWrapper<'a, T>
 where
     T: PointDistance,
 {
-    fn cmp(&self, other: &Self) -> ::std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
         self.partial_cmp(other).unwrap()
     }
 }
@@ -224,7 +224,7 @@ mod test {
         let sample_points = create_random_points(100, SEED_2);
         for sample_point in &sample_points {
             let mut nearest = None;
-            let mut closest_dist = ::std::f64::INFINITY;
+            let mut closest_dist = ::core::f64::INFINITY;
             for point in &points {
                 let delta = [point[0] - sample_point[0], point[1] - sample_point[1]];
                 let new_dist = delta[0] * delta[0] + delta[1] * delta[1];

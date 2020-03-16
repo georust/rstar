@@ -6,6 +6,7 @@ use crate::point::{Point, PointExt};
 use crate::rtree::RTree;
 use num_traits::{Bounded, Zero};
 
+use alloc::vec::Vec;
 /// Inserts points according to the r-star heuristic.
 ///
 /// The r*-heuristic focusses on good insertion quality at the costs of
@@ -39,7 +40,7 @@ impl InsertionStrategy for RStarInsertionStrategy {
                 InsertionResult::Split(node) => {
                     // The root node was split, create a new root and increase height
                     let new_root = ParentNode::new_root::<Params>();
-                    let old_root = ::std::mem::replace(tree.root_mut(), new_root);
+                    let old_root = ::core::mem::replace(tree.root_mut(), new_root);
                     let new_envelope = old_root.envelope.merged(&node.envelope());
                     let root = tree.root_mut();
                     root.envelope = new_envelope;

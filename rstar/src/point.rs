@@ -1,5 +1,5 @@
 use num_traits::{Bounded, Num, Signed, Zero};
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 /// Defines a number type that is compatible with rstar.
 ///
