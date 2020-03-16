@@ -102,9 +102,9 @@ where
 mod test {
     use crate::test_utilities::*;
     use crate::{Point, RTree, RTreeObject};
-    use core::collections::HashSet;
-    use core::fmt::Debug;
-    use core::hash::Hash;
+    use std::collections::HashSet;
+    use std::fmt::Debug;
+    use std::hash::Hash;
 
     #[test]
     fn test_bulk_load_small() {
