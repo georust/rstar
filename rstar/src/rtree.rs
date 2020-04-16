@@ -658,7 +658,21 @@ where
     ///
     /// The distance is calculated by calling
     /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2).
+    #[deprecated(
+        note = "Please use nearest_neighbor_iter_with_distance_2 instead"
+    )]
     pub fn nearest_neighbor_iter_with_distance(
+        &self,
+        query_point: &<T::Envelope as Envelope>::Point,
+    ) -> impl Iterator<Item = (&T, <<T::Envelope as Envelope>::Point as Point>::Scalar)> {
+        nearest_neighbor::NearestNeighborDistanceIterator::new(&self.root, *query_point)
+    }
+
+    /// Returns `(element, distance^2)` tuples of the tree sorted by their distance to a given point.
+    ///
+    /// The distance is calculated by calling
+    /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2).
+    pub fn nearest_neighbor_iter_with_distance_2(
         &self,
         query_point: &<T::Envelope as Envelope>::Point,
     ) -> impl Iterator<Item = (&T, <<T::Envelope as Envelope>::Point as Point>::Scalar)> {
