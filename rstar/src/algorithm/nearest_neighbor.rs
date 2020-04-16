@@ -255,14 +255,14 @@ mod test {
     }
 
     #[test]
-    fn test_nearest_neighbor_iterator_with_distance() {
+    fn test_nearest_neighbor_iterator_with_distance_2() {
         let points = create_random_points(1000, SEED_2);
         let tree = RTree::bulk_load(points.clone());
 
         let sample_points = create_random_points(50, SEED_1);
         for sample_point in &sample_points {
             let mut last_distance = 0.0;
-            for (point, distance) in tree.nearest_neighbor_iter_with_distance(&sample_point) {
+            for (point, distance) in tree.nearest_neighbor_iter_with_distance_2(&sample_point) {
                 assert_eq!(point.distance_2(sample_point), distance);
                 assert!(last_distance < distance);
                 last_distance = distance;
