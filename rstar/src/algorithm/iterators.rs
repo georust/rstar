@@ -84,11 +84,11 @@ where
     Func: SelectionFunction<T>,
 {
     pub fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
-        let current_nodes = root
-            .children
-            .iter_mut()
-            .filter(|c| func.should_unpack_parent(&c.envelope()))
-            .collect();
+        let should_unpack_node = |node: &&mut RTreeNode<T>| match node {
+            RTreeNode::Leaf(ref t) => func.should_unpack_leaf(t),
+            RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
+        };
+        let current_nodes = root.children.iter_mut().filter(should_unpack_node).collect();
         SelectionIteratorMut {
             func,
             current_nodes,
@@ -104,28 +104,21 @@ where
 {
     type Item = &'a mut T;
     fn next(&mut self) -> Option<&'a mut T> {
-        let func = &self.func;
-        if let Some(next) = self.current_nodes.pop() {
+        while let Some(next) = self.current_nodes.pop() {
             match next {
                 RTreeNode::Leaf(ref mut t) => {
-                    if func.should_unpack_leaf(&t) {
-                        Some(t)
-                    } else {
-                        self.next()
+                    if self.func.should_unpack_leaf(t) {
+                        return Some(t);
                     }
                 }
                 RTreeNode::Parent(ref mut data) => {
-                    self.current_nodes.extend(
-                        data.children
-                            .iter_mut()
-                            .filter(|c| func.should_unpack_parent(&c.envelope())),
-                    );
-                    self.next()
+                    if self.func.should_unpack_parent(&data.envelope) {
+                        self.current_nodes.extend(&mut data.children);
+                    }
                 }
             }
-        } else {
-            None
         }
+        None
     }
 }
 
