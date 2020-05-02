@@ -107,7 +107,13 @@ where
         let func = &self.func;
         if let Some(next) = self.current_nodes.pop() {
             match next {
-                RTreeNode::Leaf(ref mut t) => Some(t),
+                RTreeNode::Leaf(ref mut t) => {
+                    if func.should_unpack_leaf(&t) {
+                        Some(t)
+                    } else {
+                        self.next()
+                    }
+                }
                 RTreeNode::Parent(ref mut data) => {
                     self.current_nodes.extend(
                         data.children
