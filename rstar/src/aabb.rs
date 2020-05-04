@@ -1,6 +1,6 @@
 use crate::point::{max_inline, Point, PointExt};
 use crate::{Envelope, RTreeObject};
-use num_traits::{Bounded, One, Signed, Zero};
+use num_traits::{Bounded, One, Zero};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -147,27 +147,24 @@ where
     fn min_max_dist_2(&self, point: &P) -> <P as Point>::Scalar {
         let l = self.lower.sub(point);
         let u = self.upper.sub(point);
-        let (mut min, mut max) = (P::new(), P::new());
+        let mut max_diff = Zero::zero();
+        let mut result: <P as Point>::Scalar = Zero::zero();
+
         for i in 0..P::DIMENSIONS {
-            if l.nth(i).abs() < u.nth(i).abs() {
-                *min.nth_mut(i) = l.nth(i);
-                *max.nth_mut(i) = u.nth(i);
-            } else {
-                *min.nth_mut(i) = u.nth(i);
-                *max.nth_mut(i) = l.nth(i);
+            let mut min = l.nth(i);
+            let mut max = u.nth(i);
+            max = max * max;
+            min = min * min;
+            if max < min { let swap = min; min = max; max = swap; }
+
+            let diff = max - min;
+            result = result + max;
+            if diff > max_diff {
+                max_diff = diff;
             }
         }
-        let mut result = Zero::zero();
-        for i in 0..P::DIMENSIONS {
-            let mut p = max;
-            // Only set one component to the minimum distance
-            *p.nth_mut(i) = min.nth(i);
-            let new_dist = p.length_2();
-            if new_dist < result || i == 0 {
-                result = new_dist
-            }
-        }
-        result
+
+        result - max_diff
     }
 
     fn center(&self) -> Self::Point {
