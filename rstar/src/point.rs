@@ -322,10 +322,12 @@ macro_rules! implement_point_for_array {
                 [$(generator($index)),*]
             }
 
+            #[inline]
             fn nth(&self, index: usize) -> Self::Scalar {
                 self[index]
             }
 
+            #[inline]
             fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
                 &mut self[index]
             }
