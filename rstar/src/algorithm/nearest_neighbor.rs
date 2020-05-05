@@ -1,6 +1,7 @@
 use crate::node::{ParentNode, RTreeNode};
 use crate::point::{min_inline, Point};
 use crate::{Envelope, PointDistance, RTreeObject};
+use heapless::binary_heap as static_heap;
 use num_traits::Bounded;
 use std::collections::binary_heap::BinaryHeap;
 
@@ -138,6 +139,43 @@ where
     iter: NearestNeighborDistanceIterator<'a, T>,
 }
 
+enum SmallHeap<T: Ord> {
+    Stack(static_heap::BinaryHeap<T, heapless::consts::U32, static_heap::Max>),
+    Heap(BinaryHeap<T>),
+}
+
+impl<T: Ord> SmallHeap<T> {
+    pub fn new() -> Self {
+        Self::Stack(static_heap::BinaryHeap::new())
+    }
+
+    pub fn pop(&mut self) -> Option<T> {
+        match self {
+            SmallHeap::Stack(heap) => heap.pop(),
+            SmallHeap::Heap(heap) => heap.pop(),
+        }
+    }
+
+    pub fn push(&mut self, item: T) {
+        match self {
+            SmallHeap::Stack(heap) => {
+                if let Err(item) = heap.push(item) {
+                    // FIXME: This could be done more efficiently if heapless'
+                    // BinaryHeap had draining, owning into_iter, or would
+                    // expose its data slice.
+                    let mut new_heap = BinaryHeap::with_capacity(heap.len() + 1);
+                    while let Some(old_item) = heap.pop() {
+                        new_heap.push(old_item);
+                    }
+                    new_heap.push(item);
+                    *self = SmallHeap::Heap(new_heap);
+                }
+            },
+            SmallHeap::Heap(heap) => heap.push(item),
+        }
+    }
+}
+
 pub fn nearest_neighbor<'a, T>(
     node: &'a ParentNode<T>,
     query_point: <T::Envelope as Envelope>::Point,
@@ -146,7 +184,7 @@ where
     T: PointDistance,
 {
     fn extend_heap<'a, T>(
-        nodes: &mut BinaryHeap<RTreeNodeDistanceWrapper<'a, T>>,
+        nodes: &mut SmallHeap<RTreeNodeDistanceWrapper<'a, T>>,
         node: &'a ParentNode<T>,
         query_point: <T::Envelope as Envelope>::Point,
         min_max_distance: &mut <<T::Envelope as Envelope>::Point as Point>::Scalar,
@@ -183,7 +221,7 @@ where
     // Calculate smallest minmax-distance
     let mut smallest_min_max: <<T::Envelope as Envelope>::Point as Point>::Scalar =
         Bounded::max_value();
-    let mut nodes = BinaryHeap::with_capacity(20);
+    let mut nodes = SmallHeap::new();
     extend_heap(&mut nodes, node, query_point, &mut smallest_min_max);
     while let Some(current) = nodes.pop() {
         match current {
