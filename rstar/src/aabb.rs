@@ -1,4 +1,4 @@
-use crate::point::{max_inline, Point, PointExt};
+use crate::point::{max_inline, min_inline, Point, PointExt};
 use crate::{Envelope, RTreeObject};
 use num_traits::{Bounded, One, Zero};
 
@@ -94,6 +94,64 @@ where
             self.min_point(point).sub(point).length_2()
         }
     }
+
+    /// Return an iterator over each corner vertex of the AABB.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::AABB;
+    ///
+    /// let aabb = AABB::from_corners([1.0, 2.0], [3.0, 4.0]);
+    /// let mut corners = aabb.iter_corners();
+    /// assert_eq!(corners.next(), Some([1.0, 2.0]));
+    /// assert_eq!(corners.next(), Some([3.0, 2.0]));
+    /// assert_eq!(corners.next(), Some([1.0, 4.0]));
+    /// assert_eq!(corners.next(), Some([3.0, 4.0]));
+    /// assert_eq!(corners.next(), None);
+    /// ```
+    pub fn iter_corners(&self) -> impl Iterator<Item=P> {
+        CornerIterator::new(self)
+    }
+}
+
+struct CornerIterator<P: Point> {
+    lower: P,
+    upper: P,
+    idx: usize,
+}
+
+impl<P> CornerIterator<P>
+where
+    P: Point,
+{
+    fn new(aabb: &AABB<P>) -> Self {
+        Self {
+            lower: aabb.lower,
+            upper: aabb.upper,
+            idx: 0,
+        }
+    }
+}
+
+impl<P> Iterator for CornerIterator<P>
+where
+    P: Point,
+{
+    type Item = P;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.idx & (1 << P::DIMENSIONS) != 0 {
+            None
+        } else {
+            let corner = P::generate(|i| if self.idx & (1 << i) != 0 {
+                self.upper.nth(i)
+            } else {
+                self.lower.nth(i)
+            });
+            self.idx += 1;
+            Some(corner)
+        }
+    }
 }
 
 impl<P> Envelope for AABB<P>
@@ -144,6 +202,12 @@ where
         self.distance_2(point)
     }
 
+    fn min_dist_2(&self, other: &Self) -> P::Scalar {
+        let l = self.min_point(&other.lower);
+        let u = self.min_point(&other.upper);
+        min_inline(other.distance_2(&l), other.distance_2(&u))
+    }
+
     fn min_max_dist_2(&self, point: &P) -> <P as Point>::Scalar {
         let l = self.lower.sub(point);
         let u = self.upper.sub(point);
@@ -167,6 +231,13 @@ where
         }
 
         result - max_diff
+    }
+
+    fn max_min_max_dist_2(&self, other: &Self) -> P::Scalar {
+        self.iter_corners()
+            .map(|corner| other.min_max_dist_2(&corner))
+            .max_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| std::cmp::Ordering::Equal))
+            .unwrap_or_else(P::Scalar::zero)
     }
 
     fn center(&self) -> Self::Point {

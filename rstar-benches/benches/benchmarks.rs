@@ -16,6 +16,7 @@ use criterion::{Bencher, Criterion, Fun};
 const SEED_1: &[u8; 32] = b"Gv0aHMtHkBGsUXNspGU9fLRuCWkZWHZx";
 const SEED_2: &[u8; 32] = b"km7DO4GeaFZfTcDXVpnO7ZJlgUY7hZiS";
 
+#[derive(Clone)]
 struct Params;
 
 impl RTreeParams for Params {
@@ -92,6 +93,28 @@ fn tree_creation_quality(c: &mut Criterion) {
     });
 }
 
+fn all_to_all_neighbors(c: &mut Criterion) {
+    const SIZE: usize = 1_000;
+    let points: Vec<_> = create_random_points(SIZE, SEED_1);
+    let tree_target = RTree::<_, Params>::bulk_load_with_params(points.clone());
+    let query_points = create_random_points(SIZE, SEED_2);
+    let tree_query = RTree::<_, Params>::bulk_load_with_params(query_points.clone());
+
+    let tree_target_cloned = tree_target.clone();
+    c.bench_function("all to all tree lookup", move |b| {
+        b.iter(|| {
+            tree_target.all_nearest_neighbors(&tree_query).count();
+        });
+    })
+    .bench_function("all to all point lookup", move |b| {
+        b.iter(|| {
+            for query_point in &query_points {
+                tree_target_cloned.nearest_neighbor(&query_point).unwrap();
+            }
+        });
+    });
+}
+
 fn locate_successful(c: &mut Criterion) {
     let points: Vec<_> = create_random_points(100_000, SEED_1);
     let query_point = points[500];
@@ -115,6 +138,7 @@ criterion_group!(
     bulk_load_baseline,
     bulk_load_comparison,
     tree_creation_quality,
+    all_to_all_neighbors,
     locate_successful,
     locate_unsuccessful
 );
