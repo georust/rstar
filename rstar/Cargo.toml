@@ -1,6 +1,6 @@
 [package]
 name = "rstar"
-version = "0.7.1"
+version = "0.8.0"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
 description = "R*-tree library for the rust ecosystem"
 documentation = "https://docs.rs/rstar/"
