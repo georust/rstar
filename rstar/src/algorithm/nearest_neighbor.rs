@@ -42,12 +42,12 @@ where
     }
 }
 
-impl<'a, T> NearestNeighborDistanceIterator<'a, T>
+impl<'a, T> NearestNeighborDistance2Iterator<'a, T>
 where
     T: PointDistance,
 {
     pub fn new(root: &'a ParentNode<T>, query_point: <T::Envelope as Envelope>::Point) -> Self {
-        let mut result = NearestNeighborDistanceIterator {
+        let mut result = NearestNeighborDistance2Iterator {
             nodes: BinaryHeap::with_capacity(20),
             query_point,
         };
@@ -56,7 +56,7 @@ where
     }
 
     fn extend_heap(&mut self, children: &'a [RTreeNode<T>]) {
-        let &mut NearestNeighborDistanceIterator {
+        let &mut NearestNeighborDistance2Iterator {
             ref mut nodes,
             ref query_point,
         } = self;
@@ -74,7 +74,7 @@ where
     }
 }
 
-impl<'a, T> Iterator for NearestNeighborDistanceIterator<'a, T>
+impl<'a, T> Iterator for NearestNeighborDistance2Iterator<'a, T>
 where
     T: PointDistance,
 {
@@ -101,7 +101,7 @@ where
     }
 }
 
-pub struct NearestNeighborDistanceIterator<'a, T>
+pub struct NearestNeighborDistance2Iterator<'a, T>
 where
     T: PointDistance + 'a,
 {
@@ -115,7 +115,7 @@ where
 {
     pub fn new(root: &'a ParentNode<T>, query_point: <T::Envelope as Envelope>::Point) -> Self {
         NearestNeighborIterator {
-            iter: NearestNeighborDistanceIterator::new(root, query_point),
+            iter: NearestNeighborDistance2Iterator::new(root, query_point),
         }
     }
 }
@@ -135,7 +135,7 @@ pub struct NearestNeighborIterator<'a, T>
 where
     T: PointDistance + 'a,
 {
-    iter: NearestNeighborDistanceIterator<'a, T>,
+    iter: NearestNeighborDistance2Iterator<'a, T>,
 }
 
 pub fn nearest_neighbor<'a, T>(
