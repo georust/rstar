@@ -58,7 +58,7 @@ where
 /// The items inserted into an r-tree must implement the [RTreeObject](trait.RTreeObject.html)
 /// trait. To support nearest neighbor queries, implement the [PointDistance](trait.PointDistance.html)
 /// trait. Some useful geometric primitives that implement the above traits can be found in the
-/// [primitives](mod.primitives.html) module.
+/// [primitives](primitives/index.html) module.
 ///
 /// ## Example
 /// ```
