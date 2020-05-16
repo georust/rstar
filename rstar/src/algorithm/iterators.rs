@@ -131,6 +131,27 @@ mod test {
     use crate::object::RTreeObject;
     use crate::rtree::RTree;
     use crate::test_utilities::{create_random_points, create_random_rectangles, SEED_1};
+    use crate::SelectionFunction;
+
+    #[test]
+    fn test_root_node_is_not_always_unpacked() {
+        struct SelectNoneFunc {};
+
+        impl SelectionFunction<[i32; 2]> for SelectNoneFunc {
+            fn should_unpack_parent(&self, _: &AABB<[i32; 2]>) -> bool {
+                false
+            }
+        }
+
+        let mut tree = RTree::bulk_load(vec![[0i32, 0]]);
+
+        let mut elements = tree.locate_with_selection_function(SelectNoneFunc {});
+        assert!(elements.next().is_none());
+        drop(elements);
+
+        let mut elements = tree.locate_with_selection_function_mut(SelectNoneFunc {});
+        assert!(elements.next().is_none());
+    }
 
     #[test]
     fn test_locate_all() {

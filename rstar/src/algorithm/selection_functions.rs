@@ -31,7 +31,10 @@ where
     fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool;
 
     /// Returns `true` if a given child node should be returned during a search.
-    fn should_unpack_leaf(&self, leaf: &T) -> bool;
+    /// The default implementation will always return `true`.
+    fn should_unpack_leaf(&self, _leaf: &T) -> bool {
+        true
+    }
 }
 
 pub struct SelectInEnvelopeFunction<T>
@@ -99,10 +102,6 @@ where
     T: RTreeObject,
 {
     fn should_unpack_parent(&self, _: &T::Envelope) -> bool {
-        true
-    }
-
-    fn should_unpack_leaf(&self, _: &T) -> bool {
         true
     }
 }
