@@ -30,11 +30,12 @@ where
     Func: SelectionFunction<T>,
 {
     pub fn new(root: &'a ParentNode<T>, func: Func) -> Self {
-        let should_unpack_node = |node: &&RTreeNode<T>| match node {
-            RTreeNode::Leaf(ref t) => func.should_unpack_leaf(t),
-            RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
+        let current_nodes = if func.should_unpack_parent(&root.envelope()) {
+            root.children.iter().collect()
+        } else {
+            Vec::new()
         };
-        let current_nodes: Vec<_> = root.children.iter().filter(should_unpack_node).collect();
+
         SelectionIterator {
             func,
             current_nodes,
@@ -84,11 +85,12 @@ where
     Func: SelectionFunction<T>,
 {
     pub fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
-        let should_unpack_node = |node: &&mut RTreeNode<T>| match node {
-            RTreeNode::Leaf(ref t) => func.should_unpack_leaf(t),
-            RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
+        let current_nodes = if func.should_unpack_parent(&root.envelope()) {
+            root.children.iter_mut().collect()
+        } else {
+            Vec::new()
         };
-        let current_nodes = root.children.iter_mut().filter(should_unpack_node).collect();
+
         SelectionIteratorMut {
             func,
             current_nodes,
