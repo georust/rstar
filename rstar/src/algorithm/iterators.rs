@@ -43,10 +43,31 @@ where
     }
 }
 
+pub fn select_nodes<'a, T, Func, Cons>(root: &'a ParentNode<T>, func: &Func, cons: &mut Cons)
+where
+    T: RTreeObject,
+    Func: SelectionFunction<T>,
+    Cons: FnMut(&'a T) -> bool,
+{
+    if func.should_unpack_parent(&root.envelope()) {
+        for node in root.children.iter() {
+            match node {
+                RTreeNode::Leaf(ref t) => {
+                    if func.should_unpack_leaf(t) && cons(t) {
+                        break;
+                    }
+                }
+                RTreeNode::Parent(ref data) => {
+                    select_nodes(data, func, cons);
+                }
+            }
+        }
+    }
+}
+
 impl<'a, T, Func> Iterator for SelectionIterator<'a, T, Func>
 where
     T: RTreeObject,
-
     Func: SelectionFunction<T>,
 {
     type Item = &'a T;
@@ -101,10 +122,10 @@ where
 impl<'a, T, Func> Iterator for SelectionIteratorMut<'a, T, Func>
 where
     T: RTreeObject,
-
     Func: SelectionFunction<T>,
 {
     type Item = &'a mut T;
+
     fn next(&mut self) -> Option<&'a mut T> {
         while let Some(next) = self.current_nodes.pop() {
             match next {
@@ -121,6 +142,31 @@ where
             }
         }
         None
+    }
+}
+
+pub fn select_nodes_mut<'a, T, Func, Cons>(
+    root: &'a mut ParentNode<T>,
+    func: &Func,
+    cons: &mut Cons,
+) where
+    T: RTreeObject,
+    Func: SelectionFunction<T>,
+    Cons: FnMut(&'a mut T) -> bool,
+{
+    if func.should_unpack_parent(&root.envelope()) {
+        for node in root.children.iter_mut() {
+            match node {
+                RTreeNode::Leaf(ref mut t) => {
+                    if func.should_unpack_leaf(t) && cons(t) {
+                        break;
+                    }
+                }
+                RTreeNode::Parent(ref mut data) => {
+                    select_nodes_mut(data, func, cons);
+                }
+            }
+        }
     }
 }
 

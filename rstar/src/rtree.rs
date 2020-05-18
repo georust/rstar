@@ -472,6 +472,29 @@ where
         self.locate_all_at_point_mut(point).next()
     }
 
+    /// Variant of [locate_at_point](#method.locate_at_point) using internal iteration
+    pub fn locate_at_point_int(&self, point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
+        let mut result = None;
+        self.locate_all_at_point_int(point, |node| {
+            result = Some(node);
+            true
+        });
+        result
+    }
+
+    /// Mutable variant of [locate_at_point_int](#method.locate_at_point_int)
+    pub fn locate_at_point_int_mut(
+        &mut self,
+        point: &<T::Envelope as Envelope>::Point,
+    ) -> Option<&mut T> {
+        let mut result = None;
+        self.locate_all_at_point_int_mut(point, |node| {
+            result = Some(node);
+            true
+        });
+        result
+    }
+
     /// Locate all elements containing a given point.
     ///
     /// Method [contains_point](trait.PointDistance.html#method.contains_point) is used
@@ -497,12 +520,38 @@ where
         LocateAllAtPoint::new(&self.root, SelectAtPointFunction::new(*point))
     }
 
-    /// Mutable variant of [locate_at_point_mut](#method.locate_at_point_mut).
+    /// Mutable variant of [locate_all_at_point](#method.locate_all_at_point).
     pub fn locate_all_at_point_mut(
         &mut self,
         point: &<T::Envelope as Envelope>::Point,
     ) -> LocateAllAtPointMut<T> {
         LocateAllAtPointMut::new(&mut self.root, SelectAtPointFunction::new(*point))
+    }
+
+    /// Variant of [locate_all_at_point](#method.locate_all_at_point) using internal iteration
+    pub fn locate_all_at_point_int<'a, Cons>(
+        &'a self,
+        point: &<T::Envelope as Envelope>::Point,
+        mut cons: Cons,
+    ) where
+        Cons: FnMut(&'a T) -> bool,
+    {
+        select_nodes(&self.root, &SelectAtPointFunction::new(*point), &mut cons);
+    }
+
+    /// Mutable variant of [locate_all_at_point_int](#method.locate_all_at_point_int)
+    pub fn locate_all_at_point_int_mut<'a, Cons>(
+        &'a mut self,
+        point: &<T::Envelope as Envelope>::Point,
+        mut cons: Cons,
+    ) where
+        Cons: FnMut(&'a mut T) -> bool,
+    {
+        select_nodes_mut(
+            &mut self.root,
+            &SelectAtPointFunction::new(*point),
+            &mut cons,
+        );
     }
 
     /// Removes an element containing a given point.
