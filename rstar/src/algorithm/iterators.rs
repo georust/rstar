@@ -2,6 +2,8 @@ use crate::algorithm::selection_functions::*;
 use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 
+use smallvec::SmallVec;
+
 pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunction<T>>;
 pub type LocateAllAtPointMut<'a, T> = SelectionIteratorMut<'a, T, SelectAtPointFunction<T>>;
 pub type LocateInEnvelope<'a, T> = SelectionIterator<'a, T, SelectInEnvelopeFunction<T>>;
@@ -21,7 +23,7 @@ where
     Func: SelectionFunction<T>,
 {
     func: Func,
-    current_nodes: Vec<&'a RTreeNode<T>>,
+    current_nodes: SmallVec<[&'a RTreeNode<T>; 32]>,
 }
 
 impl<'a, T, Func> SelectionIterator<'a, T, Func>
@@ -33,7 +35,7 @@ where
         let current_nodes = if func.should_unpack_parent(&root.envelope()) {
             root.children.iter().collect()
         } else {
-            Vec::new()
+            SmallVec::new()
         };
 
         SelectionIterator {
@@ -46,7 +48,6 @@ where
 impl<'a, T, Func> Iterator for SelectionIterator<'a, T, Func>
 where
     T: RTreeObject,
-
     Func: SelectionFunction<T>,
 {
     type Item = &'a T;
@@ -76,7 +77,7 @@ where
     Func: SelectionFunction<T>,
 {
     func: Func,
-    current_nodes: Vec<&'a mut RTreeNode<T>>,
+    current_nodes: SmallVec<[&'a mut RTreeNode<T>; 32]>,
 }
 
 impl<'a, T, Func> SelectionIteratorMut<'a, T, Func>
@@ -88,7 +89,7 @@ where
         let current_nodes = if func.should_unpack_parent(&root.envelope()) {
             root.children.iter_mut().collect()
         } else {
-            Vec::new()
+            SmallVec::new()
         };
 
         SelectionIteratorMut {
@@ -101,10 +102,10 @@ where
 impl<'a, T, Func> Iterator for SelectionIteratorMut<'a, T, Func>
 where
     T: RTreeObject,
-
     Func: SelectionFunction<T>,
 {
     type Item = &'a mut T;
+
     fn next(&mut self) -> Option<&'a mut T> {
         while let Some(next) = self.current_nodes.pop() {
             match next {

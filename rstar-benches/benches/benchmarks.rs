@@ -79,14 +79,14 @@ fn tree_creation_quality(c: &mut Criterion) {
     c.bench_function("bulk load quality", move |b| {
         b.iter(|| {
             for query_point in &query_points {
-                tree_bulk_loaded.nearest_neighbor(&query_point).is_some();
+                tree_bulk_loaded.nearest_neighbor(&query_point).unwrap();
             }
         })
     })
     .bench_function("sequential load quality", move |b| {
         b.iter(|| {
             for query_point in &query_points_cloned_1 {
-                tree_sequential.nearest_neighbor(&query_point).is_some();
+                tree_sequential.nearest_neighbor(&query_point).unwrap();
             }
         });
     });
@@ -97,7 +97,7 @@ fn locate_successful(c: &mut Criterion) {
     let query_point = points[500];
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     c.bench_function("locate_at_point (successful)", move |b| {
-        b.iter(|| tree.locate_at_point(&query_point))
+        b.iter(|| tree.locate_at_point(&query_point).is_some())
     });
 }
 

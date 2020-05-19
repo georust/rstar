@@ -497,7 +497,7 @@ where
         LocateAllAtPoint::new(&self.root, SelectAtPointFunction::new(*point))
     }
 
-    /// Mutable variant of [locate_at_point_mut](#method.locate_at_point_mut).
+    /// Mutable variant of [locate_all_at_point](#method.locate_all_at_point).
     pub fn locate_all_at_point_mut(
         &mut self,
         point: &<T::Envelope as Envelope>::Point,
