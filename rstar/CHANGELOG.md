@@ -3,6 +3,7 @@
  - Bugfix: `RTree::locate_with_selection_function_mut` sometimes returned too many elements for small trees.
 ## Changed:
  - Deprecated `RTree::nearest_neighbor_iter_with_distance`. The name is misleading, use `RTree::nearest_neighbor_iter_with_distance_2` instead.
+ - Some performance improvements, see #38 and #35
 ## Added
  - Added `nearest_neighbor_iter_with_distance_2` #31
 # 0.7.1 - 2020-01-16
