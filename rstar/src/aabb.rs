@@ -155,7 +155,9 @@ where
             let mut max = u.nth(i);
             max = max * max;
             min = min * min;
-            if max < min { let swap = min; min = max; max = swap; }
+            if max < min {
+                std::mem::swap(&mut min, &mut max);
+            }
 
             let diff = max - min;
             result = result + max;

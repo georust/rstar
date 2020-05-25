@@ -170,7 +170,7 @@ impl<T: Ord> SmallHeap<T> {
                     new_heap.push(item);
                     *self = SmallHeap::Heap(new_heap);
                 }
-            },
+            }
             SmallHeap::Heap(heap) => heap.push(item),
         }
     }
