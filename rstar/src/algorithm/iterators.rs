@@ -23,7 +23,7 @@ where
     Func: SelectionFunction<T>,
 {
     func: Func,
-    current_nodes: SmallVec<[&'a RTreeNode<T>; 32]>,
+    current_nodes: SmallVec<[&'a RTreeNode<T>; 24]>,
 }
 
 impl<'a, T, Func> SelectionIterator<'a, T, Func>
