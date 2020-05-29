@@ -147,8 +147,8 @@ where
     fn min_max_dist_2(&self, point: &P) -> <P as Point>::Scalar {
         let l = self.lower.sub(point);
         let u = self.upper.sub(point);
-        let mut max_diff = Zero::zero();
-        let mut result: <P as Point>::Scalar = Zero::zero();
+        let mut max_diff = (Zero::zero(), Zero::zero(), 0); // diff, min, index
+        let mut result = P::new();
 
         for i in 0..P::DIMENSIONS {
             let mut min = l.nth(i);
@@ -160,13 +160,15 @@ where
             }
 
             let diff = max - min;
-            result = result + max;
-            if diff > max_diff {
-                max_diff = diff;
+            *result.nth_mut(i) = max;
+
+            if diff >= max_diff.0 {
+                max_diff = (diff, min, i);
             }
         }
 
-        result - max_diff
+        *result.nth_mut(max_diff.2) = max_diff.1;
+        result.fold(Zero::zero(), |acc, curr| acc + curr)
     }
 
     fn center(&self) -> Self::Point {
