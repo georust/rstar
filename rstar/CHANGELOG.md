@@ -1,3 +1,6 @@
+# 0.8.1
+## Changed:
+ - Fine tuned nearest neighbor iterator inline capacity (see  #39). This should boost performance in some cases.
 # 0.8.0
 ## Fixed:
  - Bugfix: `RTree::locate_with_selection_function_mut` sometimes returned too many elements for small trees.
