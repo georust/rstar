@@ -4,4 +4,6 @@ rust:
 
 cache: cargo
 script:
+  - rustup component add rustfmt --toolchain stable-x86_64-unknown-linux-gnu
+  - cargo fmt --all -- --check
   - cargo build -p rstar-benches && cargo test --all-features -p rstar
