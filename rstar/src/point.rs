@@ -190,7 +190,7 @@ pub trait PointExt: Point {
     fn component_wise(
         &self,
         other: &Self,
-        f: impl Fn(Self::Scalar, Self::Scalar) -> Self::Scalar,
+        mut f: impl FnMut(Self::Scalar, Self::Scalar) -> Self::Scalar,
     ) -> Self {
         Self::generate(|i| f(self.nth(i), other.nth(i)))
     }
@@ -199,7 +199,7 @@ pub trait PointExt: Point {
     fn all_component_wise(
         &self,
         other: &Self,
-        f: impl Fn(Self::Scalar, Self::Scalar) -> bool,
+        mut f: impl FnMut(Self::Scalar, Self::Scalar) -> bool,
     ) -> bool {
         // TODO: Maybe do this by proper iteration
         for i in 0..Self::DIMENSIONS {
@@ -223,7 +223,7 @@ pub trait PointExt: Point {
     /// The `start_value` is the value the accumulator will have on the first call of the closure.
     ///
     /// After applying the closure to every component of the Point, fold() returns the accumulator.
-    fn fold<T>(&self, start_value: T, f: impl Fn(T, Self::Scalar) -> T) -> T {
+    fn fold<T>(&self, start_value: T, mut f: impl FnMut(T, Self::Scalar) -> T) -> T {
         let mut accumulated = start_value;
         // TODO: Maybe do this by proper iteration
         for i in 0..Self::DIMENSIONS {
@@ -268,7 +268,7 @@ pub trait PointExt: Point {
     }
 
     /// Applies `f` to `self` component wise.
-    fn map(&self, f: impl Fn(Self::Scalar) -> Self::Scalar) -> Self {
+    fn map(&self, mut f: impl FnMut(Self::Scalar) -> Self::Scalar) -> Self {
         Self::generate(|i| f(self.nth(i)))
     }
 
