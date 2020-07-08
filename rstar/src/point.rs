@@ -127,7 +127,7 @@ impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialO
 ///   type Scalar = i32;
 ///   const DIMENSIONS: usize = 2;
 ///
-///   fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self
+///   fn generate(mut generator: impl FnMut(usize) -> Self::Scalar) -> Self
 ///   {
 ///     IntegerPoint {
 ///       x: generator(0),
@@ -164,8 +164,9 @@ pub trait Point: Copy + Clone + PartialEq + Debug {
     /// Creates a new point value with given values for each dimension.
     ///
     /// The value that each dimension should be initialized with is given by the parameter `generator`.
-    /// Calling `generator(n)` returns the value of dimension `n`, `n` will be in the range `0 .. Self::DIMENSIONS`.
-    fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self;
+    /// Calling `generator(n)` returns the value of dimension `n`, `n` will be in the range `0 .. Self::DIMENSIONS`,
+    /// and will be called with values of `n` in ascending order.
+    fn generate(generator: impl FnMut(usize) -> Self::Scalar) -> Self;
 
     /// Returns a single coordinate of this point.
     ///
@@ -317,7 +318,7 @@ macro_rules! implement_point_for_array {
 
             const DIMENSIONS: usize = count_exprs!($($index),*);
 
-            fn generate(generator: impl Fn(usize) -> S) -> Self
+            fn generate(mut generator: impl FnMut(usize) -> S) -> Self
             {
                 [$(generator($index)),*]
             }
