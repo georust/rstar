@@ -141,12 +141,7 @@ pub fn create_random_points<P: Point<Scalar = f32>>(num_points: usize) -> Vec<P>
     let mut rng = rand::thread_rng();
     let distribution = Uniform::new(-1.0f32, 1.0);
     for _ in 0..num_points {
-        let points: [f32; 3] = [
-            rng.sample(distribution),
-            rng.sample(distribution),
-            rng.sample(distribution),
-        ];
-        let new_point = P::generate(|i| points[i]);
+        let new_point = P::generate(|_| rng.sample(distribution));
         result.push(new_point);
     }
     result
