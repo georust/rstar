@@ -31,12 +31,32 @@ impl InsertionStrategy for RStarInsertionStrategy {
         Params: RTreeParams,
         T: RTreeObject,
     {
+        use InsertionAction::*;
+
+        enum InsertionAction<T: RTreeObject> {
+            PerformSplit(RTreeNode<T>),
+            PerformReinsert(RTreeNode<T>),
+        };
+
         let first = recursive_insert::<_, Params>(tree.root_mut(), RTreeNode::Leaf(t), 0);
-        let mut insertion_stack = vec![first];
-        let mut start_insertion_height = 0;
+        let mut target_height = 0;
+        let mut insertion_stack = Vec::new();
+        match first {
+            InsertionResult::Split(node) => insertion_stack.push(PerformSplit(node)),
+            InsertionResult::Reinsert(nodes_to_reinsert, real_target_height) => {
+                insertion_stack.extend(
+                    nodes_to_reinsert
+                        .into_iter()
+                        .map(|node| PerformReinsert(node)),
+                );
+                target_height = real_target_height;
+            }
+            InsertionResult::Complete => {}
+        };
+
         while let Some(next) = insertion_stack.pop() {
             match next {
-                InsertionResult::Split(node) => {
+                PerformSplit(node) => {
                     // The root node was split, create a new root and increase height
                     let new_root = ParentNode::new_root::<Params>();
                     let old_root = ::std::mem::replace(tree.root_mut(), new_root);
@@ -45,18 +65,18 @@ impl InsertionStrategy for RStarInsertionStrategy {
                     root.envelope = new_envelope;
                     root.children.push(RTreeNode::Parent(old_root));
                     root.children.push(node);
-                    start_insertion_height += 1;
+                    target_height += 1;
                 }
-                InsertionResult::Reinsert(nodes_to_reinsert, target_height) => {
-                    let final_height = target_height + start_insertion_height;
+                PerformReinsert(node_to_reinsert) => {
                     let root = tree.root_mut();
-                    insertion_stack.extend(
-                        nodes_to_reinsert
-                            .into_iter()
-                            .map(|node| forced_insertion::<T, Params>(root, node, final_height)),
-                    );
+                    match forced_insertion::<T, Params>(root, node_to_reinsert, target_height) {
+                        InsertionResult::Split(node) => insertion_stack.push(PerformSplit(node)),
+                        InsertionResult::Reinsert(_, _) => {
+                            panic!("Unexpected reinsert. This is a bug in rstar.")
+                        }
+                        InsertionResult::Complete => {}
+                    }
                 }
-                InsertionResult::Complete => (),
             }
         }
     }

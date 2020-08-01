@@ -100,7 +100,7 @@ where
     }
 
     #[cfg(test)]
-    pub fn sanity_check<Params>(&self) -> Option<usize>
+    pub fn sanity_check<Params>(&self, check_max_size: bool) -> Option<usize>
     where
         Params: RTreeParams,
     {
@@ -108,23 +108,30 @@ where
             Some(0)
         } else {
             let mut result = None;
-            self.sanity_check_inner::<Params>(1, &mut result);
+            self.sanity_check_inner::<Params>(check_max_size, 1, &mut result);
             result
         }
     }
 
     #[cfg(test)]
-    fn sanity_check_inner<Params>(&self, height: usize, leaf_height: &mut Option<usize>)
-    where
+    fn sanity_check_inner<Params>(
+        &self,
+        check_max_size: bool,
+        height: usize,
+        leaf_height: &mut Option<usize>,
+    ) where
         Params: RTreeParams,
     {
         if height > 1 {
             let min_size = Params::MIN_SIZE;
             assert!(self.children.len() >= min_size);
         }
-        let max_size = Params::MAX_SIZE;
         let mut envelope = T::Envelope::new_empty();
-        assert!(self.children.len() <= max_size);
+        if check_max_size {
+            let max_size = Params::MAX_SIZE;
+            assert!(self.children.len() <= max_size);
+        }
+
         for child in &self.children {
             match child {
                 RTreeNode::Leaf(ref t) => {
@@ -137,7 +144,7 @@ where
                 }
                 RTreeNode::Parent(ref data) => {
                     envelope.merge(&data.envelope);
-                    data.sanity_check_inner::<Params>(height + 1, leaf_height);
+                    data.sanity_check_inner::<Params>(check_max_size, height + 1, leaf_height);
                 }
             }
         }

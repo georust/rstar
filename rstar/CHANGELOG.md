@@ -1,7 +1,10 @@
-# 0.8.1
+# 0.8.2 - 2020-08-01
+## Fixed:
+ - Fixed a rare panic when calling `insert` (See #45)
+# 0.8.1 - 2020-06-18
 ## Changed:
  - Fine tuned nearest neighbor iterator inline capacity (see  #39). This should boost performance in some cases.
-# 0.8.0
+# 0.8.0 - 2020-05-25
 ## Fixed:
  - Bugfix: `RTree::locate_with_selection_function_mut` sometimes returned too many elements for small trees.
 ## Changed:
