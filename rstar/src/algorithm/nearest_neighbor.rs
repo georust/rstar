@@ -276,6 +276,12 @@ mod test {
     }
 
     #[test]
+    fn test_nearest_neighbors_empty() {
+        let tree: RTree<[f32; 2]> = RTree::new();
+        assert!(tree.nearest_neighbors(&[0.0, 213.0]).is_empty());
+    }
+
+    #[test]
     fn test_nearest_neighbor_iterator() {
         let mut points = create_random_points(1000, SEED_1);
         let tree = RTree::bulk_load(points.clone());
