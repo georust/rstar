@@ -243,13 +243,35 @@ where
 }
 
 pub fn nearest_neighbors<'a, T>(
-    _node: &'a ParentNode<T>,
-    _query_point: <T::Envelope as Envelope>::Point,
+    node: &'a ParentNode<T>,
+    query_point: <T::Envelope as Envelope>::Point,
 ) -> Vec<&'a T>
 where
     T: PointDistance,
 {
-    vec![]
+    let mut nearest_neighbors = NearestNeighborIterator::new(node, query_point);
+
+    // If we have an empty tree, just return an empty vector.
+    let first_nearest_neighbor = nearest_neighbors.next();
+    if first_nearest_neighbor.is_none() {
+        return vec![];
+    }
+
+    // We compute the distance to the first nearest neighbor, and use
+    // that distance to filter out the rest of the nearest neighbors that are farther
+    // than this first neighbor.
+    let first_nearest_neighbor = first_nearest_neighbor.unwrap();
+    let distance = first_nearest_neighbor.envelope().min_max_dist_2(&query_point);
+    let mut result: Vec<&'a T> = nearest_neighbors.take_while(|nearest_neighbor| {
+        let next_distance = nearest_neighbor.envelope().min_max_dist_2(&query_point);
+        next_distance == distance
+    }).collect();
+
+    // The first nearest neighbor is not contained in `result` because we already consumed it
+    // at the beginning of the function.
+    // We need to add it back into the final result.
+    result.insert(0, first_nearest_neighbor);
+    result
 }
 
 #[cfg(test)]
