@@ -251,26 +251,25 @@ where
 {
     let mut nearest_neighbors = NearestNeighborIterator::new(node, query_point);
 
-    // If we have an empty tree, just return an empty vector.
-    let first_nearest_neighbor = nearest_neighbors.next();
-    if first_nearest_neighbor.is_none() {
-        return vec![];
-    }
+    let first_nearest_neighbor = match nearest_neighbors.next() {
+        None => return vec![], // If we have an empty tree, just return an empty vector.
+        Some(nn) => nn,
+    };
+
+    // The result will at least contain the first nearest neighbor.
+    let mut result = vec![first_nearest_neighbor];
 
     // We compute the distance to the first nearest neighbor, and use
     // that distance to filter out the rest of the nearest neighbors that are farther
     // than this first neighbor.
-    let first_nearest_neighbor = first_nearest_neighbor.unwrap();
-    let distance = first_nearest_neighbor.envelope().min_max_dist_2(&query_point);
-    let mut result: Vec<&'a T> = nearest_neighbors.take_while(|nearest_neighbor| {
-        let next_distance = nearest_neighbor.envelope().min_max_dist_2(&query_point);
-        next_distance == distance
-    }).collect();
+    let distance = first_nearest_neighbor.envelope().distance_2(&query_point);
+    nearest_neighbors
+        .take_while(|nearest_neighbor| {
+            let next_distance = nearest_neighbor.envelope().distance_2(&query_point);
+            next_distance == distance
+        })
+        .for_each(|nearest_neighbor| result.push(nearest_neighbor));
 
-    // The first nearest neighbor is not contained in `result` because we already consumed it
-    // at the beginning of the function.
-    // We need to add it back into the final result.
-    result.insert(0, first_nearest_neighbor);
     result
 }
 
