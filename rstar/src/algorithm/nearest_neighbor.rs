@@ -292,6 +292,26 @@ mod test {
     }
 
     #[test]
+    fn test_nearest_neighbors() {
+        let points = create_random_points(1000, SEED_1);
+        let tree = RTree::bulk_load(points.clone());
+
+        let sample_points = create_random_points(50, SEED_2);
+        for sample_point in &sample_points {
+            let nearest_neighbors = tree.nearest_neighbors(sample_point);
+            let mut distance = -1.0;
+            for nn in &nearest_neighbors {
+                if distance < 0.0 {
+                    distance = sample_point.distance_2(nn);
+                } else {
+                    let new_distance = sample_point.distance_2(nn);
+                    assert_eq!(new_distance, distance);
+                }
+            }
+        }
+    }
+
+    #[test]
     fn test_nearest_neighbor_iterator() {
         let mut points = create_random_points(1000, SEED_1);
         let tree = RTree::bulk_load(points.clone());
