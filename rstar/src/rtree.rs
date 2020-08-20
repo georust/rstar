@@ -630,8 +630,8 @@ where
     /// assert_eq!(tree.nearest_neighbors(&[1.0, 1.0]), &[&[1.0, 0.0], &[0.0, 1.0]]);
     /// assert_eq!(tree.nearest_neighbors(&[0.01, 0.01]), &[&[0.0, 1.0]]);
     /// ```
-    pub fn nearest_neighbors(&self, _query_point: &<T::Envelope as Envelope>::Point) -> Vec<&T> {
-        vec![]
+    pub fn nearest_neighbors(&self, query_point: &<T::Envelope as Envelope>::Point) -> Vec<&T> {
+        nearest_neighbor::nearest_neighbors(&self.root, *query_point)
     }
 
     /// Returns all elements of the tree within a certain distance.

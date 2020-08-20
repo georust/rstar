@@ -242,6 +242,16 @@ where
     None
 }
 
+pub fn nearest_neighbors<'a, T>(
+    _node: &'a ParentNode<T>,
+    _query_point: <T::Envelope as Envelope>::Point,
+) -> Vec<&'a T>
+where
+    T: PointDistance,
+{
+    vec![]
+}
+
 #[cfg(test)]
 mod test {
     use crate::object::PointDistance;
