@@ -35,6 +35,9 @@ pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
     /// Returns the euclidean distance to the envelope's border.
     fn distance_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
 
+    /// Returns the minimum euclidean distance between this envelope and another.
+    fn min_dist_2(&self, other: &Self) -> <Self::Point as Point>::Scalar;
+
     /// Returns the squared min-max distance, a concept that helps to find nearest neighbors efficiently.
     ///
     /// Visually, if an AABB and a point are given, the min-max distance returns the distance at which we
@@ -43,6 +46,13 @@ pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
     /// # References
     /// Roussopoulos, Nick, Stephen Kelley, and Frédéric Vincent. "Nearest neighbor queries." ACM sigmod record. Vol. 24. No. 2. ACM, 1995.
     fn min_max_dist_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
+
+    /// Returns the squared euclidean distance such that for *any* point in this envelope,
+    /// we surely know that *an* element must be present in `other` envelope within
+    /// that distance.
+    ///
+    /// Note that this is not necessarily symmetric.
+    fn max_min_max_dist_2(&self, other: &Self) -> <Self::Point as Point>::Scalar;
 
     /// Returns the envelope's center point.
     fn center(&self) -> Self::Point;

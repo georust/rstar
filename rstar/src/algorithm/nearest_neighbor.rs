@@ -183,16 +183,26 @@ pub fn nearest_neighbor<'a, T>(
 where
     T: PointDistance,
 {
+    nearest_neighbor_inner(&node.children, query_point).map(|(node, _)| node)
+}
+
+fn nearest_neighbor_inner<'a, T>(
+    seed_nodes: impl IntoIterator<Item = impl std::borrow::Borrow<&'a RTreeNode<T>>>,
+    query_point: <T::Envelope as Envelope>::Point,
+) -> Option<(&'a T, <<T::Envelope as Envelope>::Point as Point>::Scalar)>
+where
+    T: PointDistance,
+{
     fn extend_heap<'a, T>(
         nodes: &mut SmallHeap<RTreeNodeDistanceWrapper<'a, T>>,
-        node: &'a ParentNode<T>,
+        source: impl IntoIterator<Item = impl std::borrow::Borrow<&'a RTreeNode<T>>>,
         query_point: <T::Envelope as Envelope>::Point,
         min_max_distance: &mut <<T::Envelope as Envelope>::Point as Point>::Scalar,
     ) where
         T: PointDistance + 'a,
     {
-        for child in &node.children {
-            let distance_if_less_or_equal = match child {
+        for child in source {
+            let distance_if_less_or_equal = match child.borrow() {
                 RTreeNode::Parent(ref data) => {
                     let distance = data.envelope.distance_2(&query_point);
                     if distance <= *min_max_distance {
@@ -208,10 +218,10 @@ where
             if let Some(distance) = distance_if_less_or_equal {
                 *min_max_distance = min_inline(
                     *min_max_distance,
-                    child.envelope().min_max_dist_2(&query_point),
+                    child.borrow().envelope().min_max_dist_2(&query_point),
                 );
                 nodes.push(RTreeNodeDistanceWrapper {
-                    node: child,
+                    node: child.borrow(),
                     distance,
                 });
             }
@@ -222,24 +232,202 @@ where
     let mut smallest_min_max: <<T::Envelope as Envelope>::Point as Point>::Scalar =
         Bounded::max_value();
     let mut nodes = SmallHeap::new();
-    extend_heap(&mut nodes, node, query_point, &mut smallest_min_max);
+    extend_heap(&mut nodes, seed_nodes, query_point, &mut smallest_min_max);
     while let Some(current) = nodes.pop() {
         match current {
             RTreeNodeDistanceWrapper {
                 node: RTreeNode::Parent(ref data),
                 ..
             } => {
-                extend_heap(&mut nodes, data, query_point, &mut smallest_min_max);
+                extend_heap(&mut nodes, &data.children, query_point, &mut smallest_min_max);
             }
             RTreeNodeDistanceWrapper {
                 node: RTreeNode::Leaf(ref t),
-                ..
+                distance
             } => {
-                return Some(t);
+                return Some((t, distance));
             }
         }
     }
     None
+}
+
+/// The maximum number of subtrees to track when doing tree-to-tree
+/// all-nearest-neighbors.
+const MAX_AKNN_SUBTREES: usize = 16;
+
+/// A nearest neighbor pair with the squared euclidean distance between them.
+pub struct NearestNeighbors<'a, 'b, T: PointDistance> {
+    /// The nearest neighbor found to `query`'s location.
+    pub target: &'a T,
+    /// The node whose location was used for the query.
+    pub query: &'b T,
+    /// Squared euclidean distance between the nodes.
+    pub distance_2: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+}
+
+/// Yield an iterator over nearest neighbors between a pair of trees.
+///
+/// Note this is note symmetric. Neighbors are found in `target_node`'s tree for
+/// each node in `query_node`'s tree.
+pub fn all_nearest_neighbors<'a, T>(
+    target_node: &'a ParentNode<T>,
+    query_node: &'a ParentNode<T>,
+) -> impl Iterator<Item=NearestNeighbors<'a, 'a, T>> + 'a
+where
+    T: PointDistance + 'a,
+{
+    AllNearestNeighborsIterator::new(target_node, query_node)
+}
+
+
+pub struct AllNearestNeighborsIterator<'a, T>
+where
+    T: PointDistance + 'a,
+{
+    /// Stack of subtrees of the target tree that are candidate nearest nodes
+    /// for each depth of the current location in the query tree.
+    stack: Vec<NeighborSubtrees<'a, T>>,
+    /// LIFO queue of query nodes whose nearest neighbors or neighest neighbor
+    /// covering subtrees are to be found in depth-first order.
+    queue: Vec<(&'a RTreeNode<T>, usize)>,
+}
+
+impl<'a, T> AllNearestNeighborsIterator<'a, T>
+where
+    T: PointDistance + 'a,
+{
+    fn new(
+        target_node: &'a ParentNode<T>,
+        query_node: &'a ParentNode<T>,
+    ) -> Self {
+        Self {
+            stack: vec![NeighborSubtrees::root(target_node, query_node)],
+            queue: query_node.children.iter().map(|child| (child, 0)).collect(),
+        }
+    }
+}
+
+impl<'a, T> Iterator for AllNearestNeighborsIterator<'a, T>
+where
+    T: PointDistance,
+{
+    type Item = NearestNeighbors<'a, 'a, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Fetch the next query node from the queue.
+        while let Some((node, depth)) = self.queue.pop() {
+            match node {
+                RTreeNode::Parent(ref node) => {
+                    // If a cached subtrees struct to hold the child subtrees
+                    // doesn't already exist, create it.
+                    if self.stack.len() < depth + 2 {
+                        self.stack.push(NeighborSubtrees::empty());
+                    }
+                    let pair = &mut self.stack[depth..depth+2];
+                    let (parent, child) = pair.split_at_mut(1);
+                    child[0].child_subtrees(&parent[0], node);
+
+                    // Add children of the query node to the end of the LIFO queue
+                    // for depth-first traversal.
+                    self.queue.extend(node.children().iter().map(|child| (child, depth + 1)));
+                },
+                RTreeNode::Leaf(ref leaf) => {
+                    // Find the nearest neighbor for `leaf`. The stack at the
+                    // node's depth contains subtrees of the target tree that
+                    // cover any potential nearest neighbor matches.
+                    let subtrees = &self.stack[depth];
+
+                    return nearest_neighbor_inner(
+                        &subtrees.target_nodes,
+                        // FIXME: inelegant solution to recover leaf's point.
+                        leaf.envelope().center()
+                    ).map(|(target, distance_2)| NearestNeighbors {
+                        query: leaf,
+                        target,
+                        distance_2
+                    })
+                }
+            }
+        }
+
+        None
+    }
+}
+
+
+struct NeighborSubtrees<'a, T>
+where
+    T: PointDistance + 'a
+{
+    /// Nodes comprising a subtree of the target tree that cover all potential
+    /// neighest neighbor matches.
+    target_nodes: Vec<&'a RTreeNode<T>>,
+}
+
+impl<'a, T> NeighborSubtrees<'a, T>
+where
+    T: PointDistance + 'a,
+{
+    fn empty() -> Self {
+        Self {
+            target_nodes: vec![]
+        }
+    }
+
+    fn root(
+        target_node: &'a ParentNode<T>,
+        query_node: &'a ParentNode<T>,
+    ) -> Self {
+        let target_nodes = target_node.children().iter().collect();
+        let preroot = Self {
+            target_nodes,
+        };
+        let mut root = Self::empty();
+        root.child_subtrees(&preroot, query_node);
+        root
+    }
+
+    /// Replace the contents of this subtree with subtrees of `parent`'s target
+    /// subtrees that are guaranteed to cover any nearest neighbor queries from
+    /// `query_node`.
+    fn child_subtrees(
+        &mut self,
+        parent: &Self,
+        query_node: &'a ParentNode<T>,
+    ) {
+        self.target_nodes.clear();
+        if parent.target_nodes.len() < MAX_AKNN_SUBTREES {
+            // If the set of target subtrees is not too large, subdivide each
+            // subtree into its children so they can be individually pruned
+            // by distance to the query.
+            parent.target_nodes.iter().for_each(|node| {
+                match *node {
+                    RTreeNode::Parent(ref parent) => self.target_nodes.extend(&parent.children),
+                    leaf @ RTreeNode::Leaf(..) => self.target_nodes.push(leaf),
+                }
+            });
+        } else {
+            // If the set of target subtrees is already large, retain it rather
+            // than further subdividing.
+            self.target_nodes.extend(&parent.target_nodes);
+        };
+
+        // For each target subtree, find the distance which guarantees any
+        // potential elements in the query node's envelope have a match with
+        // the target subtree's envelope. Find the minimal such distance.
+        let min_max_dist = self.target_nodes.iter().fold(Bounded::max_value(), |min_max_dist, node| {
+            let dist = query_node.envelope.max_min_max_dist_2(&node.envelope());
+            min_inline(min_max_dist, dist)
+        });
+
+        // Only retain subtrees that potentially have a match with the query
+        // node nearer than the min max distance computed above.
+        self.target_nodes.retain(|node| {
+            let distance = node.envelope().min_dist_2(&query_node.envelope);
+            distance <= min_max_dist
+        });
+    }
 }
 
 #[cfg(test)]
@@ -272,6 +460,37 @@ mod test {
                 }
             }
             assert_eq!(nearest, tree.nearest_neighbor(sample_point));
+        }
+    }
+
+    #[test]
+    fn test_all_nearest_neighbors() {
+        let points = create_random_points(1_000, SEED_1);
+        let tree = RTree::bulk_load(points.clone());
+
+        let mut tree_sequential = RTree::new();
+        for point in &points {
+            tree_sequential.insert(*point);
+        }
+
+        // Test that in identical trees, all-nearest-neighbors match the
+        // identical nodes with themselves.
+        for neighbors in super::all_nearest_neighbors(tree.root(), tree_sequential.root()) {
+            assert_eq!(neighbors.query, neighbors.target);
+            assert_eq!(neighbors.distance_2, 0.0);
+        }
+
+        assert_eq!(super::all_nearest_neighbors(tree.root(), tree_sequential.root()).count(), points.len());
+
+        // For different trees, test that the all-nearest-neighbor results match
+        // individual nearest neighbors.
+        // From random testing, the large number of points is necessary to catch
+        // errors in the pruning algorithm.
+        let sample_points = create_random_points(10_000, SEED_2);
+        let sample_tree = RTree::bulk_load(sample_points.clone());
+        for neighbors in super::all_nearest_neighbors(tree.root(), sample_tree.root()) {
+            let single_neighbor = tree.nearest_neighbor(neighbors.query);
+            assert_eq!(Some(neighbors.target), single_neighbor);
         }
     }
 

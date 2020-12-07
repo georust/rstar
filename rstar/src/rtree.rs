@@ -611,6 +611,40 @@ where
         }
     }
 
+    /// Returns an iterator of the nearest neighbor in this tree for each node in a query tree.
+    ///
+    /// This method is more efficient than querying each node individually.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// let target_tree = RTree::bulk_load(vec![
+    ///   [0.0, 0.0],
+    ///   [0.0, 1.0],
+    /// ]);
+    /// let query_tree = RTree::bulk_load(vec![
+    ///   [0.2, 0.7],
+    ///   [0.5, 0.0],
+    ///   [0.5, 1.0],
+    /// ]);
+    /// let mut ann = target_tree.all_nearest_neighbors(&query_tree)
+    ///     .map(|nn| (nn.query, nn.target))
+    ///     .collect::<Vec<_>>();
+    /// ann.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
+    /// assert_eq!(ann, &[
+    ///     // Query point, nearest neighbor
+    ///     (&[0.2, 0.7], &[0.0, 1.0]),
+    ///     (&[0.5, 0.0], &[0.0, 0.0]),
+    ///     (&[0.5, 1.0], &[0.0, 1.0]),
+    /// ]);
+    /// ```
+    pub fn all_nearest_neighbors<'a, P2: RTreeParams>(
+        &'a self,
+        query_tree: &'a RTree<T, P2>,
+    ) -> impl Iterator<Item=nearest_neighbor::NearestNeighbors<'a, 'a, T>> {
+        nearest_neighbor::all_nearest_neighbors(&self.root, query_tree.root())
+    }
+
     /// Returns all elements of the tree within a certain distance.
     ///
     /// The elements may be returned in any order. Each returned element
