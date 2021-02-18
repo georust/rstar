@@ -1,8 +1,9 @@
-use crate::aabb::AABB;
-use crate::envelope::Envelope;
-use crate::object::PointDistance;
-use crate::object::RTreeObject;
-use crate::point::{Point, PointExt};
+use crate::{
+    aabb::AABB,
+    envelope::Envelope,
+    object::{PointDistance, RTreeObject},
+    point::{Point, PointExt},
+};
 use num_traits::{One, Zero};
 
 /// A line defined by a start and and end point.
@@ -13,8 +14,7 @@ use num_traits::{One, Zero};
 ///
 /// # Example
 /// ```
-/// use rstar::primitives::Line;
-/// use rstar::{RTree, RTreeObject};
+/// use rstar::{primitives::Line, RTree, RTreeObject};
 ///
 /// let line_1 = Line::new([0.0, 0.0], [1.0, 1.0]);
 /// let line_2 = Line::new([0.0, 0.0], [-1.0, 1.0]);

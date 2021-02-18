@@ -7,8 +7,7 @@ use crate::{Point, PointDistance, RTreeObject, AABB};
 ///
 /// # Example
 /// ```
-/// use rstar::{RTree, PointDistance};
-/// use rstar::primitives::PointWithData;
+/// use rstar::{primitives::PointWithData, PointDistance, RTree};
 ///
 /// type RestaurantLocation = PointWithData<&'static str, [f64; 2]>;
 ///
@@ -22,7 +21,10 @@ use crate::{Point, PointDistance, RTreeObject, AABB};
 /// // Now find the closest restaurant!
 /// let place = restaurants.nearest_neighbor(&my_location).unwrap();
 /// println!("Let's go to {}", place.data);
-/// println!("It's really close, only {} miles", place.distance_2(&my_location))
+/// println!(
+///     "It's really close, only {} miles",
+///     place.distance_2(&my_location)
+/// )
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

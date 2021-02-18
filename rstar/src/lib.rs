@@ -19,7 +19,6 @@
 //!
 //! # (De)Serialization
 //! Enable the `serde` feature for [Serde](https://crates.io/crates/serde) support.
-//!
 #![deny(missing_docs)]
 #![forbid(unsafe_code)]
 
@@ -36,12 +35,13 @@ mod rtree;
 #[cfg(test)]
 mod test_utilities;
 
-pub use crate::aabb::AABB;
-pub use crate::algorithm::rstar::RStarInsertionStrategy;
-pub use crate::algorithm::selection_functions::SelectionFunction;
-pub use crate::envelope::Envelope;
-pub use crate::node::{ParentNode, RTreeNode};
-pub use crate::object::{PointDistance, RTreeObject};
-pub use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
-pub use crate::point::{Point, RTreeNum};
-pub use crate::rtree::RTree;
+pub use crate::{
+    aabb::AABB,
+    algorithm::{rstar::RStarInsertionStrategy, selection_functions::SelectionFunction},
+    envelope::Envelope,
+    node::{ParentNode, RTreeNode},
+    object::{PointDistance, RTreeObject},
+    params::{DefaultParams, InsertionStrategy, RTreeParams},
+    point::{Point, RTreeNum},
+    rtree::RTree,
+};

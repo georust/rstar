@@ -1,6 +1,8 @@
-use crate::algorithm::selection_functions::*;
-use crate::node::{ParentNode, RTreeNode};
-use crate::object::RTreeObject;
+use crate::{
+    algorithm::selection_functions::*,
+    node::{ParentNode, RTreeNode},
+    object::RTreeObject,
+};
 
 use smallvec::SmallVec;
 
@@ -127,12 +129,14 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::aabb::AABB;
-    use crate::envelope::Envelope;
-    use crate::object::RTreeObject;
-    use crate::rtree::RTree;
-    use crate::test_utilities::{create_random_points, create_random_rectangles, SEED_1};
-    use crate::SelectionFunction;
+    use crate::{
+        aabb::AABB,
+        envelope::Envelope,
+        object::RTreeObject,
+        rtree::RTree,
+        test_utilities::{create_random_points, create_random_rectangles, SEED_1},
+        SelectionFunction,
+    };
 
     #[test]
     fn test_root_node_is_not_always_unpacked() {

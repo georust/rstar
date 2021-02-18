@@ -1,6 +1,8 @@
-use crate::aabb::AABB;
-use crate::envelope::Envelope;
-use crate::point::{Point, PointExt};
+use crate::{
+    aabb::AABB,
+    envelope::Envelope,
+    point::{Point, PointExt},
+};
 
 /// An object that can be inserted into an r-tree.
 ///
@@ -23,25 +25,21 @@ use crate::point::{Point, PointExt};
 /// ```
 /// use rstar::{RTreeObject, AABB};
 ///
-/// struct Player
-/// {
+/// struct Player {
 ///     name: String,
 ///     x_coordinate: f64,
-///     y_coordinate: f64
+///     y_coordinate: f64,
 /// }
 ///
-/// impl RTreeObject for Player
-/// {
+/// impl RTreeObject for Player {
 ///     type Envelope = AABB<[f64; 2]>;
 ///
-///     fn envelope(&self) -> Self::Envelope
-///     {
+///     fn envelope(&self) -> Self::Envelope {
 ///         AABB::from_point([self.x_coordinate, self.y_coordinate])
 ///     }
 /// }
 ///
-/// fn main()
-/// {
+/// fn main() {
 ///     use rstar::{RTree, AABB};
 ///
 ///     let mut tree = RTree::new();
@@ -50,7 +48,7 @@ use crate::point::{Point, PointExt};
 ///     tree.insert(Player {
 ///         name: "Forlorn Freeman".into(),
 ///         x_coordinate: 1.,
-///         y_coordinate: 0.
+///         y_coordinate: 0.,
 ///     });
 ///     tree.insert(Player {
 ///         name: "Sarah Croft".into(),
@@ -66,12 +64,18 @@ use crate::point::{Point, PointExt};
 ///     // Now we are ready to ask some questions!
 ///     let envelope = AABB::from_point([0.5, 0.5]);
 ///     let likely_sarah_croft = tree.locate_in_envelope(&envelope).next();
-///     println!("Found {:?} lurking around at (0.5, 0.5)!", likely_sarah_croft.unwrap().name);
+///     println!(
+///         "Found {:?} lurking around at (0.5, 0.5)!",
+///         likely_sarah_croft.unwrap().name
+///     );
 ///     # assert!(likely_sarah_croft.is_some());
 ///
 ///     let unit_square = AABB::from_corners([-1.0, -1.0], [1., 1.]);
 ///     for player in tree.locate_in_envelope(&unit_square) {
-///        println!("And here is {:?} spelunking in the unit square.", player.name);
+///         println!(
+///             "And here is {:?} spelunking in the unit square.",
+///             player.name
+///         );
 ///     }
 ///     # assert_eq!(tree.locate_in_envelope(&unit_square).count(), 2);
 /// }
@@ -94,10 +98,9 @@ pub trait RTreeObject {
 ///
 /// # Example
 /// ```
-/// use rstar::{RTreeObject, PointDistance, AABB};
+/// use rstar::{PointDistance, RTreeObject, AABB};
 ///
-/// struct Circle
-/// {
+/// struct Circle {
 ///     origin: [f32; 2],
 ///     radius: f32,
 /// }
@@ -112,10 +115,8 @@ pub trait RTreeObject {
 ///     }
 /// }
 ///
-/// impl PointDistance for Circle
-/// {
-///     fn distance_2(&self, point: &[f32; 2]) -> f32
-///     {
+/// impl PointDistance for Circle {
+///     fn distance_2(&self, point: &[f32; 2]) -> f32 {
 ///         let d_x = self.origin[0] - point[0];
 ///         let d_y = self.origin[1] - point[1];
 ///         let distance_to_origin = (d_x * d_x + d_y * d_y).sqrt();
@@ -127,8 +128,7 @@ pub trait RTreeObject {
 ///
 ///     // This implementation is not required but more efficient since it
 ///     // omits the calculation of a square root
-///     fn contains_point(&self, point: &[f32; 2]) -> bool
-///     {
+///     fn contains_point(&self, point: &[f32; 2]) -> bool {
 ///         let d_x = self.origin[0] - point[0];
 ///         let d_y = self.origin[1] - point[1];
 ///         let distance_to_origin_2 = (d_x * d_x + d_y * d_y);
@@ -136,7 +136,6 @@ pub trait RTreeObject {
 ///         distance_to_origin_2 <= radius_2
 ///     }
 /// }
-///
 ///
 /// fn main() {
 ///     let circle = Circle {

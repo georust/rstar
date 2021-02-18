@@ -1,8 +1,10 @@
-use crate::envelope::Envelope;
-use crate::node::{ParentNode, RTreeNode};
-use crate::object::RTreeObject;
-use crate::params::RTreeParams;
-use crate::point::Point;
+use crate::{
+    envelope::Envelope,
+    node::{ParentNode, RTreeNode},
+    object::RTreeObject,
+    params::RTreeParams,
+    point::Point,
+};
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
@@ -97,11 +99,8 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::test_utilities::*;
-    use crate::{Point, RTree, RTreeObject};
-    use std::collections::HashSet;
-    use std::fmt::Debug;
-    use std::hash::Hash;
+    use crate::{test_utilities::*, Point, RTree, RTreeObject};
+    use std::{collections::HashSet, fmt::Debug, hash::Hash};
 
     #[test]
     fn test_bulk_load_small() {

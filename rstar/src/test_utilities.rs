@@ -1,7 +1,8 @@
-use crate::primitives::*;
-use crate::{Point, RTreeObject};
-use rand::distributions::{Distribution, Uniform};
-use rand::{Rng, SeedableRng};
+use crate::{primitives::*, Point, RTreeObject};
+use rand::{
+    distributions::{Distribution, Uniform},
+    Rng, SeedableRng,
+};
 use rand_hc::Hc128Rng;
 
 pub type Seed = [u8; 32];

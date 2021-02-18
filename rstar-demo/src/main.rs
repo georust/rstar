@@ -1,12 +1,13 @@
-use kiss3d::camera::ArcBall;
-use kiss3d::event::{Action, MouseButton, WindowEvent};
-use kiss3d::light::Light;
-use kiss3d::planar_camera::{PlanarCamera, Sidescroll};
-use kiss3d::text::Font;
-use kiss3d::window::Window;
+use kiss3d::{
+    camera::ArcBall,
+    event::{Action, MouseButton, WindowEvent},
+    light::Light,
+    planar_camera::{PlanarCamera, Sidescroll},
+    text::Font,
+    window::Window,
+};
 use nalgebra::{Point2, Point3, Vector2};
-use rand::distributions::Uniform;
-use rand::Rng;
+use rand::{distributions::Uniform, Rng};
 use rstar::{Point, RStarInsertionStrategy, RTree, RTreeNode, RTreeParams, AABB};
 
 mod three_d;

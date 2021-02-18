@@ -1,7 +1,9 @@
-use crate::aabb::AABB;
-use crate::envelope::Envelope;
-use crate::object::{PointDistance, RTreeObject};
-use crate::point::{Point, PointExt};
+use crate::{
+    aabb::AABB,
+    envelope::Envelope,
+    object::{PointDistance, RTreeObject},
+    point::{Point, PointExt},
+};
 
 /// An n-dimensional rectangle defined by its two corners.
 ///

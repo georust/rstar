@@ -1,7 +1,9 @@
-use crate::algorithm::selection_functions::SelectionFunction;
-use crate::node::{ParentNode, RTreeNode};
-use crate::object::RTreeObject;
-use crate::params::RTreeParams;
+use crate::{
+    algorithm::selection_functions::SelectionFunction,
+    node::{ParentNode, RTreeNode},
+    object::RTreeObject,
+    params::RTreeParams,
+};
 
 /// Default removal strategy to remove elements from an r-tree. A [trait.RemovalFunction]
 /// specifies which elements shall be removed.
@@ -63,10 +65,12 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::point::PointExt;
-    use crate::primitives::Line;
-    use crate::test_utilities::{create_random_points, create_random_rectangles, SEED_1, SEED_2};
-    use crate::RTree;
+    use crate::{
+        point::PointExt,
+        primitives::Line,
+        test_utilities::{create_random_points, create_random_rectangles, SEED_1, SEED_2},
+        RTree,
+    };
 
     #[test]
     fn test_remove_and_insert() {

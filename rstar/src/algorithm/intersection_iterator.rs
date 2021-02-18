@@ -1,8 +1,4 @@
-use crate::node::ParentNode;
-use crate::Envelope;
-use crate::RTreeNode;
-use crate::RTreeNode::*;
-use crate::RTreeObject;
+use crate::{node::ParentNode, Envelope, RTreeNode, RTreeNode::*, RTreeObject};
 
 pub struct IntersectionIterator<'a, T, U = T>
 where
@@ -89,8 +85,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::test_utilities::*;
-    use crate::{Envelope, RTree, RTreeObject};
+    use crate::{test_utilities::*, Envelope, RTree, RTreeObject};
 
     #[test]
     fn test_intersection_between_trees() {

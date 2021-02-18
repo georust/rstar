@@ -1,5 +1,4 @@
-use crate::algorithm::rstar::RStarInsertionStrategy;
-use crate::{Envelope, Point, RTree, RTreeObject};
+use crate::{algorithm::rstar::RStarInsertionStrategy, Envelope, Point, RTree, RTreeObject};
 
 /// Defines static parameters for an r-tree.
 ///
@@ -8,13 +7,12 @@ use crate::{Envelope, Point, RTree, RTreeObject};
 ///
 /// # Example
 /// ```
-/// use rstar::{RTreeParams, RTree, RStarInsertionStrategy};
+/// use rstar::{RStarInsertionStrategy, RTree, RTreeParams};
 ///
 /// // This example uses an rtree with larger internal nodes.
 /// struct LargeNodeParameters;
 ///
-/// impl RTreeParams for LargeNodeParameters
-/// {
+/// impl RTreeParams for LargeNodeParameters {
 ///     const MIN_SIZE: usize = 10;
 ///     const MAX_SIZE: usize = 30;
 ///     const REINSERTION_COUNT: usize = 5;

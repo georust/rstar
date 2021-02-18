@@ -1,7 +1,8 @@
-use crate::envelope::Envelope;
-use crate::object::PointDistance;
-use crate::object::RTreeObject;
-use crate::Point;
+use crate::{
+    envelope::Envelope,
+    object::{PointDistance, RTreeObject},
+    Point,
+};
 
 /// Advanced trait to iterate through an r-tree. Usually it should no be required to be implemented.
 ///

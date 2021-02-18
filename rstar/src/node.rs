@@ -1,6 +1,4 @@
-use crate::envelope::Envelope;
-use crate::object::RTreeObject;
-use crate::params::RTreeParams;
+use crate::{envelope::Envelope, object::RTreeObject, params::RTreeParams};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

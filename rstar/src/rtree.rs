@@ -1,14 +1,14 @@
-use crate::algorithm::bulk_load;
-use crate::algorithm::intersection_iterator::IntersectionIterator;
-use crate::algorithm::iterators::*;
-use crate::algorithm::nearest_neighbor;
-use crate::algorithm::removal;
-use crate::algorithm::selection_functions::*;
-use crate::envelope::Envelope;
-use crate::node::ParentNode;
-use crate::object::{PointDistance, RTreeObject};
-use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
-use crate::Point;
+use crate::{
+    algorithm::{
+        bulk_load, intersection_iterator::IntersectionIterator, iterators::*, nearest_neighbor,
+        removal, selection_functions::*,
+    },
+    envelope::Envelope,
+    node::ParentNode,
+    object::{PointDistance, RTreeObject},
+    params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams},
+    Point,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -96,10 +96,10 @@ where
 /// # use rstar::{RTree,RTreeObject, RTreeParams};
 /// pub fn generic_rtree_function<T, Params>(tree: &mut RTree<T, Params>)
 /// where
-///   T: RTreeObject,
-///   Params: RTreeParams
+///     T: RTreeObject,
+///     Params: RTreeParams,
 /// {
-///   // ...
+///     // ...
 /// }
 /// ```
 /// Otherwise, any user of `generic_rtree_function` would be forced to use
@@ -128,7 +128,6 @@ where
 ///
 /// # (De)Serialization
 /// Enable the `serde` feature for [Serde](https://crates.io/crates/serde) support.
-///
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
@@ -276,7 +275,6 @@ where
     /// which can contain arbitrary additional data.
     /// If the position or location of an inserted object need to change, you will need to [remove]
     /// and reinsert it.
-    ///
     pub fn iter_mut(&mut self) -> RTreeIteratorMut<T> {
         RTreeIteratorMut::new(&mut self.root, SelectAllFunc)
     }
@@ -289,11 +287,7 @@ where
     /// # Example
     /// ```
     /// use rstar::{RTree, AABB};
-    /// let mut tree = RTree::bulk_load(vec![
-    ///   [0.0, 0.0],
-    ///   [0.0, 1.0],
-    ///   [1.0, 1.0]
-    /// ]);
+    /// let mut tree = RTree::bulk_load(vec![[0.0, 0.0], [0.0, 1.0], [1.0, 1.0]]);
     /// let half_unit_square = AABB::from_corners([0.0, 0.0], [0.5, 1.0]);
     /// let unit_square = AABB::from_corners([0.0, 0.0], [1.0, 1.0]);
     /// let elements_in_half_unit_square = tree.locate_in_envelope(&half_unit_square);
@@ -436,7 +430,6 @@ where
     /// by a [`SelectionFunction`](trait.SelectionFunction.html).
     ///
     /// See also: [`remove`](#method.remove), [`remove_at_point`](#method.remove_at_point)
-    ///
     pub fn remove_with_selection_function<F>(&mut self, function: F) -> Option<T>
     where
         F: SelectionFunction<T>,
@@ -478,12 +471,11 @@ where
     /// to determine if a tree element contains the given point.
     /// # Example
     /// ```
-    /// use rstar::RTree;
-    /// use rstar::primitives::Rectangle;
+    /// use rstar::{primitives::Rectangle, RTree};
     ///
     /// let tree = RTree::bulk_load(vec![
-    ///   Rectangle::from_corners([0.0, 0.0], [2.0, 2.0]),
-    ///   Rectangle::from_corners([1.0, 1.0], [3.0, 3.0])
+    ///     Rectangle::from_corners([0.0, 0.0], [2.0, 2.0]),
+    ///     Rectangle::from_corners([1.0, 1.0], [3.0, 3.0]),
     /// ]);
     ///
     /// assert_eq!(tree.locate_all_at_point(&[1.5, 1.5]).count(), 2);
@@ -512,18 +504,17 @@ where
     ///
     /// # Example
     /// ```
-    /// use rstar::RTree;
-    /// use rstar::primitives::Rectangle;
+    /// use rstar::{primitives::Rectangle, RTree};
     ///
     /// let mut tree = RTree::bulk_load(vec![
-    ///   Rectangle::from_corners([0.0, 0.0], [2.0, 2.0]),
-    ///   Rectangle::from_corners([1.0, 1.0], [3.0, 3.0])
+    ///     Rectangle::from_corners([0.0, 0.0], [2.0, 2.0]),
+    ///     Rectangle::from_corners([1.0, 1.0], [3.0, 3.0]),
     /// ]);
     ///
     /// assert!(tree.remove_at_point(&[1.5, 1.5]).is_some());
     /// assert!(tree.remove_at_point(&[1.5, 1.5]).is_some());
     /// assert!(tree.remove_at_point(&[1.5, 1.5]).is_none());
-    ///```
+    /// ```
     pub fn remove_at_point(&mut self, point: &<T::Envelope as Envelope>::Point) -> Option<T> {
         let removal_function = SelectAtPointFunction::new(*point);
         self.remove_with_selection_function(removal_function)
@@ -593,10 +584,7 @@ where
     /// # Example
     /// ```
     /// use rstar::RTree;
-    /// let tree = RTree::bulk_load(vec![
-    ///   [0.0, 0.0],
-    ///   [0.0, 1.0],
-    /// ]);
+    /// let tree = RTree::bulk_load(vec![[0.0, 0.0], [0.0, 1.0]]);
     /// assert_eq!(tree.nearest_neighbor(&[-1., 0.0]), Some(&[0.0, 0.0]));
     /// assert_eq!(tree.nearest_neighbor(&[0.0, 2.0]), Some(&[0.0, 1.0]));
     /// ```
@@ -639,10 +627,7 @@ where
     /// # Example
     /// ```
     /// use rstar::RTree;
-    /// let tree = RTree::bulk_load(vec![
-    ///   [0.0, 0.0],
-    ///   [0.0, 1.0],
-    /// ]);
+    /// let tree = RTree::bulk_load(vec![[0.0, 0.0], [0.0, 1.0]]);
     ///
     /// let nearest_neighbors = tree.nearest_neighbor_iter(&[0.5, 0.0]).collect::<Vec<_>>();
     /// assert_eq!(nearest_neighbors, vec![&[0.0, 0.0], &[0.0, 1.0]]);
@@ -685,10 +670,7 @@ where
     /// # Example
     /// ```
     /// use rstar::RTree;
-    /// let mut tree = RTree::bulk_load(vec![
-    ///   [0.0, 0.0],
-    ///   [0.0, 1.0],
-    /// ]);
+    /// let mut tree = RTree::bulk_load(vec![[0.0, 0.0], [0.0, 1.0]]);
     /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), Some([0.0, 0.0]));
     /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), Some([0.0, 1.0]));
     /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), None);
@@ -762,10 +744,12 @@ where
 #[cfg(test)]
 mod test {
     use super::RTree;
-    use crate::algorithm::rstar::RStarInsertionStrategy;
-    use crate::params::RTreeParams;
-    use crate::test_utilities::{create_random_points, SEED_1};
-    use crate::DefaultParams;
+    use crate::{
+        algorithm::rstar::RStarInsertionStrategy,
+        params::RTreeParams,
+        test_utilities::{create_random_points, SEED_1},
+        DefaultParams,
+    };
 
     struct TestParams;
     impl RTreeParams for TestParams {

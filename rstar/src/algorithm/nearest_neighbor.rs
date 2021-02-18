@@ -1,6 +1,8 @@
-use crate::node::{ParentNode, RTreeNode};
-use crate::point::{min_inline, Point};
-use crate::{Envelope, PointDistance, RTreeObject};
+use crate::{
+    node::{ParentNode, RTreeNode},
+    point::{min_inline, Point},
+    Envelope, PointDistance, RTreeObject,
+};
 use heapless::binary_heap as static_heap;
 use num_traits::Bounded;
 use std::collections::binary_heap::BinaryHeap;
@@ -244,9 +246,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::object::PointDistance;
-    use crate::rtree::RTree;
-    use crate::test_utilities::*;
+    use crate::{object::PointDistance, rtree::RTree, test_utilities::*};
 
     #[test]
     fn test_nearest_neighbor_empty() {

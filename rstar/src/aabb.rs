@@ -1,5 +1,7 @@
-use crate::point::{max_inline, Point, PointExt};
-use crate::{Envelope, RTreeObject};
+use crate::{
+    point::{max_inline, Point, PointExt},
+    Envelope, RTreeObject,
+};
 use num_traits::{Bounded, One, Zero};
 
 #[cfg(feature = "serde")]

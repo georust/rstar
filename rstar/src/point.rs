@@ -95,7 +95,6 @@ use std::fmt::Debug;
 /// # }
 /// #
 /// ```
-///
 pub trait RTreeNum: Bounded + Num + Clone + Copy + Signed + PartialOrd + Debug {}
 
 impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialOrd + Debug {}
@@ -116,42 +115,37 @@ impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialO
 /// use rstar::Point;
 ///
 /// #[derive(Copy, Clone, PartialEq, Debug)]
-/// struct IntegerPoint
-/// {
+/// struct IntegerPoint {
 ///     x: i32,
-///     y: i32
+///     y: i32,
 /// }
 ///
-/// impl Point for IntegerPoint
-/// {
-///   type Scalar = i32;
-///   const DIMENSIONS: usize = 2;
+/// impl Point for IntegerPoint {
+///     type Scalar = i32;
+///     const DIMENSIONS: usize = 2;
 ///
-///   fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self
-///   {
-///     IntegerPoint {
-///       x: generator(0),
-///       y: generator(1)
+///     fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self {
+///         IntegerPoint {
+///             x: generator(0),
+///             y: generator(1),
+///         }
 ///     }
-///   }
 ///
-///   fn nth(&self, index: usize) -> Self::Scalar
-///   {
-///     match index {
-///       0 => self.x,
-///       1 => self.y,
-///       _ => unreachable!()
+///     fn nth(&self, index: usize) -> Self::Scalar {
+///         match index {
+///             0 => self.x,
+///             1 => self.y,
+///             _ => unreachable!(),
+///         }
 ///     }
-///   }
 ///
-///   fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar
-///   {
-///     match index {
-///       0 => &mut self.x,
-///       1 => &mut self.y,
-///       _ => unreachable!()
+///     fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
+///         match index {
+///             0 => &mut self.x,
+///             1 => &mut self.y,
+///             _ => unreachable!(),
+///         }
 ///     }
-///   }
 /// }
 /// ```
 pub trait Point: Copy + Clone + PartialEq + Debug {
