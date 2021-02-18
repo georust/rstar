@@ -1,2 +1,8 @@
-target
+// rust
+target/
 Cargo.lock
+
+// editor
+*~
+.*~
+*.swp
