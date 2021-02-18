@@ -17,18 +17,18 @@ codecov = { repository = "Stoeoef/rstar", branch = "master", service = "github" 
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-heapless = "0.5"
-num-traits = "0.2"
-pdqselect = "0.1"
-serde = { version = "1.0", optional = true, features = ["derive"] }
-smallvec = "1.4"
+heapless = "0.6.0"
+num-traits = "0.2.14"
+pdqselect = "0.1.0"
+serde = { version = "1.0.123", optional = true, features = ["derive"] }
+smallvec = "1.6.1"
 
 [features]
 default = []
 debug = []
 
 [dev-dependencies]
-rand = "0.7"
-rand_hc = "0.2"
-approx = "0.3"
-serde_json = "1.0"
+rand = "0.8.3"
+rand_hc = "0.3.0"
+approx = "0.4.0"
+serde_json = "1.0.62"
