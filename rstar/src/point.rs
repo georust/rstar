@@ -710,6 +710,7 @@ mod tests {
 
     #[test]
     fn test_tuples() {
+        // Test a couple of simple cases
         let simple_int = (0, 1, 2);
         assert_eq!(simple_int.nth(2), 2);
         let simple_float = (0.5, 0.67, 1234.56);
@@ -717,6 +718,7 @@ mod tests {
         let long_int = (0, 1, 2, 3, 4, 5, 6, 7, 8);
         assert_eq!(long_int.nth(8), 8);
 
+        // Generate the code to test every nth function for every Tuple length
         test_tuple_configuration!(0, 1);
         test_tuple_configuration!(0, 1, 2);
         test_tuple_configuration!(0, 1, 2, 3);
