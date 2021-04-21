@@ -701,6 +701,13 @@ where
 mod tests {
     use super::*;
 
+    macro_rules! test_tuple_configuration {
+        ($($index:expr),*) => {
+            let a = ($($index),*);
+            $(assert_eq!(a.nth($index), $index));*
+        }
+    }
+
     #[test]
     fn test_tuples() {
         let simple_int = (0, 1, 2);
@@ -709,5 +716,14 @@ mod tests {
         assert_eq!(simple_float.nth(2), 1234.56);
         let long_int = (0, 1, 2, 3, 4, 5, 6, 7, 8);
         assert_eq!(long_int.nth(8), 8);
+
+        test_tuple_configuration!(0, 1);
+        test_tuple_configuration!(0, 1, 2);
+        test_tuple_configuration!(0, 1, 2, 3);
+        test_tuple_configuration!(0, 1, 2, 3, 4);
+        test_tuple_configuration!(0, 1, 2, 3, 4, 5);
+        test_tuple_configuration!(0, 1, 2, 3, 4, 5, 6);
+        test_tuple_configuration!(0, 1, 2, 3, 4, 5, 6, 7);
+        test_tuple_configuration!(0, 1, 2, 3, 4, 5, 6, 7, 8);
     }
 }
