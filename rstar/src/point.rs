@@ -346,356 +346,59 @@ implement_point_for_array!(0, 1, 2, 3, 4, 5, 6);
 implement_point_for_array!(0, 1, 2, 3, 4, 5, 6, 7);
 implement_point_for_array!(0, 1, 2, 3, 4, 5, 6, 7, 8);
 
-// The following code screams to be implemented with a macro, but this is not
-// possible with a simple declarative, a procedural macro would be a possibility
-// but I did not feel like introducing that in the codebase.
-// Points are implemented for any tuple using the same type on every position,
-// for lengths from 2 up to and including 9 elements (just as the arrays).
-// So `(f64, f64, f64)` or `(int, int)` will work.
-
-impl<S> Point for (S, S)
-where
-    S: RTreeNum,
-{
-    type Scalar = S;
-
-    const DIMENSIONS: usize = 2;
-
-    fn generate(generator: impl Fn(usize) -> S) -> Self {
-        (generator(0), generator(1))
-    }
-
-    #[inline]
-    fn nth(&self, index: usize) -> Self::Scalar {
-        match index {
-            0 => self.0,
-            1 => self.1,
-            _ => unreachable!(),
-        }
-    }
-
-    #[inline]
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        match index {
-            0 => &mut self.0,
-            1 => &mut self.1,
-            _ => unreachable!(),
-        }
-    }
+macro_rules! fixed_type {
+    ($expr:expr, $type:ty) => {
+        $type
+    };
 }
 
-impl<S> Point for (S, S, S)
-where
-    S: RTreeNum,
-{
-    type Scalar = S;
+macro_rules! impl_point_for_tuple {
+    ($($index:expr => $name:ident),+) => {
+        impl<S> Point for ($(fixed_type!($index, S),)+)
+        where
+            S: RTreeNum
+        {
+            type Scalar = S;
 
-    const DIMENSIONS: usize = 3;
+            const DIMENSIONS: usize = count_exprs!($($index),*);
 
-    fn generate(generator: impl Fn(usize) -> S) -> Self {
-        (generator(0), generator(1), generator(2))
-    }
+            fn generate(generator: impl Fn(usize) -> S) -> Self {
+                ($(generator($index),)+)
+            }
 
-    #[inline]
-    fn nth(&self, index: usize) -> Self::Scalar {
-        match index {
-            0 => self.0,
-            1 => self.1,
-            2 => self.2,
-            _ => unreachable!(),
+            #[inline]
+            fn nth(&self, index: usize) -> Self::Scalar {
+                let ($($name,)+) = self;
+
+                match index {
+                    $($index => *$name,)+
+                    _ => unreachable!(),
+                }
+            }
+
+            #[inline]
+            fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
+                let ($($name,)+) = self;
+
+                match index {
+                    $($index => $name,)+
+                    _ => unreachable!(),
+                }
+            }
         }
-    }
-
-    #[inline]
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        match index {
-            0 => &mut self.0,
-            1 => &mut self.1,
-            2 => &mut self.2,
-            _ => unreachable!(),
-        }
-    }
+    };
 }
 
-impl<S> Point for (S, S, S, S)
-where
-    S: RTreeNum,
-{
-    type Scalar = S;
-
-    const DIMENSIONS: usize = 4;
-
-    fn generate(generator: impl Fn(usize) -> S) -> Self {
-        (generator(0), generator(1), generator(2), generator(3))
-    }
-
-    #[inline]
-    fn nth(&self, index: usize) -> Self::Scalar {
-        match index {
-            0 => self.0,
-            1 => self.1,
-            2 => self.2,
-            3 => self.3,
-            _ => unreachable!(),
-        }
-    }
-
-    #[inline]
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        match index {
-            0 => &mut self.0,
-            1 => &mut self.1,
-            2 => &mut self.2,
-            3 => &mut self.3,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl<S> Point for (S, S, S, S, S)
-where
-    S: RTreeNum,
-{
-    type Scalar = S;
-
-    const DIMENSIONS: usize = 5;
-
-    fn generate(generator: impl Fn(usize) -> S) -> Self {
-        (
-            generator(0),
-            generator(1),
-            generator(2),
-            generator(3),
-            generator(4),
-        )
-    }
-
-    #[inline]
-    fn nth(&self, index: usize) -> Self::Scalar {
-        match index {
-            0 => self.0,
-            1 => self.1,
-            2 => self.2,
-            3 => self.3,
-            4 => self.4,
-            _ => unreachable!(),
-        }
-    }
-
-    #[inline]
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        match index {
-            0 => &mut self.0,
-            1 => &mut self.1,
-            2 => &mut self.2,
-            3 => &mut self.3,
-            4 => &mut self.4,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl<S> Point for (S, S, S, S, S, S)
-where
-    S: RTreeNum,
-{
-    type Scalar = S;
-
-    const DIMENSIONS: usize = 6;
-
-    fn generate(generator: impl Fn(usize) -> S) -> Self {
-        (
-            generator(0),
-            generator(1),
-            generator(2),
-            generator(3),
-            generator(4),
-            generator(5),
-        )
-    }
-
-    #[inline]
-    fn nth(&self, index: usize) -> Self::Scalar {
-        match index {
-            0 => self.0,
-            1 => self.1,
-            2 => self.2,
-            3 => self.3,
-            4 => self.4,
-            5 => self.5,
-            _ => unreachable!(),
-        }
-    }
-
-    #[inline]
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        match index {
-            0 => &mut self.0,
-            1 => &mut self.1,
-            2 => &mut self.2,
-            3 => &mut self.3,
-            4 => &mut self.4,
-            5 => &mut self.5,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl<S> Point for (S, S, S, S, S, S, S)
-where
-    S: RTreeNum,
-{
-    type Scalar = S;
-
-    const DIMENSIONS: usize = 7;
-
-    fn generate(generator: impl Fn(usize) -> S) -> Self {
-        (
-            generator(0),
-            generator(1),
-            generator(2),
-            generator(3),
-            generator(4),
-            generator(5),
-            generator(6),
-        )
-    }
-
-    #[inline]
-    fn nth(&self, index: usize) -> Self::Scalar {
-        match index {
-            0 => self.0,
-            1 => self.1,
-            2 => self.2,
-            3 => self.3,
-            4 => self.4,
-            5 => self.5,
-            6 => self.6,
-            _ => unreachable!(),
-        }
-    }
-
-    #[inline]
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        match index {
-            0 => &mut self.0,
-            1 => &mut self.1,
-            2 => &mut self.2,
-            3 => &mut self.3,
-            4 => &mut self.4,
-            5 => &mut self.5,
-            6 => &mut self.6,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl<S> Point for (S, S, S, S, S, S, S, S)
-where
-    S: RTreeNum,
-{
-    type Scalar = S;
-
-    const DIMENSIONS: usize = 8;
-
-    fn generate(generator: impl Fn(usize) -> S) -> Self {
-        (
-            generator(0),
-            generator(1),
-            generator(2),
-            generator(3),
-            generator(4),
-            generator(5),
-            generator(6),
-            generator(7),
-        )
-    }
-
-    #[inline]
-    fn nth(&self, index: usize) -> Self::Scalar {
-        match index {
-            0 => self.0,
-            1 => self.1,
-            2 => self.2,
-            3 => self.3,
-            4 => self.4,
-            5 => self.5,
-            6 => self.6,
-            7 => self.7,
-            _ => unreachable!(),
-        }
-    }
-
-    #[inline]
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        match index {
-            0 => &mut self.0,
-            1 => &mut self.1,
-            2 => &mut self.2,
-            3 => &mut self.3,
-            4 => &mut self.4,
-            5 => &mut self.5,
-            6 => &mut self.6,
-            7 => &mut self.7,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl<S> Point for (S, S, S, S, S, S, S, S, S)
-where
-    S: RTreeNum,
-{
-    type Scalar = S;
-
-    const DIMENSIONS: usize = 9;
-
-    fn generate(generator: impl Fn(usize) -> S) -> Self {
-        (
-            generator(0),
-            generator(1),
-            generator(2),
-            generator(3),
-            generator(4),
-            generator(5),
-            generator(6),
-            generator(7),
-            generator(8),
-        )
-    }
-
-    #[inline]
-    fn nth(&self, index: usize) -> Self::Scalar {
-        match index {
-            0 => self.0,
-            1 => self.1,
-            2 => self.2,
-            3 => self.3,
-            4 => self.4,
-            5 => self.5,
-            6 => self.6,
-            7 => self.7,
-            8 => self.8,
-            _ => unreachable!(),
-        }
-    }
-
-    #[inline]
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-        match index {
-            0 => &mut self.0,
-            1 => &mut self.1,
-            2 => &mut self.2,
-            3 => &mut self.3,
-            4 => &mut self.4,
-            5 => &mut self.5,
-            6 => &mut self.6,
-            7 => &mut self.7,
-            8 => &mut self.8,
-            _ => unreachable!(),
-        }
-    }
-}
+impl_point_for_tuple!(0 => a);
+impl_point_for_tuple!(0 => a, 1 => b);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f, 6 => g);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f, 6 => g, 7 => h);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f, 6 => g, 7 => h, 8 => i);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f, 6 => g, 7 => h, 8 => i, 9 => j);
 
 #[cfg(test)]
 mod tests {
