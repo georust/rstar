@@ -1,7 +1,0 @@
-language: rust
-rust:
-  - stable
-
-cache: cargo
-script:
-  - cargo build -p rstar-benches && cargo test --all-features -p rstar
