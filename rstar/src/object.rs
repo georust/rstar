@@ -40,41 +40,38 @@ use crate::point::{Point, PointExt};
 ///     }
 /// }
 ///
-/// fn main()
-/// {
-///     use rstar::{RTree, AABB};
+/// use rstar::RTree;
 ///
-///     let mut tree = RTree::new();
+/// let mut tree = RTree::new();
 ///
-///     // Insert a few players...
-///     tree.insert(Player {
-///         name: "Forlorn Freeman".into(),
-///         x_coordinate: 1.,
-///         y_coordinate: 0.
-///     });
-///     tree.insert(Player {
-///         name: "Sarah Croft".into(),
-///         x_coordinate: 0.5,
-///         y_coordinate: 0.5,
-///     });
-///     tree.insert(Player {
-///         name: "Geralt of Trivia".into(),
-///         x_coordinate: 0.,
-///         y_coordinate: 2.,
-///     });
+/// // Insert a few players...
+/// tree.insert(Player {
+///     name: "Forlorn Freeman".into(),
+///     x_coordinate: 1.,
+///     y_coordinate: 0.
+/// });
+/// tree.insert(Player {
+///     name: "Sarah Croft".into(),
+///     x_coordinate: 0.5,
+///     y_coordinate: 0.5,
+/// });
+/// tree.insert(Player {
+///     name: "Geralt of Trivia".into(),
+///     x_coordinate: 0.,
+///     y_coordinate: 2.,
+/// });
 ///
-///     // Now we are ready to ask some questions!
-///     let envelope = AABB::from_point([0.5, 0.5]);
-///     let likely_sarah_croft = tree.locate_in_envelope(&envelope).next();
-///     println!("Found {:?} lurking around at (0.5, 0.5)!", likely_sarah_croft.unwrap().name);
-///     # assert!(likely_sarah_croft.is_some());
+/// // Now we are ready to ask some questions!
+/// let envelope = AABB::from_point([0.5, 0.5]);
+/// let likely_sarah_croft = tree.locate_in_envelope(&envelope).next();
+/// println!("Found {:?} lurking around at (0.5, 0.5)!", likely_sarah_croft.unwrap().name);
+/// # assert!(likely_sarah_croft.is_some());
 ///
-///     let unit_square = AABB::from_corners([-1.0, -1.0], [1., 1.]);
-///     for player in tree.locate_in_envelope(&unit_square) {
-///        println!("And here is {:?} spelunking in the unit square.", player.name);
-///     }
-///     # assert_eq!(tree.locate_in_envelope(&unit_square).count(), 2);
+/// let unit_square = AABB::from_corners([-1.0, -1.0], [1., 1.]);
+/// for player in tree.locate_in_envelope(&unit_square) {
+///    println!("And here is {:?} spelunking in the unit square.", player.name);
 /// }
+/// # assert_eq!(tree.locate_in_envelope(&unit_square).count(), 2);
 /// ```
 pub trait RTreeObject {
     /// The object's envelope type. Usually, [AABB](struct.AABB.html) will be the right choice.
@@ -138,16 +135,14 @@ pub trait RTreeObject {
 /// }
 ///
 ///
-/// fn main() {
-///     let circle = Circle {
-///         origin: [1.0, 0.0],
-///         radius: 1.0,
-///     };
+/// let circle = Circle {
+///     origin: [1.0, 0.0],
+///     radius: 1.0,
+/// };
 ///
-///     assert_eq!(circle.distance_2(&[-1.0, 0.0]), 1.0);
-///     assert_eq!(circle.distance_2(&[-2.0, 0.0]), 4.0);
-///     assert!(circle.contains_point(&[1.0, 0.0]));
-/// }
+/// assert_eq!(circle.distance_2(&[-1.0, 0.0]), 1.0);
+/// assert_eq!(circle.distance_2(&[-2.0, 0.0]), 4.0);
+/// assert!(circle.contains_point(&[1.0, 0.0]));
 /// ```
 pub trait PointDistance: RTreeObject {
     /// Returns the squared euclidean distance of an object to a point.

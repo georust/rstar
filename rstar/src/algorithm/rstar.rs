@@ -36,7 +36,7 @@ impl InsertionStrategy for RStarInsertionStrategy {
         enum InsertionAction<T: RTreeObject> {
             PerformSplit(RTreeNode<T>),
             PerformReinsert(RTreeNode<T>),
-        };
+        }
 
         let first = recursive_insert::<_, Params>(tree.root_mut(), RTreeNode::Leaf(t), 0);
         let mut target_height = 0;
@@ -47,7 +47,7 @@ impl InsertionStrategy for RStarInsertionStrategy {
                 insertion_stack.extend(
                     nodes_to_reinsert
                         .into_iter()
-                        .map(|node| PerformReinsert(node)),
+                        .map(PerformReinsert),
                 );
                 target_height = real_target_height;
             }
@@ -152,7 +152,7 @@ where
     }
 }
 
-fn choose_subtree<'b, T>(node: &mut ParentNode<T>, to_insert: &'b RTreeNode<T>) -> usize
+fn choose_subtree<T>(node: &mut ParentNode<T>, to_insert: &RTreeNode<T>) -> usize
 where
     T: RTreeObject,
 {

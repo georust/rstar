@@ -136,7 +136,7 @@ mod test {
 
     #[test]
     fn test_root_node_is_not_always_unpacked() {
-        struct SelectNoneFunc {};
+        struct SelectNoneFunc {}
 
         impl SelectionFunction<[i32; 2]> for SelectNoneFunc {
             fn should_unpack_parent(&self, _: &AABB<[i32; 2]>) -> bool {

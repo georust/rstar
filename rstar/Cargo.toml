@@ -1,7 +1,7 @@
 [package]
 name = "rstar"
 version = "0.8.3"
-authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
+authors = ["Stefan Altmayer <stoeoef@gmail.com>", "The Georust Developers <mods@georust.org>"]
 description = "R*-tree library for the rust ecosystem"
 documentation = "https://docs.rs/rstar/"
 repository = "https://github.com/Stoeoef/rstar"
