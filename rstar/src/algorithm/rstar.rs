@@ -44,11 +44,7 @@ impl InsertionStrategy for RStarInsertionStrategy {
         match first {
             InsertionResult::Split(node) => insertion_stack.push(PerformSplit(node)),
             InsertionResult::Reinsert(nodes_to_reinsert, real_target_height) => {
-                insertion_stack.extend(
-                    nodes_to_reinsert
-                        .into_iter()
-                        .map(PerformReinsert),
-                );
+                insertion_stack.extend(nodes_to_reinsert.into_iter().map(PerformReinsert));
                 target_height = real_target_height;
             }
             InsertionResult::Complete => {}
