@@ -1,3 +1,7 @@
+# 0.8.3
+- Move crate ownership to the georust organization
+- Update dependencies to remove heapless 0.5, which has a known vulnerability
+
 # 0.8.2 - 2020-08-01
 ## Fixed:
  - Fixed a rare panic when calling `insert` (See #45)
