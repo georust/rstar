@@ -2,6 +2,8 @@
 - Update CI images to Stable Rust 1.50 and 1.51
 - Run clippy, rustfmt, update manifest to reflect ownership changes
 - Update Criterion and rewrite deprecated benchmark functions
+- Add new `RTree::nearest_neighbors` method based on
+  [the original implementation](https://github.com/Stoeoef/spade)
 
 # 0.8.3
 - Move crate ownership to the georust organization
