@@ -1,3 +1,6 @@
+# 0.8.4 (unreleased)
+- Run clippy, rustfmt, update manifest to reflect ownership changes
+
 # 0.8.3
 - Move crate ownership to the georust organization
 - Update dependencies to remove heapless 0.5, which has a known vulnerability
