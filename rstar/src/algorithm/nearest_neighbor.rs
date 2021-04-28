@@ -242,6 +242,37 @@ where
     None
 }
 
+pub fn nearest_neighbors<'a, T>(
+    node: &'a ParentNode<T>,
+    query_point: <T::Envelope as Envelope>::Point,
+) -> Vec<&'a T>
+where
+    T: PointDistance,
+{
+    let mut nearest_neighbors = NearestNeighborIterator::new(node, query_point);
+
+    let first_nearest_neighbor = match nearest_neighbors.next() {
+        None => return vec![], // If we have an empty tree, just return an empty vector.
+        Some(nn) => nn,
+    };
+
+    // The result will at least contain the first nearest neighbor.
+    let mut result = vec![first_nearest_neighbor];
+
+    // We compute the distance to the first nearest neighbor, and use
+    // that distance to filter out the rest of the nearest neighbors that are farther
+    // than this first neighbor.
+    let distance = first_nearest_neighbor.envelope().distance_2(&query_point);
+    nearest_neighbors
+        .take_while(|nearest_neighbor| {
+            let next_distance = nearest_neighbor.envelope().distance_2(&query_point);
+            next_distance == distance
+        })
+        .for_each(|nearest_neighbor| result.push(nearest_neighbor));
+
+    result
+}
+
 #[cfg(test)]
 mod test {
     use crate::object::PointDistance;
@@ -272,6 +303,32 @@ mod test {
                 }
             }
             assert_eq!(nearest, tree.nearest_neighbor(sample_point));
+        }
+    }
+
+    #[test]
+    fn test_nearest_neighbors_empty() {
+        let tree: RTree<[f32; 2]> = RTree::new();
+        assert!(tree.nearest_neighbors(&[0.0, 213.0]).is_empty());
+    }
+
+    #[test]
+    fn test_nearest_neighbors() {
+        let points = create_random_points(1000, SEED_1);
+        let tree = RTree::bulk_load(points.clone());
+
+        let sample_points = create_random_points(50, SEED_2);
+        for sample_point in &sample_points {
+            let nearest_neighbors = tree.nearest_neighbors(sample_point);
+            let mut distance = -1.0;
+            for nn in &nearest_neighbors {
+                if distance < 0.0 {
+                    distance = sample_point.distance_2(nn);
+                } else {
+                    let new_distance = sample_point.distance_2(nn);
+                    assert_eq!(new_distance, distance);
+                }
+            }
         }
     }
 

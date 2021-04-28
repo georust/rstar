@@ -611,6 +611,29 @@ where
         }
     }
 
+    /// Returns the nearest neighbors for a given point.
+    ///
+    /// The distance is calculated by calling
+    /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2)
+    ///
+    /// All returned values will have the exact same distance from the given query point.
+    /// Returns an empty `Vec` if the tree is empty.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// let tree = RTree::bulk_load(vec![
+    ///   [0.0, 0.0],
+    ///   [0.0, 1.0],
+    ///   [1.0, 0.0],
+    /// ]);
+    /// assert_eq!(tree.nearest_neighbors(&[1.0, 1.0]), &[&[0.0, 1.0], &[1.0, 0.0]]);
+    /// assert_eq!(tree.nearest_neighbors(&[0.01, 0.01]), &[&[0.0, 0.0]]);
+    /// ```
+    pub fn nearest_neighbors(&self, query_point: &<T::Envelope as Envelope>::Point) -> Vec<&T> {
+        nearest_neighbor::nearest_neighbors(&self.root, *query_point)
+    }
+
     /// Returns all elements of the tree within a certain distance.
     ///
     /// The elements may be returned in any order. Each returned element
