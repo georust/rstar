@@ -38,17 +38,18 @@ fn bulk_load_baseline(c: &mut Criterion) {
 }
 
 fn bulk_load_comparison(c: &mut Criterion) {
-    let rstar_bench = Fun::new("rstar", |b: &mut Bencher, _| {
+    let mut group = c.benchmark_group("rstar and spade benchmarks");
+    group.bench_function("rstar bench", |b| {
         let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
         b.iter(|| RTree::<_, Params>::bulk_load_with_params(points.clone()));
     });
-    let spade_bench = Fun::new("spade", |b: &mut Bencher, _| {
+    group.bench_function("spade bench", |b| {
         let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
         b.iter(move || {
             spade::rtree::RTree::bulk_load(points.clone());
         });
     });
-    let rstar_sequential = Fun::new("rstar sequential", |b: &mut Bencher, _| {
+    group.bench_function("rstar sequential", |b| {
         let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
         b.iter(move || {
             let mut rtree = rstar::RTree::new();
@@ -57,12 +58,7 @@ fn bulk_load_comparison(c: &mut Criterion) {
             }
         });
     });
-
-    c.bench_functions(
-        "bulk load comparison",
-        vec![rstar_bench, spade_bench, rstar_sequential],
-        (),
-    );
+    group.finish();
 }
 
 fn tree_creation_quality(c: &mut Criterion) {

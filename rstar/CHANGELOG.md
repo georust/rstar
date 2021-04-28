@@ -1,5 +1,6 @@
 # 0.8.4 (unreleased)
 - Run clippy, rustfmt, update manifest to reflect ownership changes
+- Update Criterion and rewrite deprecated benchmark functions
 
 # 0.8.3
 - Move crate ownership to the georust organization
