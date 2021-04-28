@@ -153,11 +153,11 @@ where
         for i in 0..P::DIMENSIONS {
             let mut min = l.nth(i);
             let mut max = u.nth(i);
-            max = max * max;
-            min = min * min;
             if max < min {
                 std::mem::swap(&mut min, &mut max);
             }
+            max = max * max;
+            min = min * min;
 
             let diff = max - min;
             result = result + max;
