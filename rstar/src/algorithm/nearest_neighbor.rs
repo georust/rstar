@@ -176,10 +176,10 @@ impl<T: Ord> SmallHeap<T> {
     }
 }
 
-pub fn nearest_neighbor<'a, T>(
-    node: &'a ParentNode<T>,
+pub fn nearest_neighbor<T>(
+    node: &ParentNode<T>,
     query_point: <T::Envelope as Envelope>::Point,
-) -> Option<&'a T>
+) -> Option<&T>
 where
     T: PointDistance,
 {
