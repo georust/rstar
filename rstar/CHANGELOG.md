@@ -1,6 +1,7 @@
 # 0.8.4 (unreleased)
 - Update CI images to Stable Rust 1.50 and 1.51
 - Run clippy, rustfmt, update manifest to reflect ownership changes
+- Update Criterion and rewrite deprecated benchmark functions
 
 # 0.8.3
 - Move crate ownership to the georust organization
