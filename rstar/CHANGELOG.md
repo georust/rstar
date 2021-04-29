@@ -6,6 +6,8 @@
   [the original implementation](https://github.com/Stoeoef/spade)
 - `Point::generate` function now accepts a `impl FnMut`. Custom implementations of `Point` must change to
   accept `impl FnMut` instead of `impl Fn`. Callers of `Point::generate` should not require changes.
+- Remove unused imports
+- Remove executable bit from files
 
 # 0.8.3
 - Move crate ownership to the georust organization

@@ -1,6 +1,6 @@
 use crate::primitives::*;
 use crate::{Point, RTreeObject};
-use rand::distributions::{Distribution, Uniform};
+use rand::distributions::Uniform;
 use rand::{Rng, SeedableRng};
 use rand_hc::Hc128Rng;
 
