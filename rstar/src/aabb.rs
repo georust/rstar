@@ -147,8 +147,8 @@ where
     fn min_max_dist_2(&self, point: &P) -> <P as Point>::Scalar {
         let l = self.lower.sub(point);
         let u = self.upper.sub(point);
-        let mut max_diff = Zero::zero();
-        let mut result: <P as Point>::Scalar = Zero::zero();
+        let mut max_diff = (Zero::zero(), Zero::zero(), 0); // diff, min, index
+        let mut result = P::new();
 
         for i in 0..P::DIMENSIONS {
             let mut min = l.nth(i);
@@ -160,13 +160,15 @@ where
             }
 
             let diff = max - min;
-            result = result + max;
-            if diff > max_diff {
-                max_diff = diff;
+            *result.nth_mut(i) = max;
+
+            if diff >= max_diff.0 {
+                max_diff = (diff, min, i);
             }
         }
 
-        result - max_diff
+        *result.nth_mut(max_diff.2) = max_diff.1;
+        result.fold(Zero::zero(), |acc, curr| acc + curr)
     }
 
     fn center(&self) -> Self::Point {
@@ -220,5 +222,37 @@ fn new_empty<P: Point>() -> AABB<P> {
     AABB {
         lower: P::from_value(max),
         upper: P::from_value(min),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::envelope::Envelope;
+    use crate::object::PointDistance;
+    use super::AABB;
+
+    /// Test that min_max_dist_2 is identical to distance_2 for the equivalent
+    /// min max corner of the AABB. This is necessary to prevent optimizations
+    /// from inadvertently changing floating point order of operations.
+    #[test]
+    fn test_min_max_dist_2_issue_40_regression() {
+        let a = [
+            0.7018702292340033,
+            0.2121617955083932,
+            0.8120562975177115,
+        ];
+        let b = [
+            0.7297749764202988,
+            0.23020869735094462,
+            0.8194675310336391,
+        ];
+        let aabb = AABB::from_corners(a, b);
+        let p = [
+            0.6950876013070484,
+            0.220750082121574,
+            0.8186032137709887,
+        ];
+        let corner = [a[0], b[1], a[2]];
+        assert_eq!(aabb.min_max_dist_2(&p), corner.distance_2(&p));
     }
 }
