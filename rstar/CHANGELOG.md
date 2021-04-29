@@ -1,9 +1,11 @@
-# 0.8.4 (unreleased)
+# 0.9.0 (unreleased)
 - Update CI images to Stable Rust 1.50 and 1.51
 - Run clippy, rustfmt, update manifest to reflect ownership changes
 - Update Criterion and rewrite deprecated benchmark functions
 - Add new `RTree::nearest_neighbors` method based on
   [the original implementation](https://github.com/Stoeoef/spade)
+- `Point::generate` function now accepts a `impl FnMut`. Custom implementations of `Point` must change to
+  accept `impl FnMut` instead of `impl Fn`. Callers of `Point::generate` should not require changes.
 
 # 0.8.3
 - Move crate ownership to the georust organization
