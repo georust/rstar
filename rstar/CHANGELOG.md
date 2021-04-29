@@ -1,16 +1,22 @@
 # 0.9.0 (unreleased)
+
+## Added
+- `RTree::nearest_neighbors` method based on
+  [spade crate's implementation](https://github.com/Stoeoef/spade)
+
+## Changed
+- BREAKING: `Point::generate` function now accepts a `impl FnMut`. Custom implementations of `Point` must change to
+  accept `impl FnMut` instead of `impl Fn`. Callers of `Point::generate` should not require changes.
 - Update CI images to Stable Rust 1.50 and 1.51
 - Run clippy, rustfmt, update manifest to reflect ownership changes
 - Update Criterion and rewrite deprecated benchmark functions
-- Add new `RTree::nearest_neighbors` method based on
-  [the original implementation](https://github.com/Stoeoef/spade)
-- `Point::generate` function now accepts a `impl FnMut`. Custom implementations of `Point` must change to
-  accept `impl FnMut` instead of `impl Fn`. Callers of `Point::generate` should not require changes.
 - Remove unused imports
 - Remove executable bit from files
 
 # 0.8.3
+## Changed
 - Move crate ownership to the georust organization
+## Fixed
 - Update dependencies to remove heapless 0.5, which has a known vulnerability
 
 # 0.8.2 - 2020-08-01
