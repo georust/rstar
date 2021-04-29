@@ -11,7 +11,7 @@ use rand_hc::Hc128Rng;
 
 use rstar::{RStarInsertionStrategy, RTree, RTreeParams};
 
-use criterion::{Bencher, Criterion, Fun};
+use criterion::Criterion;
 
 const SEED_1: &[u8; 32] = b"Gv0aHMtHkBGsUXNspGU9fLRuCWkZWHZx";
 const SEED_2: &[u8; 32] = b"km7DO4GeaFZfTcDXVpnO7ZJlgUY7hZiS";
