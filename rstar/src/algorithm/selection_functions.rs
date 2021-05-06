@@ -37,6 +37,22 @@ where
     }
 }
 
+/// Similar to [`SelectionFunction](#struct.SelectionFunction) but additional data can be returned by
+/// `should_unpack_leaf`.
+pub trait SelectionFunctionWithData<T, D>
+where
+    T: RTreeObject,
+{
+    /// Return `true` if a parent node should be unpacked during a search.
+    ///
+    /// The parent node's envelope is given to guide the decision.
+    fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool;
+
+    /// Returns `Some(...)` with the additional data if a given child node
+    /// should be returned during a search.
+    fn should_unpack_leaf(&self, _leaf: &T) -> Option<D>;
+}
+
 pub struct SelectInEnvelopeFunction<T>
 where
     T: RTreeObject,

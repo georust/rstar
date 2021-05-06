@@ -38,7 +38,7 @@ mod test_utilities;
 
 pub use crate::aabb::AABB;
 pub use crate::algorithm::rstar::RStarInsertionStrategy;
-pub use crate::algorithm::selection_functions::SelectionFunction;
+pub use crate::algorithm::selection_functions::{SelectionFunction, SelectionFunctionWithData};
 pub use crate::envelope::Envelope;
 pub use crate::node::{ParentNode, RTreeNode};
 pub use crate::object::{PointDistance, RTreeObject};

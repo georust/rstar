@@ -379,6 +379,15 @@ where
         SelectionIterator::new(&self.root, selection_function)
     }
 
+    /// Similar to [`locate_with_selection_function`](#method.locate_with_selection_function) but with
+    /// a selection function that can return additional data.
+    pub fn locate_with_selection_function_with_data<D, S: SelectionFunctionWithData<T, D>>(
+        &self,
+        selection_function: S,
+    ) -> impl Iterator<Item = (&T, D)> {
+        SelectionWithDataIterator::new(&self.root, selection_function)
+    }
+
     /// Mutable variant of [`locate_with_selection_function`](#method.locate_with_selection_function).
     pub fn locate_with_selection_function_mut<S: SelectionFunction<T>>(
         &mut self,
