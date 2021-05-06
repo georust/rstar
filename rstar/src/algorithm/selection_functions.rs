@@ -37,7 +37,7 @@ where
     }
 }
 
-/// Similar to [`SelectionFunction](#struct.SelectionFunction) but additional data can be returned by
+/// Similar to [`SelectionFunction`](trait.SelectionFunction.html) but additional data can be returned by
 /// `should_unpack_leaf`.
 pub trait SelectionFunctionWithData<T, D>
 where
