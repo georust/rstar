@@ -127,6 +127,63 @@ where
     }
 }
 
+
+pub struct SelectionWithDataIteratorMut<'a, T, D, Func>
+where
+    T: RTreeObject + 'a,
+    Func: SelectionFunctionWithData<T, D>,
+{
+    func: Func,
+    current_nodes: SmallVec<[&'a mut RTreeNode<T>; 32]>,
+    _phantom: std::marker::PhantomData<D>,
+}
+
+impl<'a, T, D, Func> SelectionWithDataIteratorMut<'a, T, D, Func>
+where
+    T: RTreeObject,
+    Func: SelectionFunctionWithData<T, D>,
+{
+    pub fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
+        let current_nodes = if func.should_unpack_parent(&root.envelope()) {
+            root.children.iter_mut().collect()
+        } else {
+            SmallVec::new()
+        };
+
+        SelectionWithDataIteratorMut {
+            func,
+            current_nodes,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<'a, T, D, Func> Iterator for SelectionWithDataIteratorMut<'a, T, D, Func>
+where
+    T: RTreeObject,
+    Func: SelectionFunctionWithData<T, D>,
+{
+    type Item = (&'a mut T, D);
+
+    fn next(&mut self) -> Option<(&'a mut T, D)> {
+        while let Some(next) = self.current_nodes.pop() {
+            match next {
+                RTreeNode::Leaf(ref mut t) => {
+                    if let Some(data) = self.func.should_unpack_leaf(t) {
+                        return Some((t, data));
+                    }
+                }
+                RTreeNode::Parent(ref mut data) => {
+                    if self.func.should_unpack_parent(&data.envelope) {
+                        self.current_nodes.extend(&mut data.children);
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
 pub struct SelectionIteratorMut<'a, T, Func>
 where
     T: RTreeObject + 'a,

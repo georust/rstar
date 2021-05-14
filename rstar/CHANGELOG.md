@@ -3,7 +3,7 @@
 ## Added
 - `RTree::nearest_neighbors` method based on
   [spade crate's implementation](https://github.com/Stoeoef/spade)
-- Added a `SelectionWithDataIterator` trait.
+- Added `RTree::locate_with_selection_function_with_data` and a `SelectionWithDataIterator` trait to go with it.
 
 ## Changed
 - BREAKING: `Point::generate` function now accepts a `impl FnMut`. Custom implementations of `Point` must change to

@@ -379,6 +379,14 @@ where
         SelectionIterator::new(&self.root, selection_function)
     }
 
+    /// Mutable variant of [`locate_with_selection_function`](#method.locate_with_selection_function).
+    pub fn locate_with_selection_function_mut<S: SelectionFunction<T>>(
+        &mut self,
+        selection_function: S,
+    ) -> impl Iterator<Item = &mut T> {
+        SelectionIteratorMut::new(&mut self.root, selection_function)
+    }
+
     /// Similar to [`locate_with_selection_function`](#method.locate_with_selection_function) but with
     /// a selection function that can return additional data.
     pub fn locate_with_selection_function_with_data<D, S: SelectionFunctionWithData<T, D>>(
@@ -388,12 +396,12 @@ where
         SelectionWithDataIterator::new(&self.root, selection_function)
     }
 
-    /// Mutable variant of [`locate_with_selection_function`](#method.locate_with_selection_function).
-    pub fn locate_with_selection_function_mut<S: SelectionFunction<T>>(
+    /// Mutable variant of [`locate_with_selection_function_with_data`](#method.locate_with_selection_function_with_data).
+    pub fn locate_with_selection_function_with_data_mut<D, S: SelectionFunctionWithData<T, D>>(
         &mut self,
         selection_function: S,
-    ) -> impl Iterator<Item = &mut T> {
-        SelectionIteratorMut::new(&mut self.root, selection_function)
+    ) -> impl Iterator<Item = (&mut T, D)> {
+        SelectionWithDataIteratorMut::new(&mut self.root, selection_function)
     }
 
     /// Gets all possible intersecting objects of this and another tree.
