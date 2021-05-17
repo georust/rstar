@@ -188,7 +188,7 @@ fn handle_input(window: &Window, scene: &mut Scene) -> Option<RenderData> {
                     &Vector2::new(width as f32, height as f32),
                 );
 
-                scene.tree_2d.insert(unprojected.coords.into());
+                scene.tree_2d.insert(unprojected.coords.into()).unwrap();
                 is_dirty = true;
             }
             WindowEvent::CursorPos(x, y, _) if scene.render_mode == RenderMode::TwoD => {
@@ -201,12 +201,15 @@ fn handle_input(window: &Window, scene: &mut Scene) -> Option<RenderData> {
     if is_dirty {
         for point in points_to_add {
             if scene.render_mode == RenderMode::ThreeD {
-                scene.tree_3d.insert(point);
+                scene.tree_3d.insert(point).unwrap();
             } else {
-                scene.tree_2d.insert([
-                    point[0] * window.width() as f32 * 0.5,
-                    point[1] * window.height() as f32 * 0.5,
-                ]);
+                scene
+                    .tree_2d
+                    .insert([
+                        point[0] * window.width() as f32 * 0.5,
+                        point[1] * window.height() as f32 * 0.5,
+                    ])
+                    .unwrap();
             }
         }
         create_render_data_from_scene(scene).into()

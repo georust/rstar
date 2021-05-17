@@ -76,7 +76,7 @@ mod test {
         let mut tree = RTree::bulk_load(points.clone());
         for (point_to_remove, point_to_add) in points.iter().zip(later_insertions.iter()) {
             assert!(tree.remove_at_point(point_to_remove).is_some());
-            tree.insert(*point_to_add);
+            tree.insert(*point_to_add).unwrap();
         }
         assert_eq!(tree.size(), SIZE);
         assert!(points.iter().all(|p| !tree.contains(p)));
@@ -98,7 +98,7 @@ mod test {
             initial_rectangles.iter().zip(new_rectangles.iter())
         {
             assert!(tree.remove(rectangle_to_remove).is_some());
-            tree.insert(*rectangle_to_add);
+            tree.insert(*rectangle_to_add).unwrap();
         }
         assert_eq!(tree.size(), SIZE);
         assert!(initial_rectangles.iter().all(|p| !tree.contains(p)));
