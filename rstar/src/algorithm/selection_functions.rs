@@ -3,21 +3,21 @@ use crate::object::PointDistance;
 use crate::object::RTreeObject;
 use crate::Point;
 
-/// Advanced trait to iterate through an r-tree. Usually it should no be required to be implemented.
+/// Advanced trait to iterate through an r-tree. Usually it should not be required to be implemented.
 ///
 /// It is important to know some details about the inner structure of
-/// r-trees to comprehend this trait. Any node in an r-tree is either a *leaf* (containing exactly one `T: RTreeObject`) or
+/// r-trees to understand this trait. Any node in an r-tree is either a *leaf* (containing exactly one `T: RTreeObject`) or
 /// a *parent* (containing multiple nodes).
 /// The main benefit of r-trees lies in their ability to efficiently guide searches through
 /// the tree. This is done by *pruning*: Knowing the envelopes of parent nodes
-/// often allows to completely skip them and all contained children during a search instead having
+/// often allows the search to completely skip them and all contained children instead of having
 /// to iterate through them, e.g. when searching for elements in a non-intersecting envelope.
 /// This often reduces the expected time from `O(n)` to `O(log(n))`.
 ///
-/// This trait can be used to define searches through the r-tree by defining if a node
+/// This trait can be used to define searches through the r-tree by defining whether a node
 /// should be further investigated ("unpacked") or pruned.
 ///
-/// Usually, the various `locate_[...]` methods of [`RTree`](struct.RTree.html) should cover most
+/// Usually, the various `locate_[...]` methods of [`super::super::RTree`] should cover most
 /// common searches. Otherwise, implementing `SelectionFunction` and using
 /// [`locate_with_selection_function`](struct.RTree.html#method.locate_with_selection_function)
 /// can be used to tailor a custom search.

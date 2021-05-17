@@ -3,15 +3,15 @@ use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 
-/// Default removal strategy to remove elements from an r-tree. A [trait.RemovalFunction]
+/// Default removal strategy to remove elements from an r-tree. A [RemovalFunction]
 /// specifies which elements shall be removed.
 ///
 /// The algorithm descends the tree to the leaf level, using the given removal function
-/// (see [trait.SelectionFunc]). Then, the removal function defines which leaf node shall be
+/// (see [SelectionFunc]). Then, the removal function defines which leaf node shall be
 /// removed. Once the first node is found, the process stops and the element is removed and
 /// returned.
 ///
-/// If a tree node becomes empty by the removal, it is also removed from its parent node.
+/// If a tree node becomes empty due to this removal, it is also removed from its parent node.
 pub fn remove<T, Params, R>(node: &mut ParentNode<T>, removal_function: &R) -> Option<T>
 where
     T: RTreeObject,

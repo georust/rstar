@@ -9,7 +9,7 @@ use std::fmt::Debug;
 ///  - f32
 ///  - f64
 ///
-/// This type cannot be implemented directly. Instead, it is just required to implement
+/// This type cannot be implemented directly. Instead, it is required to implement
 /// all required traits from the `num_traits` crate.
 ///
 /// # Example
@@ -46,8 +46,8 @@ use std::fmt::Debug;
 /// # fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> { unimplemented!() }
 /// }
 ///
-/// // There's a lot of traits that are still missing to make the above code compile,
-/// // let's assume they are implemented. MyFancyNumberType type now readily implements
+/// // Lots of traits are still missing to make the above code compile, but
+/// // let's assume they're implemented. `MyFancyNumberType` type now readily implements
 /// // RTreeNum and can be used with r-trees:
 /// # fn main() {
 /// use rstar::RTree;
@@ -186,7 +186,7 @@ pub trait PointExt: Point {
         Self::from_value(Zero::zero())
     }
 
-    /// Applies `f` on each pair of components of `self` and `other`.
+    /// Applies `f` to each pair of components of `self` and `other`.
     fn component_wise(
         &self,
         other: &Self,

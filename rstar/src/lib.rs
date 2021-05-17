@@ -11,8 +11,7 @@
 //!
 //!
 //! # Further documentation
-//! The crate's main data structure and documentation is struct
-//! [RTree](struct.RTree.html).
+//! The crate's main data structure and documentation is the [RTree] struct.
 //!
 //! Also, the pre-defined primitives like lines and rectangles contained in
 //! the [primitives module](primitives/index.html) may be of interest for a quick start.

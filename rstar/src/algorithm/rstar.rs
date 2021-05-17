@@ -217,7 +217,7 @@ where
     min_index
 }
 
-// Does never return a request for reinsertion
+// Never returns a request for reinsertion
 fn resolve_overflow_without_reinsertion<T, Params>(node: &mut ParentNode<T>) -> InsertionResult<T>
 where
     T: RTreeObject,

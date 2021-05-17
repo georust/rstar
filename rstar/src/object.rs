@@ -4,20 +4,20 @@ use crate::point::{Point, PointExt};
 
 /// An object that can be inserted into an r-tree.
 ///
-/// This trait must be implemented for any object that should be inserted into an r-tree.
+/// This trait must be implemented for any object to be inserted into an r-tree.
 /// Some simple objects that already implement this trait can be found in the
-/// [primitives](primitives/index.html) module.
+/// [crate::primitives] module.
 ///
-/// The only property required of such an object is its [envelope](traits.Envelope.html).
+/// The only property required of such an object is its [crate::Envelope].
 /// Most simply, this method should return the [axis aligned bounding box](struct.AABB.html)
-/// of the object, other envelope types may be supported in the future.
+/// of the object. Other envelope types may be supported in the future.
 ///
-/// *Note*: It is a logic error if an objects envelope changes after insertion into
+/// *Note*: It is a logic error if an object's envelope changes after insertion into
 /// an r-tree.
 ///
 /// # Type parameters
-/// `Envelope`: The objects envelope type. At the moment, only [AABB](struct.AABB.html) is
-/// feasible.
+/// `Envelope`: The object's envelope type. At the moment, only [AABB] is
+/// available.
 ///
 /// # Example implementation
 /// ```
@@ -74,8 +74,8 @@ use crate::point::{Point, PointExt};
 /// # assert_eq!(tree.locate_in_envelope(&unit_square).count(), 2);
 /// ```
 pub trait RTreeObject {
-    /// The object's envelope type. Usually, [AABB](struct.AABB.html) will be the right choice.
-    /// This type also defines the objects dimensionality.
+    /// The object's envelope type. Usually, [AABB] will be the right choice.
+    /// This type also defines the object's dimensionality.
     type Envelope: Envelope;
 
     /// Returns the object's envelope.
@@ -145,25 +145,25 @@ pub trait RTreeObject {
 /// assert!(circle.contains_point(&[1.0, 0.0]));
 /// ```
 pub trait PointDistance: RTreeObject {
-    /// Returns the squared euclidean distance of an object to a point.
+    /// Returns the squared euclidean distance between an object to a point.
     fn distance_2(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
     ) -> <<Self::Envelope as Envelope>::Point as Point>::Scalar;
 
-    /// Returns true if a point is contained within this object.
+    /// Returns `true` if a point is contained within this object.
     ///
     /// By default, any point returning a `distance_2` less than or equal to zero is considered to be
     /// contained within `self`. Changing this default behavior is advised if calculating the squared distance
-    /// is more computational expensive a point containment check.
+    /// is more computationally expensive than a point containment check.
     fn contains_point(&self, point: &<Self::Envelope as Envelope>::Point) -> bool {
         self.distance_2(point) <= num_traits::zero()
     }
 
-    /// Returns the squared distance to this object or `None` if the distance
+    /// Returns the squared distance to this object, or `None` if the distance
     /// is larger than a given maximum value.
     ///
-    /// Some algorithms do need to know an object's distance only
+    /// Some algorithms only need to know an object's distance
     /// if it is less than or equal to a maximum value. In these cases, it may be
     /// faster to calculate a lower bound of the distance first and returning
     /// early if the object cannot be closer than the given maximum.

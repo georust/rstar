@@ -4,7 +4,7 @@ use crate::{Envelope, Point, RTree, RTreeObject};
 /// Defines static parameters for an r-tree.
 ///
 /// Internally, an r-tree contains several nodes, similar to a b-tree. These parameters change
-/// the size of these nodes and can be used to fine tune the tree's performance.
+/// the size of these nodes and can be used to fine-tune the tree's performance.
 ///
 /// # Example
 /// ```
@@ -45,7 +45,7 @@ pub trait RTreeParams: Send + Sync {
     /// but increase the average query time.
     const MAX_SIZE: usize;
 
-    /// The number of nodes that the insertion strategy tries to reinsert sometimes to
+    /// The number of nodes that the insertion strategy tries to occasionally reinsert to
     /// maintain a good tree quality. Must be smaller than `MAX_SIZE` - `MIN_SIZE`.
     /// Larger values will improve query times but increase insertion time.
     const REINSERTION_COUNT: usize;
@@ -72,7 +72,7 @@ impl RTreeParams for DefaultParams {
 /// take?).
 /// Currently, only one insertion strategy is implemented: R* (R-star) insertion. R* insertion
 /// tries to minimize querying performance while yielding reasonable insertion times, making it a
-/// good default strategy. More strategies might be implemented in the future.
+/// good default strategy. More strategies may be implemented in the future.
 ///
 /// Only calls to [insert](struct.RTree.html#method.insert) are affected by this strategy.
 ///
