@@ -50,7 +50,7 @@ pub trait RTreeParams: Send + Sync {
     /// Larger values will improve query times but increase insertion time.
     const REINSERTION_COUNT: usize;
 
-    /// The insertion strategy which is used when calling [insert](struct.RTree.html#method.insert).
+    /// The insertion strategy which is used when calling [RTree::insert].
     type DefaultInsertionStrategy: InsertionStrategy;
 }
 
@@ -74,7 +74,7 @@ impl RTreeParams for DefaultParams {
 /// tries to minimize querying performance while yielding reasonable insertion times, making it a
 /// good default strategy. More strategies may be implemented in the future.
 ///
-/// Only calls to [insert](struct.RTree.html#method.insert) are affected by this strategy.
+/// Only calls to [RTree::insert] are affected by this strategy.
 ///
 /// This trait is not meant to be implemented by the user.
 pub trait InsertionStrategy {

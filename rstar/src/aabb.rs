@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// dimension.
 ///
 /// Note that AABBs cannot be inserted into r-trees. Use the
-/// [Rectangle](primitives/struct.Rectangle.html) struct for this purpose.
+/// [Rectangle](crate::primitives::Rectangle) struct for this purpose.
 ///
 /// # Type arguments
 /// `P`: The struct is generic over which point type is used. Using an n-dimensional point

@@ -36,7 +36,7 @@ where
 ///
 /// However, creating an r-tree is time consuming
 /// and runs in `O(n * log(n))`. Thus, r-trees are suited best if many queries and only few
-/// insertions are made. rstar also supports [bulk loading](struct.RTree.html#method.bulk_load),
+/// insertions are made. rstar also supports [bulk loading](RTree::bulk_load),
 /// which cuts down the constant factors when creating an r-tree significantly compared to
 /// sequential insertions.
 ///
@@ -54,10 +54,10 @@ where
 /// For more information refer to the [wikipedia article](https://en.wikipedia.org/wiki/R-tree).
 ///
 /// # Usage
-/// The items inserted into an r-tree must implement the [RTreeObject](trait.RTreeObject.html)
-/// trait. To support nearest neighbor queries, implement the [PointDistance](trait.PointDistance.html)
+/// The items inserted into an r-tree must implement the [RTreeObject]
+/// trait. To support nearest neighbor queries, implement the [PointDistance]x
 /// trait. Some useful geometric primitives that implement the above traits can be found in the
-/// [primitives](primitives/index.html) module. Several primitives in the [`geo-types`](https://docs.rs/geo-types/) crate also
+/// [crate::primitives]x module. Several primitives in the [`geo-types`](https://docs.rs/geo-types/) crate also
 /// implement these traits.
 ///
 /// ## Example
@@ -81,13 +81,13 @@ where
 /// ```
 ///
 /// ## Supported point types
-/// All types implementing the [Point](trait.Point.html) trait can be used as underlying point type.
+/// All types implementing the [Point] trait can be used as underlying point type.
 /// By default, fixed size arrays can be used as points.
 ///
 /// ## Type Parameters
 /// * `T`: The type of objects stored in the r-tree.
 /// * `Params`: Compile time parameters that change the r-tree's internal layout. Refer to the
-/// [RTreeParams](trait.RTreeParams.html) trait for more information.
+/// [RTreeParams] trait for more information.
 ///
 /// ## Defining methods generic over r-trees
 /// If a library defines a method that should be generic over the r-tree type signature, make
@@ -186,7 +186,7 @@ where
 {
     /// Creates a new, empty r-tree.
     ///
-    /// The created r-tree is configured with [default parameters](struct.DefaultParams.html).
+    /// The created r-tree is configured with [default parameters](DefaultParams).
     pub fn new() -> Self {
         Self::new_with_params()
     }
@@ -216,7 +216,7 @@ where
     /// Creates a new, empty r-tree.
     ///
     /// The tree's compile time parameters must be specified. Refer to the
-    /// [RTreeParams](trait.RTreeParams.html) trait for more information and a usage example.
+    /// [RTreeParams] trait for more information and a usage example.
     pub fn new_with_params() -> Self {
         verify_parameters::<T, Params>();
         RTree {
@@ -228,8 +228,8 @@ where
 
     /// Creates a new r-tree with some given elements and configurable parameters.
     ///
-    /// For more information refer to [bulk_load](#method.bulk_load)
-    /// and [RTreeParameters](traits.RTreeParameters.html).
+    /// For more information refer to [RTree::bulk_load]
+    /// and [RTreeParams].
     pub fn bulk_load_with_params(elements: Vec<T>) -> Self {
         Self::new_from_bulk_loading(elements, bulk_load::bulk_load_sequential::<_, Params>)
     }
@@ -272,7 +272,7 @@ where
     /// The order in which the elements are returned is not specified.
     ///
     /// *Note*: It is a logic error to change an inserted item's position or dimensions. This
-    /// method is primarily meant for own implementations of [RTreeObject](trait.RTreeObject.html)
+    /// method is primarily meant for own implementations of [RTreeObject]
     /// which can contain arbitrary additional data.
     /// If the position or location of an inserted object need to change, you will need to [RTree::remove]
     /// and reinsert it.
@@ -283,7 +283,7 @@ where
 
     /// Returns all elements contained in an [Envelope].
     ///
-    /// Usually, an envelope is an [axis aligned bounding box](struct.AABB.html). This
+    /// Usually, an envelope is an [axis aligned bounding box](crate::AABB). This
     /// method can be used to retrieve all elements that are fully contained within an envelope.
     ///
     /// # Example
@@ -314,7 +314,7 @@ where
     ///
     /// Any element fully contained within an envelope is also returned by this method. Two
     /// envelopes that "touch" each other (e.g. by sharing only a common corner) are also
-    /// considered to intersect. Usually, an envelope is an [axis aligned bounding box](struct.AABB.html).
+    /// considered to intersect. Usually, an envelope is an [axis aligned bounding box](crate::AABB).
     /// This method will return all elements whose AABB has some common area with
     /// a given AABB.
     ///
@@ -367,7 +367,7 @@ where
 
     /// Locates elements in the r-tree defined by a selection function.
     ///
-    /// Refer to the documentation of [`SelectionFunction`](trait.SelectionFunction.html) for
+    /// Refer to the documentation of [`SelectionFunction`] for
     /// more information.
     ///
     /// Usually, other `locate` methods should cover most common use cases. This method is only required
@@ -433,9 +433,9 @@ where
     }
 
     /// Removes and returns a single element from the tree. The element to remove is specified
-    /// by a [`SelectionFunction`](trait.SelectionFunction.html).
+    /// by a [`SelectionFunction`].
     ///
-    /// See also: [`remove`](#method.remove), [`remove_at_point`](#method.remove_at_point)
+    /// See also: [`RTree::remove`], [`RTree::remove_at_point`]
     ///
     pub fn remove_with_selection_function<F>(&mut self, function: F) -> Option<T>
     where
@@ -456,7 +456,7 @@ where
 {
     /// Returns a single object that covers a given point.
     ///
-    /// Method [contains_point](trait.PointDistance.html#method.contains_point)
+    /// Method [contains_point](PointDistance::contains_point)
     /// is used to determine if a tree element contains the given point.
     ///
     /// If multiple elements contain the given point, any of them is returned.
@@ -464,7 +464,7 @@ where
         self.locate_all_at_point(point).next()
     }
 
-    /// Mutable variant of [locate_at_point](#method.locate_at_point).
+    /// Mutable variant of [RTree::locate_at_point].
     pub fn locate_at_point_mut(
         &mut self,
         point: &<T::Envelope as Envelope>::Point,
@@ -474,7 +474,7 @@ where
 
     /// Locate all elements containing a given point.
     ///
-    /// Method [contains_point](trait.PointDistance.html#method.contains_point) is used
+    /// Method [PointDistance::contains_point] is used
     /// to determine if a tree element contains the given point.
     /// # Example
     /// ```
@@ -588,7 +588,7 @@ where
     /// Returns the nearest neighbor for a given point.
     ///
     /// The distance is calculated by calling
-    /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2)
+    /// [PointDistance::distance_2]
     ///
     /// # Example
     /// ```
@@ -614,7 +614,7 @@ where
     /// Returns the nearest neighbors for a given point.
     ///
     /// The distance is calculated by calling
-    /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2)
+    /// [PointDistance::distance_2]
     ///
     /// All returned values will have the exact same distance from the given query point.
     /// Returns an empty `Vec` if the tree is empty.
@@ -639,7 +639,7 @@ where
     /// The elements may be returned in any order. Each returned element
     /// will have a squared distance less or equal to the given squared distance.
     ///
-    /// This method makes use of [distance_2_if_less_or_equal](trait.PointDistance.html#method.distance_2_if_less_or_equal).
+    /// This method makes use of [PointDistance::distance_2_if_less_or_equal].
     /// If performance is critical and the distance calculation to the object is fast,
     /// overwriting this function may be beneficial.
     pub fn locate_within_distance(
@@ -656,7 +656,7 @@ where
     /// # Runtime
     /// Every `next()` call runs in `O(log(n))`. Creating the iterator runs in
     /// `O(log(n))`.
-    /// The [r-tree documentation](struct.RTree.html) contains more information about
+    /// The [r-tree documentation](RTree) contains more information about
     /// r-tree performance.
     ///
     /// # Example
@@ -680,7 +680,7 @@ where
     /// Returns `(element, distance^2)` tuples of the tree sorted by their distance to a given point.
     ///
     /// The distance is calculated by calling
-    /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2).
+    /// [PointDistance::distance_2].
     #[deprecated(note = "Please use nearest_neighbor_iter_with_distance_2 instead")]
     pub fn nearest_neighbor_iter_with_distance(
         &self,
@@ -692,7 +692,7 @@ where
     /// Returns `(element, distance^2)` tuples of the tree sorted by their distance to a given point.
     ///
     /// The distance is calculated by calling
-    /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2).
+    /// [PointDistance::distance_2].
     pub fn nearest_neighbor_iter_with_distance_2(
         &self,
         query_point: &<T::Envelope as Envelope>::Point,
@@ -703,7 +703,7 @@ where
     /// Removes the nearest neighbor for a given point and returns it.
     ///
     /// The distance is calculated by calling
-    /// [PointDistance::distance_2](traits.PointDistance.html#method.distance_2).
+    /// [PointDistance::distance_2].
     ///
     /// # Example
     /// ```
@@ -740,7 +740,7 @@ where
     ///
     /// # Runtime
     /// This method runs in `O(log(n))`.
-    /// The [r-tree documentation](struct.RTree.html) contains more information about
+    /// The [r-tree documentation](RTree) contains more information about
     /// r-tree performance.
     pub fn insert(&mut self, t: T) {
         Params::DefaultInsertionStrategy::insert(self, t);

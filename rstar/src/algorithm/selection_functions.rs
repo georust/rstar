@@ -19,7 +19,7 @@ use crate::Point;
 ///
 /// Usually, the various `locate_[...]` methods of [`super::super::RTree`] should cover most
 /// common searches. Otherwise, implementing `SelectionFunction` and using
-/// [`locate_with_selection_function`](struct.RTree.html#method.locate_with_selection_function)
+/// [`crate::RTree::locate_with_selection_function`]
 /// can be used to tailor a custom search.
 pub trait SelectionFunction<T>
 where

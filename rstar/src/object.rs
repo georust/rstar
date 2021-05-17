@@ -9,7 +9,7 @@ use crate::point::{Point, PointExt};
 /// [crate::primitives] module.
 ///
 /// The only property required of such an object is its [crate::Envelope].
-/// Most simply, this method should return the [axis aligned bounding box](struct.AABB.html)
+/// Most simply, this method should return the [axis aligned bounding box](AABB)
 /// of the object. Other envelope types may be supported in the future.
 ///
 /// *Note*: It is a logic error if an object's envelope changes after insertion into
@@ -80,7 +80,7 @@ pub trait RTreeObject {
 
     /// Returns the object's envelope.
     ///
-    /// Usually, this will return the object's [axis aligned bounding box](struct.AABB.html).
+    /// Usually, this will return the object's [axis aligned bounding box](AABB).
     fn envelope(&self) -> Self::Envelope;
 }
 

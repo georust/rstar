@@ -13,7 +13,7 @@ use num_traits::{Bounded, Zero};
 /// insertions and many nearest neighbor queries.
 ///
 /// `RStarInsertionStrategy` is used as the default insertion strategy.
-/// See [InsertionStrategy](trait.InsertionStrategy.html) for more information on insertion strategies.
+/// See [InsertionStrategy] for more information on insertion strategies.
 pub enum RStarInsertionStrategy {}
 
 enum InsertionResult<T>
