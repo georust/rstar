@@ -12,6 +12,7 @@
 - Update Criterion and rewrite deprecated benchmark functions
 - Remove unused imports
 - Remove executable bit from files
+- Fix typos, modernize links
 
 # 0.8.3
 ## Changed
