@@ -55,7 +55,7 @@ where
 ///
 /// # Usage
 /// The items inserted into an r-tree must implement the [RTreeObject]
-/// trait. To support nearest neighbor queries, implement the [PointDistance]x
+/// trait. To support nearest neighbor queries, implement the [PointDistance]
 /// trait. Some useful geometric primitives that implement the above traits can be found in the
 /// [crate::primitives]x module. Several primitives in the [`geo-types`](https://docs.rs/geo-types/) crate also
 /// implement these traits.
