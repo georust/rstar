@@ -70,7 +70,9 @@ impl InsertionStrategy for RStarInsertionStrategy {
                     let root = tree.root_mut();
                     match forced_insertion::<T, Params>(root, node_to_reinsert, target_height) {
                         InsertionResult::Split(node) => insertion_stack.push(PerformSplit(node)),
-                        InsertionResult::Reinsert(_, _) => (),
+                        InsertionResult::Reinsert(_, _) => {
+                            Err("Unexpected reinsert. This is a bug in rstar.")?
+                        }
                         InsertionResult::Complete => {}
                     }
                 }
