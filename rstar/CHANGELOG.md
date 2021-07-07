@@ -1,10 +1,11 @@
-# 0.9.0 (unreleased)
+# 0.9.0
 
 ## Added
 - `RTree::nearest_neighbors` method based on
   [spade crate's implementation](https://github.com/Stoeoef/spade)
 
 ## Changed
+- Fix floating point inconsistency in `min_max_dist_2` ([PR](https://github.com/georust/rstar/pull/40)).
 - BREAKING: `Point::generate` function now accepts a `impl FnMut`. Custom implementations of `Point` must change to
   accept `impl FnMut` instead of `impl Fn`. Callers of `Point::generate` should not require changes.
 - Update CI images to Stable Rust 1.50 and 1.51
@@ -36,7 +37,7 @@
 ## Changed:
  - Deprecated `RTree::nearest_neighbor_iter_with_distance`. The name is misleading, use `RTree::nearest_neighbor_iter_with_distance_2` instead.
  - Some performance improvements, see #38 and #35
- 
+
 ## Added
  - Added `nearest_neighbor_iter_with_distance_2` #31
 
