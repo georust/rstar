@@ -39,6 +39,22 @@ The project is being actively developed, feature requests and PRs are welcome!
 # Documentation
 The documentation is hosted on [docs.rs](https://docs.rs/rstar/).
 
+# Release Checklist
+
+The crate can be published by the `rstar-publishers` team of
+georust. Please follow the steps below while publishing a
+new release.
+
+1. Create branch from master, say `release/<version>`.
+2. Ensure `rstar/CHANGELOG.md` describes all the changes
+   since last release (esp. the breaking ones).
+3. Ensure / set `version` metadata in `Cargo.toml` of
+   `rstar` to the new version.
+4. Create PR to master, have it approved and merge.
+5. Checkout the updated master, go to `rstar` directory and
+   run `cargo publish`.
+6. Create tag `<version>` and push to `georust/rstar`
+
 # License
 
 Licensed under either of
