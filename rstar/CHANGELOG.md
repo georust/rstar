@@ -1,4 +1,4 @@
-# Unreleased
+# 0.9.1
 
 ## Added
 - A generic container for a geometry and associated data: `GeomWithData` ([PR](https://github.com/georust/rstar/pull/74))
