@@ -667,6 +667,16 @@ where
         LocateWithinDistanceIterator::new(self.root(), selection_function)
     }
 
+    /// Remove all elements within a given distance.
+    pub fn remove_within_distance(
+        &mut self,
+        query_point: <T::Envelope as Envelope>::Point,
+        max_squared_radius: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+    ) -> Vec<T> {
+        let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
+        self.remove_all_with_selection_function(selection_function)
+    }
+
     /// Returns all elements of the tree sorted by their distance to a given point.
     ///
     /// # Runtime
