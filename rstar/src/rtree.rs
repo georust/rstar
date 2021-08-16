@@ -447,6 +447,22 @@ where
         }
         result
     }
+
+    /// Removes all elements that are selected by a given [`SelectionFunction`].
+    pub fn remove_all_with_selection_function<F>(&mut self, function: F) -> Vec<T>
+    where
+        F: SelectionFunction<T>,
+    {
+        let result = removal::remove_all::<_, Params, _>(&mut self.root, &function);
+        self.size -= result.len();
+        result
+    }
+
+    /// Remove all elements intersecting an envelope.
+    pub fn remove_in_envelope_intersecting(&mut self, envelope: &T::Envelope) -> Vec<T> {
+        let selection_function = SelectInEnvelopeFuncIntersecting::new(*envelope);
+        self.remove_all_with_selection_function(selection_function)
+    }
 }
 
 impl<T, Params> RTree<T, Params>

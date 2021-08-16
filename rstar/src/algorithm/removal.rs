@@ -18,43 +18,70 @@ where
     Params: RTreeParams,
     R: SelectionFunction<T>,
 {
-    let mut result = None;
+    remove_recursive::<_, Params, _>(node, removal_function, false).pop()
+}
+
+pub fn remove_all<T, Params, R>(node: &mut ParentNode<T>, removal_function: &R) -> Vec<T>
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+    R: SelectionFunction<T>,
+{
+    remove_recursive::<_, Params, _>(node, removal_function, true)
+}
+
+fn remove_recursive<T, Params, R>(
+    node: &mut ParentNode<T>,
+    removal_function: &R,
+    all_matches: bool,
+) -> Vec<T>
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+    R: SelectionFunction<T>,
+{
+    let mut result = Vec::new();
     if removal_function.should_unpack_parent(&node.envelope) {
-        let mut removal_index = None;
-        for (index, child) in node.children.iter_mut().enumerate() {
+        let mut i = 0;
+        while i < node.children.len() {
+            let child = &mut node.children[i];
             match child {
                 RTreeNode::Parent(ref mut data) => {
-                    result = remove::<_, Params, _>(data, removal_function);
-                    if result.is_some() {
-                        if data.children.is_empty() {
-                            // Mark child for removal if it has become empty
-                            removal_index = Some(index);
+                    result.append(&mut remove_recursive::<_, Params, _>(
+                        data,
+                        removal_function,
+                        all_matches,
+                    ));
+                    if !result.is_empty() && data.children.is_empty() {
+                        // Mark child for removal if it has become empty
+                        node.children.remove(i);
+                        if !all_matches {
+                            break;
                         }
-                        break;
+                    } else {
+                        i += 1;
                     }
                 }
                 RTreeNode::Leaf(ref b) => {
                     if removal_function.should_unpack_leaf(b) {
                         // Mark leaf for removal if should be removed
-                        removal_index = Some(index);
-                        break;
+                        let val = node.children.remove(i);
+                        if let RTreeNode::Leaf(t) = val {
+                            result.push(t);
+                        } else {
+                            unreachable!("This is a bug.");
+                        }
+                        if !all_matches {
+                            break;
+                        }
+                    } else {
+                        i += 1;
                     }
                 }
             }
         }
-        // Perform the actual removal outside of the self.children borrow
-        if let Some(removal_index) = removal_index {
-            let child = node.children.swap_remove(removal_index);
-            if result.is_none() {
-                if let RTreeNode::Leaf(t) = child {
-                    result = Some(t);
-                } else {
-                    unreachable!("This is a bug.");
-                }
-            }
-        }
     }
-    if result.is_some() {
+    if !result.is_empty() {
         // Update the envelope, it may have become smaller
         node.envelope = crate::node::envelope_for_children(&node.children);
     }
