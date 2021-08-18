@@ -18,7 +18,7 @@ where
     Params: RTreeParams,
     R: SelectionFunction<T>,
 {
-    remove_recursive::<_, Params, _>(node, removal_function, false).pop()
+    remove_recursive::<_, Params, _>(node, removal_function, true).pop()
 }
 
 pub fn remove_all<T, Params, R>(node: &mut ParentNode<T>, removal_function: &R) -> Vec<T>
@@ -27,13 +27,13 @@ where
     Params: RTreeParams,
     R: SelectionFunction<T>,
 {
-    remove_recursive::<_, Params, _>(node, removal_function, true)
+    remove_recursive::<_, Params, _>(node, removal_function, false)
 }
 
 fn remove_recursive<T, Params, R>(
     node: &mut ParentNode<T>,
     removal_function: &R,
-    all_matches: bool,
+    remove_only_first: bool,
 ) -> Vec<T>
 where
     T: RTreeObject,
@@ -50,12 +50,14 @@ where
                     result.append(&mut remove_recursive::<_, Params, _>(
                         data,
                         removal_function,
-                        all_matches,
+                        remove_only_first,
                     ));
-                    if !result.is_empty() && data.children.is_empty() {
+                    if !result.is_empty() {
                         // Mark child for removal if it has become empty
-                        node.children.remove(i);
-                        if !all_matches {
+                        if data.children.is_empty() {
+                            node.children.remove(i);
+                        }
+                        if remove_only_first {
                             break;
                         }
                     } else {
@@ -71,7 +73,7 @@ where
                         } else {
                             unreachable!("This is a bug.");
                         }
-                        if !all_matches {
+                        if remove_only_first {
                             break;
                         }
                     } else {
