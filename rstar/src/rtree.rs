@@ -143,8 +143,8 @@ where
     Params: RTreeParams,
     T: RTreeObject,
 {
-    root: ParentNode<T>,
-    size: usize,
+    pub(crate) root: ParentNode<T>,
+    pub(crate) size: usize,
     _params: ::std::marker::PhantomData<Params>,
 }
 
@@ -441,11 +441,7 @@ where
     where
         F: SelectionFunction<T>,
     {
-        let result = removal::remove::<_, Params, _>(&mut self.root, &function);
-        if result.is_some() {
-            self.size -= 1;
-        }
-        result
+        removal::DrainIterator::new(self, function).take(1).last()
     }
 
     /// Removes all elements that are selected by a given [`SelectionFunction`].
