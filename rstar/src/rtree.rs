@@ -315,6 +315,12 @@ where
         LocateInEnvelopeMut::new(&mut self.root, SelectInEnvelopeFunction::new(*envelope))
     }
 
+    /// Draining variant of [locate_in_envelope](#method.locate_in_envelope).
+    pub fn drain_in_envelope(&mut self, envelope: T::Envelope) -> DrainIterator<T, SelectInEnvelopeFunction<T>, Params> {
+        let sel = SelectInEnvelopeFunction::new(envelope);
+        self.drain_with_selection_function(sel)
+    }
+
     /// Returns all elements whose envelope intersects a given envelope.
     ///
     /// Any element fully contained within an envelope is also returned by this method. Two
