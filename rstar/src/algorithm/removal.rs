@@ -198,52 +198,54 @@ where
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (node, idx, remove_count) = match self.node_stack.last_mut() {
-            Some(node) => (&mut node.0, &mut node.1, &mut node.2),
-            None => return None,
-        };
+        loop {
+            // Get reference to top node or return None.
+            let (node, idx, remove_count) = match self.node_stack.last_mut() {
+                Some(node) => (&mut node.0, &mut node.1, &mut node.2),
+                None => return None,
+            };
 
-        if *idx > 0 || self.removal_function.should_unpack_parent(&node.envelope) {
-            while *idx < node.children.len() {
-                match &mut node.children[*idx] {
-                    RTreeNode::Parent(_) => {
-                        // Swap node with last, remove and return the value.
-                        // No need to increment idx as something else has replaced it;
-                        // or idx == new len, and we'll handle it in the next iteration.
-                        let child = match node.children.swap_remove(*idx) {
-                            RTreeNode::Leaf(_) => unreachable!("DrainIterator bug!"),
-                            RTreeNode::Parent(node) => node,
-                        };
-                        self.node_stack.push((child, 0, 0));
-                        return self.next();
-                    }
-                    RTreeNode::Leaf(ref leaf) => {
-                        if self.removal_function.should_unpack_leaf(leaf) {
+            // Try to find a selected item to return.
+            if *idx > 0 || self.removal_function.should_unpack_parent(&node.envelope) {
+                while *idx < node.children.len() {
+                    match &mut node.children[*idx] {
+                        RTreeNode::Parent(_) => {
                             // Swap node with last, remove and return the value.
                             // No need to increment idx as something else has replaced it;
                             // or idx == new len, and we'll handle it in the next iteration.
-                            *remove_count += 1;
-                            return match node.children.swap_remove(*idx) {
-                                RTreeNode::Leaf(data) => Some(data),
-                                _ => unreachable!("RemovalIterator bug!"),
+                            let child = match node.children.swap_remove(*idx) {
+                                RTreeNode::Leaf(_) => unreachable!("DrainIterator bug!"),
+                                RTreeNode::Parent(node) => node,
                             };
+                            self.node_stack.push((child, 0, 0));
+                            return self.next();
                         }
-                        *idx += 1;
+                        RTreeNode::Leaf(ref leaf) => {
+                            if self.removal_function.should_unpack_leaf(leaf) {
+                                // Swap node with last, remove and return the value.
+                                // No need to increment idx as something else has replaced it;
+                                // or idx == new len, and we'll handle it in the next iteration.
+                                *remove_count += 1;
+                                return match node.children.swap_remove(*idx) {
+                                    RTreeNode::Leaf(data) => Some(data),
+                                    _ => unreachable!("RemovalIterator bug!"),
+                                };
+                            }
+                            *idx += 1;
+                        }
                     }
                 }
             }
-        }
 
-        if let Some((new_root, total_removed)) = self.pop_node(true) {
-            // This happens if we are done with the iteration.
-            // Set the root back in rtree and return None
-            self.rtree.root = new_root;
-            self.rtree.size = self.original_size - total_removed;
-            return None;
+            // Pop top node and clean-up if done
+            if let Some((new_root, total_removed)) = self.pop_node(true) {
+                // This happens if we are done with the iteration.
+                // Set the root back in rtree and return None
+                self.rtree.root = new_root;
+                self.rtree.size = self.original_size - total_removed;
+                return None;
+            }
         }
-
-        // TODO: fix tail recursion (it's only log-n depth though)
-        self.next()
     }
 }
 
