@@ -4,7 +4,7 @@ use crate::algorithm::selection_functions::SelectionFunction;
 use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
-use crate::RTree;
+use crate::{Envelope, RTree};
 
 /// Default removal strategy to remove elements from an r-tree. A [RemovalFunction]
 /// specifies which elements shall be removed.
@@ -112,14 +112,30 @@ where
     R: SelectionFunction<T>,
 {
     pub(crate) fn new(rtree: &'a mut RTree<T, Params>, removal_function: R) -> Self {
-        // We replace with a brand new RTree in case the iterator is
+        // We replace with a root as a brand new RTree in case the iterator is
         // `mem::forgot`ten.
-        let RTree { root, size, .. } = replace(rtree, RTree::new_with_params());
+
+        // Instead of using `new_with_params`, we avoid an allocation for
+        // the normal usage and replace root with an empty `Vec`.
+        let root = replace(
+            &mut rtree.root,
+            ParentNode {
+                children: vec![],
+                envelope: Envelope::new_empty(),
+            },
+        );
+        let original_size = replace(&mut rtree.size, 0);
+
+        let m = Params::MIN_SIZE;
+        let max_depth = (original_size as f32).log(m as f32).ceil() as usize;
+        let mut node_stack = Vec::with_capacity(max_depth);
+        node_stack.push((root, 0, 0));
 
         DrainIterator {
-            node_stack: vec![(root, 0, 0)],
-            original_size: size,
-            removal_function, rtree,
+            node_stack,
+            original_size,
+            removal_function,
+            rtree,
         }
     }
 
@@ -147,7 +163,9 @@ where
         *parent_removed += num_removed;
 
         // If the node has no children, we don't need to add it back to the parent
-        if node.children.is_empty() { return None; }
+        if node.children.is_empty() {
+            return None;
+        }
 
         // Put the child back (but re-arranged)
         parent_node.children.push(RTreeNode::Parent(node));
@@ -156,7 +174,9 @@ where
 
         // A minor optimization is to avoid the swap in the destructor,
         // where we aren't going to be iterating any more.
-        if !increment_idx { return None; }
+        if !increment_idx {
+            return None;
+        }
 
         // Note that during iteration, parent_idx may be equal to
         // (previous) children.len(), but this is okay as the swap will be
@@ -254,11 +274,13 @@ where
 
 #[cfg(test)]
 mod test {
+    use std::mem::forget;
+
     use crate::algorithm::selection_functions::{SelectAllFunc, SelectInEnvelopeFuncIntersecting};
     use crate::point::PointExt;
     use crate::primitives::Line;
     use crate::test_utilities::{create_random_points, create_random_rectangles, SEED_1, SEED_2};
-    use crate::{AABB, RTree};
+    use crate::{RTree, AABB};
 
     use super::*;
 
@@ -346,16 +368,26 @@ mod test {
         let points = create_random_points(SIZE, SEED_1);
         let mut tree = RTree::bulk_load(points.clone());
 
-        let drain_count = DrainIterator::new(&mut tree, SelectAllFunc).take(250).count();
+        let drain_count = DrainIterator::new(&mut tree, SelectAllFunc)
+            .take(250)
+            .count();
         assert_eq!(drain_count, 250);
         assert_eq!(tree.size(), 750);
 
-        let drain_count = DrainIterator::new(&mut tree, SelectAllFunc).count();
-        assert_eq!(drain_count, 750);
+        let drain_count = DrainIterator::new(&mut tree, SelectAllFunc)
+            .take(250)
+            .count();
+        assert_eq!(drain_count, 250);
+        assert_eq!(tree.size(), 500);
+
+        // Test Drain forget soundness
+        forget(DrainIterator::new(&mut tree, SelectAllFunc));
+        // Check tree has no nodes
+        // Tests below will check the same tree can be used again
         assert_eq!(tree.size(), 0);
 
         let points = create_random_points(1000, SEED_1);
-        let mut tree = RTree::bulk_load(points.clone());
+        points.clone().into_iter().for_each(|pt| tree.insert(pt));
 
         // The total for this is 406 (for SEED_1)
         let env = AABB::from_corners([-2., -0.6], [0.5, 0.85]);
