@@ -6,94 +6,20 @@ use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::{Envelope, RTree};
 
-/// Default removal strategy to remove elements from an r-tree. A [RemovalFunction]
-/// specifies which elements shall be removed.
+/// Iterator returned by `RTree::drain_*` methods.
 ///
-/// The algorithm descends the tree to the leaf level, using the given removal function
-/// (see [SelectionFunc]). Then, the removal function defines which leaf node shall be
-/// removed. Once the first node is found, the process stops and the element is removed and
-/// returned.
+/// Draining iterator that removes elements of the tree selected by a
+/// [`SelectionFunction`]. Returned by
+/// [`RTree::drain_with_selection_function`] and related methods.
 ///
-/// If a tree node becomes empty due to this removal, it is also removed from its parent node.
-pub fn remove<T, Params, R>(node: &mut ParentNode<T>, removal_function: &R) -> Option<T>
-where
-    T: RTreeObject,
-    Params: RTreeParams,
-    R: SelectionFunction<T>,
-{
-    remove_recursive::<_, Params, _>(node, removal_function, true).pop()
-}
-
-pub fn remove_all<T, Params, R>(node: &mut ParentNode<T>, removal_function: &R) -> Vec<T>
-where
-    T: RTreeObject,
-    Params: RTreeParams,
-    R: SelectionFunction<T>,
-{
-    remove_recursive::<_, Params, _>(node, removal_function, false)
-}
-
-fn remove_recursive<T, Params, R>(
-    node: &mut ParentNode<T>,
-    removal_function: &R,
-    remove_only_first: bool,
-) -> Vec<T>
-where
-    T: RTreeObject,
-    Params: RTreeParams,
-    R: SelectionFunction<T>,
-{
-    let mut result = Vec::new();
-    if removal_function.should_unpack_parent(&node.envelope) {
-        let mut i = 0;
-        while i < node.children.len() {
-            let child = &mut node.children[i];
-            match child {
-                RTreeNode::Parent(ref mut data) => {
-                    result.append(&mut remove_recursive::<_, Params, _>(
-                        data,
-                        removal_function,
-                        remove_only_first,
-                    ));
-                    if !result.is_empty() {
-                        // Mark child for removal if it has become empty
-                        if data.children.is_empty() {
-                            node.children.remove(i);
-                        }
-                        if remove_only_first {
-                            break;
-                        }
-                    } else {
-                        i += 1;
-                    }
-                }
-                RTreeNode::Leaf(ref b) => {
-                    if removal_function.should_unpack_leaf(b) {
-                        // Mark leaf for removal if should be removed
-                        let val = node.children.remove(i);
-                        if let RTreeNode::Leaf(t) = val {
-                            result.push(t);
-                        } else {
-                            unreachable!("This is a bug.");
-                        }
-                        if remove_only_first {
-                            break;
-                        }
-                    } else {
-                        i += 1;
-                    }
-                }
-            }
-        }
-    }
-    if !result.is_empty() {
-        // Update the envelope, it may have become smaller
-        node.envelope = crate::node::envelope_for_children(&node.children);
-    }
-    result
-}
-
-pub(crate) struct DrainIterator<'a, T, R, Params>
+/// # Remarks
+///
+/// This iterator is similar to the one returned by `Vec::drain` or
+/// `Vec::drain_filter`. Dropping the iterator at any point removes only
+/// the yielded values (this behaviour is unlike `Vec::drain_*`). Leaking
+/// this iterator leads to a leak amplification where all elements of the
+/// tree are leaked.
+pub struct DrainIterator<'a, T, R, Params>
 where
     T: RTreeObject,
     Params: RTreeParams,
@@ -118,13 +44,13 @@ where
         // Instead of using `new_with_params`, we avoid an allocation for
         // the normal usage and replace root with an empty `Vec`.
         let root = replace(
-            &mut rtree.root,
+            rtree.root_mut(),
             ParentNode {
                 children: vec![],
                 envelope: Envelope::new_empty(),
             },
         );
-        let original_size = replace(&mut rtree.size, 0);
+        let original_size = replace(rtree.size_mut(), 0);
 
         let m = Params::MIN_SIZE;
         let max_depth = (original_size as f32).log(m as f32).ceil() as usize;
@@ -241,8 +167,8 @@ where
             if let Some((new_root, total_removed)) = self.pop_node(true) {
                 // This happens if we are done with the iteration.
                 // Set the root back in rtree and return None
-                self.rtree.root = new_root;
-                self.rtree.size = self.original_size - total_removed;
+                *self.rtree.root_mut() = new_root;
+                *self.rtree.size_mut() = self.original_size - total_removed;
                 return None;
             }
         }
@@ -266,8 +192,8 @@ where
         loop {
             debug_assert!(!self.node_stack.is_empty());
             if let Some((new_root, total_removed)) = self.pop_node(false) {
-                self.rtree.root = new_root;
-                self.rtree.size = self.original_size - total_removed;
+                *self.rtree.root_mut() = new_root;
+                *self.rtree.size_mut() = self.original_size - total_removed;
                 break;
             }
         }

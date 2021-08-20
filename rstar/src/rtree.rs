@@ -3,6 +3,7 @@ use crate::algorithm::intersection_iterator::IntersectionIterator;
 use crate::algorithm::iterators::*;
 use crate::algorithm::nearest_neighbor;
 use crate::algorithm::removal;
+use crate::algorithm::removal::DrainIterator;
 use crate::algorithm::selection_functions::*;
 use crate::envelope::Envelope;
 use crate::node::ParentNode;
@@ -143,8 +144,8 @@ where
     Params: RTreeParams,
     T: RTreeObject,
 {
-    pub(crate) root: ParentNode<T>,
-    pub(crate) size: usize,
+    root: ParentNode<T>,
+    size: usize,
     _params: ::std::marker::PhantomData<Params>,
 }
 
@@ -249,6 +250,10 @@ where
     /// ```
     pub fn size(&self) -> usize {
         self.size
+    }
+
+    pub(crate) fn size_mut(&mut self) -> &mut usize {
+        &mut self.size
     }
 
     /// Returns an iterator over all elements contained in the tree.
@@ -444,20 +449,32 @@ where
         removal::DrainIterator::new(self, function).take(1).last()
     }
 
-    /// Removes all elements that are selected by a given [`SelectionFunction`].
-    pub fn remove_all_with_selection_function<F>(&mut self, function: F) -> Vec<T>
+    /// Drain elements selected by a [`SelectionFunction`]. Returns an
+    /// iterator that successively removes selected elements and returns
+    /// them. This is the most generic drain API, see also:
+    /// [`RTree::drain_in_envelope_intersecting`],
+    /// [`RTree::drain_within_distance`].
+    ///
+    /// # Remarks
+    ///
+    /// This API is similar to `Vec::drain_filter`, but stopping the
+    /// iteration would stop the removal. However, the returned iterator
+    /// must be properly dropped. Leaking this iterator leads to a leak
+    /// amplification, where all the elements in the tree are leaked.
+    pub fn drain_with_selection_function<F>(&mut self, function: F) -> DrainIterator<T, F, Params>
     where
         F: SelectionFunction<T>,
     {
-        let result = removal::remove_all::<_, Params, _>(&mut self.root, &function);
-        self.size -= result.len();
-        result
+        removal::DrainIterator::new(self, function)
     }
 
-    /// Remove all elements intersecting an envelope.
-    pub fn remove_in_envelope_intersecting(&mut self, envelope: &T::Envelope) -> Vec<T> {
-        let selection_function = SelectInEnvelopeFuncIntersecting::new(*envelope);
-        self.remove_all_with_selection_function(selection_function)
+    /// Drains elements intersecting the `envelope`. Similar to
+    /// `locate_in_envelope_intersecting`, except the elements are removed
+    /// and returned via an iterator.
+    pub fn drain_in_envelope_intersecting(&mut self, envelope: T::Envelope) -> DrainIterator<T, SelectInEnvelopeFuncIntersecting<T>, Params>
+    {
+        let selection_function = SelectInEnvelopeFuncIntersecting::new(envelope);
+        self.drain_with_selection_function(selection_function)
     }
 }
 
@@ -663,14 +680,17 @@ where
         LocateWithinDistanceIterator::new(self.root(), selection_function)
     }
 
-    /// Remove all elements within a given distance.
-    pub fn remove_within_distance(
+    /// Drain all elements of the tree within a certain distance.
+    ///
+    /// Similar to [`RTree::locate_within_distance`], but removes and
+    /// returns the elements via an iterator.
+    pub fn drain_within_distance(
         &mut self,
         query_point: <T::Envelope as Envelope>::Point,
         max_squared_radius: <<T::Envelope as Envelope>::Point as Point>::Scalar,
-    ) -> Vec<T> {
+    ) -> DrainIterator<T, SelectWithinDistanceFunction<T>, Params> {
         let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
-        self.remove_all_with_selection_function(selection_function)
+        self.drain_with_selection_function(selection_function)
     }
 
     /// Returns all elements of the tree sorted by their distance to a given point.
