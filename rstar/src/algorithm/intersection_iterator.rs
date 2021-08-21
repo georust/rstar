@@ -4,6 +4,10 @@ use crate::RTreeNode;
 use crate::RTreeNode::*;
 use crate::RTreeObject;
 
+#[cfg(doc)]
+use crate::RTree;
+
+/// Iterator returned by [`RTree::intersection_candidates_with_other_tree`].
 pub struct IntersectionIterator<'a, T, U = T>
 where
     T: RTreeObject,
