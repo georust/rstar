@@ -415,7 +415,7 @@ where
         SelectionWithDataIteratorMut::new(&mut self.root, selection_function)
     }
 
-    /// Gets all possible intersecting objects of this and another tree.
+    /// Returns all possible intersecting objects of this and another tree.
     ///
     /// This will return all objects whose _envelopes_ intersect. No geometric intersection
     /// checking is performed.
