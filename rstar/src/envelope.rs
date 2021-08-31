@@ -5,7 +5,7 @@ use crate::{Point, RTreeObject};
 /// An envelope defines how different bounding boxes of inserted children in an r-tree can interact,
 /// e.g. how they can be merged or intersected.
 /// This trait is not meant to be implemented by the user. Currently, only one implementation
-/// exists ([AABB](struct.AABB.html)) and should be used.
+/// exists ([crate::AABB]) and should be used.
 pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
     /// The envelope's point type.
     type Point: Point;
@@ -38,10 +38,10 @@ pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
     /// Returns the squared min-max distance, a concept that helps to find nearest neighbors efficiently.
     ///
     /// Visually, if an AABB and a point are given, the min-max distance returns the distance at which we
-    /// surely know an element must be present. This serves as an upper bound during nearest neighbor search.
+    /// can be assured that an element must be present. This serves as an upper bound during nearest neighbor search.
     ///
     /// # References
-    /// Roussopoulos, Nick, Stephen Kelley, and Frédéric Vincent. "Nearest neighbor queries." ACM sigmod record. Vol. 24. No. 2. ACM, 1995.
+    /// [Roussopoulos, Nick, Stephen Kelley, and Frédéric Vincent. "Nearest neighbor queries." ACM sigmod record. Vol. 24. No. 2. ACM, 1995.](https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.133.2288)
     fn min_max_dist_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
 
     /// Returns the envelope's center point.
@@ -50,10 +50,10 @@ pub trait Envelope: Clone + Copy + PartialEq + ::std::fmt::Debug {
     /// Returns a value proportional to the envelope's perimeter.
     fn perimeter_value(&self) -> <Self::Point as Point>::Scalar;
 
-    /// Sorts a given set of objects with envelopes along one of their axis.
+    /// Sorts a given set of objects with envelopes along one of their axes.
     fn sort_envelopes<T: RTreeObject<Envelope = Self>>(axis: usize, envelopes: &mut [T]);
 
-    /// Partitions objects with an envelopes along a certain axis.
+    /// Partitions objects with an envelope along a certain axis.
     ///
     /// After calling this, envelopes[0..selection_size] are all smaller
     /// than envelopes[selection_size + 1..].

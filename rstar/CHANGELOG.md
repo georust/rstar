@@ -1,4 +1,17 @@
-# 0.9.0 (unreleased)
+# Unreleased
+
+## Added
+- Add `RTree::drain_*` methods to remove and drain selected items. ([PR](https://github.com/georust/rstar/pull/77))
+
+## Changed
+- Expose all iterator types in `crate::iterators` module ([PR](https://github.com/georust/rstar/pull/77))
+
+# 0.9.1
+
+## Added
+- A generic container for a geometry and associated data: `GeomWithData` ([PR](https://github.com/georust/rstar/pull/74))
+
+# 0.9.0
 
 ## Added
 - `RTree::nearest_neighbors` method based on
@@ -6,6 +19,7 @@
 - Added `RTree::locate_with_selection_function_with_data` and a `SelectionWithDataIterator` trait to go with it.
 
 ## Changed
+- Fix floating point inconsistency in `min_max_dist_2` ([PR](https://github.com/georust/rstar/pull/40)).
 - BREAKING: `Point::generate` function now accepts a `impl FnMut`. Custom implementations of `Point` must change to
   accept `impl FnMut` instead of `impl Fn`. Callers of `Point::generate` should not require changes.
 - Update CI images to Stable Rust 1.50 and 1.51
@@ -13,6 +27,7 @@
 - Update Criterion and rewrite deprecated benchmark functions
 - Remove unused imports
 - Remove executable bit from files
+- Fix typos, modernize links
 
 # 0.8.3
 ## Changed

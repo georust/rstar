@@ -2,21 +2,41 @@ use crate::algorithm::selection_functions::*;
 use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 
+#[cfg(doc)]
+use crate::RTree;
+
 use smallvec::SmallVec;
 
+pub use super::removal::DrainIterator;
+pub use super::intersection_iterator::IntersectionIterator;
+
+/// Iterator returned by [`RTree::locate_all_at_point`].
 pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunction<T>>;
+/// Iterator returned by [`RTree::locate_all_at_point_mut`].
 pub type LocateAllAtPointMut<'a, T> = SelectionIteratorMut<'a, T, SelectAtPointFunction<T>>;
+
+/// Iterator returned by [`RTree::locate_in_envelope`].
 pub type LocateInEnvelope<'a, T> = SelectionIterator<'a, T, SelectInEnvelopeFunction<T>>;
+/// Iterator returned by [`RTree::locate_in_envelope_mut`].
 pub type LocateInEnvelopeMut<'a, T> = SelectionIteratorMut<'a, T, SelectInEnvelopeFunction<T>>;
+
+/// Iterator returned by [`RTree::locate_in_envelope_intersecting`].
 pub type LocateInEnvelopeIntersecting<'a, T> =
     SelectionIterator<'a, T, SelectInEnvelopeFuncIntersecting<T>>;
+/// Iterator returned by [`RTree::locate_in_envelope_intersecting_mut`].
 pub type LocateInEnvelopeIntersectingMut<'a, T> =
     SelectionIteratorMut<'a, T, SelectInEnvelopeFuncIntersecting<T>>;
+
+/// Iterator returned by [`RTree::iter`].
 pub type RTreeIterator<'a, T> = SelectionIterator<'a, T, SelectAllFunc>;
+/// Iterator returned by [`RTree::iter_mut`].
 pub type RTreeIteratorMut<'a, T> = SelectionIteratorMut<'a, T, SelectAllFunc>;
+
+/// Iterator returned by [`RTree::locate_within_distance`].
 pub type LocateWithinDistanceIterator<'a, T> =
     SelectionIterator<'a, T, SelectWithinDistanceFunction<T>>;
 
+/// Iterator returned by `RTree::locate_*` methods.
 pub struct SelectionIterator<'a, T, Func>
 where
     T: RTreeObject + 'a,
@@ -31,7 +51,7 @@ where
     T: RTreeObject,
     Func: SelectionFunction<T>,
 {
-    pub fn new(root: &'a ParentNode<T>, func: Func) -> Self {
+    pub(crate) fn new(root: &'a ParentNode<T>, func: Func) -> Self {
         let current_nodes = if func.should_unpack_parent(&root.envelope()) {
             root.children.iter().collect()
         } else {
@@ -71,6 +91,7 @@ where
     }
 }
 
+/// Iterator type returned by the `RTree::locate_with_selection_function_with_data` method.
 pub struct SelectionWithDataIterator<'a, T, D, Func>
 where
     T: RTreeObject + 'a,
@@ -86,7 +107,7 @@ where
     T: RTreeObject,
     Func: SelectionFunctionWithData<T, D>,
 {
-    pub fn new(root: &'a ParentNode<T>, func: Func) -> Self {
+    pub(crate) fn new(root: &'a ParentNode<T>, func: Func) -> Self {
         let current_nodes = if func.should_unpack_parent(&root.envelope()) {
             root.children.iter().collect()
         } else {
@@ -127,7 +148,7 @@ where
     }
 }
 
-
+/// Iterator type returned by the `RTree::locate_with_selection_function_with_data_mut` method.
 pub struct SelectionWithDataIteratorMut<'a, T, D, Func>
 where
     T: RTreeObject + 'a,
@@ -143,7 +164,7 @@ where
     T: RTreeObject,
     Func: SelectionFunctionWithData<T, D>,
 {
-    pub fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
+    pub(crate) fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
         let current_nodes = if func.should_unpack_parent(&root.envelope()) {
             root.children.iter_mut().collect()
         } else {
@@ -184,6 +205,7 @@ where
     }
 }
 
+/// Iterator type returned by `RTree::locate_*_mut` methods.
 pub struct SelectionIteratorMut<'a, T, Func>
 where
     T: RTreeObject + 'a,
@@ -198,7 +220,7 @@ where
     T: RTreeObject,
     Func: SelectionFunction<T>,
 {
-    pub fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
+    pub(crate) fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
         let current_nodes = if func.should_unpack_parent(&root.envelope()) {
             root.children.iter_mut().collect()
         } else {
