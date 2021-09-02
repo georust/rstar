@@ -2,6 +2,7 @@
 
 ## Added
 - Add `RTree::drain_*` methods to remove and drain selected items. ([PR](https://github.com/georust/rstar/pull/77))
+- Added `RTree::locate_with_selection_function_with_data` and a `SelectionWithDataIterator` trait to go with it.
 
 ## Changed
 - Expose all iterator types in `crate::iterators` module ([PR](https://github.com/georust/rstar/pull/77))
@@ -16,7 +17,6 @@
 ## Added
 - `RTree::nearest_neighbors` method based on
   [spade crate's implementation](https://github.com/Stoeoef/spade)
-- Added `RTree::locate_with_selection_function_with_data` and a `SelectionWithDataIterator` trait to go with it.
 
 ## Changed
 - Fix floating point inconsistency in `min_max_dist_2` ([PR](https://github.com/georust/rstar/pull/40)).
