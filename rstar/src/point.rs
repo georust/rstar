@@ -373,7 +373,7 @@ macro_rules! impl_point_for_tuple {
 
                 match index {
                     $($index => *$name,)+
-                    _ => unreachable!(),
+                    _ => unreachable!("index {} out of bounds for tuple", index),
                 }
             }
 
@@ -383,7 +383,7 @@ macro_rules! impl_point_for_tuple {
 
                 match index {
                     $($index => $name,)+
-                    _ => unreachable!(),
+                    _ => unreachable!("index {} out of bounds for tuple", index),
                 }
             }
         }
