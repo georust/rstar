@@ -363,7 +363,7 @@ macro_rules! impl_point_for_tuple {
 
             const DIMENSIONS: usize = count_exprs!($($index),*);
 
-            fn generate(generator: impl Fn(usize) -> S) -> Self {
+            fn generate(generator: impl FnMut(usize) -> S) -> Self {
                 ($(generator($index),)+)
             }
 
