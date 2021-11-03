@@ -9,7 +9,7 @@ use std::fmt::Debug;
 ///  - f32
 ///  - f64
 ///
-/// This type cannot be implemented directly. Instead, it is just required to implement
+/// This type cannot be implemented directly. Instead, it is required to implement
 /// all required traits from the `num_traits` crate.
 ///
 /// # Example
@@ -46,8 +46,8 @@ use std::fmt::Debug;
 /// # fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> { unimplemented!() }
 /// }
 ///
-/// // There's a lot of traits that are still missing to make the above code compile,
-/// // let's assume they are implemented. MyFancyNumberType type now readily implements
+/// // Lots of traits are still missing to make the above code compile, but
+/// // let's assume they're implemented. `MyFancyNumberType` type now readily implements
 /// // RTreeNum and can be used with r-trees:
 /// # fn main() {
 /// use rstar::RTree;
@@ -103,8 +103,8 @@ impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialO
 /// Defines a point type that is compatible with rstar.
 ///
 /// This trait should be used for interoperability with other point types, not to define custom objects
-/// that can be inserted into r-trees. Use [`RTreeObject`](trait.RTreeObject.html) or
-/// [`PointWithData`](primitives/struct.PointWithData.html) instead.
+/// that can be inserted into r-trees. Use [`crate::RTreeObject`] or
+/// [`crate::primitives::GeomWithData`] instead.
 /// This trait defines points, not points with metadata.
 ///
 /// `Point` is implemented out of the box for arrays like `[f32; 2]` or `[f64; 7]` (up to dimension 9)
@@ -129,7 +129,7 @@ impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialO
 ///   type Scalar = i32;
 ///   const DIMENSIONS: usize = 2;
 ///
-///   fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self
+///   fn generate(mut generator: impl FnMut(usize) -> Self::Scalar) -> Self
 ///   {
 ///     IntegerPoint {
 ///       x: generator(0),
@@ -166,8 +166,9 @@ pub trait Point: Copy + Clone + PartialEq + Debug {
     /// Creates a new point value with given values for each dimension.
     ///
     /// The value that each dimension should be initialized with is given by the parameter `generator`.
-    /// Calling `generator(n)` returns the value of dimension `n`, `n` will be in the range `0 .. Self::DIMENSIONS`.
-    fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self;
+    /// Calling `generator(n)` returns the value of dimension `n`, `n` will be in the range `0 .. Self::DIMENSIONS`,
+    /// and will be called with values of `n` in ascending order.
+    fn generate(generator: impl FnMut(usize) -> Self::Scalar) -> Self;
 
     /// Returns a single coordinate of this point.
     ///
@@ -187,11 +188,11 @@ pub trait PointExt: Point {
         Self::from_value(Zero::zero())
     }
 
-    /// Applies `f` on each pair of components of `self` and `other`.
+    /// Applies `f` to each pair of components of `self` and `other`.
     fn component_wise(
         &self,
         other: &Self,
-        f: impl Fn(Self::Scalar, Self::Scalar) -> Self::Scalar,
+        mut f: impl FnMut(Self::Scalar, Self::Scalar) -> Self::Scalar,
     ) -> Self {
         Self::generate(|i| f(self.nth(i), other.nth(i)))
     }
@@ -200,7 +201,7 @@ pub trait PointExt: Point {
     fn all_component_wise(
         &self,
         other: &Self,
-        f: impl Fn(Self::Scalar, Self::Scalar) -> bool,
+        mut f: impl FnMut(Self::Scalar, Self::Scalar) -> bool,
     ) -> bool {
         // TODO: Maybe do this by proper iteration
         for i in 0..Self::DIMENSIONS {
@@ -224,7 +225,7 @@ pub trait PointExt: Point {
     /// The `start_value` is the value the accumulator will have on the first call of the closure.
     ///
     /// After applying the closure to every component of the Point, fold() returns the accumulator.
-    fn fold<T>(&self, start_value: T, f: impl Fn(T, Self::Scalar) -> T) -> T {
+    fn fold<T>(&self, start_value: T, mut f: impl FnMut(T, Self::Scalar) -> T) -> T {
         let mut accumulated = start_value;
         // TODO: Maybe do this by proper iteration
         for i in 0..Self::DIMENSIONS {
@@ -269,7 +270,7 @@ pub trait PointExt: Point {
     }
 
     /// Applies `f` to `self` component wise.
-    fn map(&self, f: impl Fn(Self::Scalar) -> Self::Scalar) -> Self {
+    fn map(&self, mut f: impl FnMut(Self::Scalar) -> Self::Scalar) -> Self {
         Self::generate(|i| f(self.nth(i)))
     }
 
@@ -319,7 +320,7 @@ macro_rules! implement_point_for_array {
 
             const DIMENSIONS: usize = count_exprs!($($index),*);
 
-            fn generate(generator: impl Fn(usize) -> S) -> Self
+            fn generate(mut generator: impl FnMut(usize) -> S) -> Self
             {
                 [$(generator($index)),*]
             }

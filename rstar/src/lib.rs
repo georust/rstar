@@ -11,11 +11,10 @@
 //!
 //!
 //! # Further documentation
-//! The crate's main data structure and documentation is struct
-//! [RTree](struct.RTree.html).
+//! The crate's main data structure and documentation is the [RTree] struct.
 //!
 //! Also, the pre-defined primitives like lines and rectangles contained in
-//! the [primitives module](primitives/index.html) may be of interest for a quick start.
+//! the [primitives module](crate::primitives) may be of interest for a quick start.
 //!
 //! # (De)Serialization
 //! Enable the `serde` feature for [Serde](https://crates.io/crates/serde) support.
@@ -45,3 +44,5 @@ pub use crate::object::{PointDistance, RTreeObject};
 pub use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
 pub use crate::point::{Point, RTreeNum};
 pub use crate::rtree::RTree;
+
+pub use crate::algorithm::iterators;

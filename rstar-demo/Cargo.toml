@@ -6,7 +6,12 @@ edition = "2018"
 
 [dependencies]
 rand = "0.7"
-kiss3d = "0.20"
-nalgebra = "0.18"
+# using a slightly older version of kiss3d/nalgebra 
+# Since these version require the new feature resolver and min-const-generics only
+# available in rust-1.51 See: https://github.com/dimforge/nalgebra/issues/875
+# kiss3d = "0.31"
+# nalgebra = "0.26"
+kiss3d = "0.30"
+nalgebra = "0.25"
 
 rstar = { path="../rstar" }

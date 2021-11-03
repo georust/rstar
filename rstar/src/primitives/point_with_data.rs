@@ -2,6 +2,8 @@ use crate::{Point, PointDistance, RTreeObject, AABB};
 
 /// A point with some associated data that can be inserted into an r-tree.
 ///
+/// **Note**: `PointWithData` has been deprecated in favour of [`GeomWithData`](crate::primitives::GeomWithData)
+///
 /// Often, adding metadata (like a database index) to a point is required before adding them
 /// into an r-tree. This struct removes some of the boilerplate required to do so.
 ///
@@ -34,6 +36,7 @@ pub struct PointWithData<T, P> {
 
 impl<T, P> PointWithData<T, P> {
     /// Creates a new `PointWithData` with the provided data.
+    #[deprecated(note = "`PointWithData` is deprecated. Please switch to `GeomWithData`")]
     pub fn new(data: T, point: P) -> Self {
         PointWithData { data, point }
     }

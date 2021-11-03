@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/Stoeoef/rstar.svg?branch=master)](https://travis-ci.com/Stoeoef/rstar)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/georust/rstar/Run%20tests)](#)
 [![Docs](https://docs.rs/rstar/badge.svg)](https://docs.rs/rstar/)
 [![Crates.io](https://img.shields.io/crates/v/rstar.svg)](https://crates.io/crates/rstar)
 [![MIT/Apache](https://img.shields.io/crates/l/rustc-serialize.svg)](#license)

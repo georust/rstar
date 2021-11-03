@@ -1,6 +1,6 @@
 use crate::primitives::*;
 use crate::{Point, RTreeObject};
-use rand::distributions::{Distribution, Uniform};
+use rand::distributions::Uniform;
 use rand::{Rng, SeedableRng};
 use rand_hc::Hc128Rng;
 
@@ -15,11 +15,7 @@ pub fn create_random_integers<P: Point<Scalar = i32>>(num_points: usize, seed: &
     let range = Uniform::from(-100_000..100_000);
 
     for _ in 0..num_points {
-        let buffer = range
-            .sample_iter(&mut rng)
-            .take(P::DIMENSIONS)
-            .collect::<Vec<_>>();
-        let p = Point::generate(|index| buffer[index]);
+        let p = Point::generate(|_| rng.sample(range));
         result.push(p);
     }
     result
