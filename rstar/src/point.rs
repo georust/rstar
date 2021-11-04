@@ -107,7 +107,9 @@ impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialO
 /// [`crate::primitives::GeomWithData`] instead.
 /// This trait defines points, not points with metadata.
 ///
-/// `Point` is implemented out of the box for arrays like `[f32; 2]` or `[f64; 7]` (up to dimension 9).
+/// `Point` is implemented out of the box for arrays like `[f32; 2]` or `[f64; 7]` (up to dimension 9)
+/// and for tuples like `(int, int)` and `(f64, f64, f64)` so tuples with only elements of the same type (up to dimension 9).
+///
 ///
 /// # Implementation example
 /// Supporting a custom point type might look like this:
@@ -344,3 +346,90 @@ implement_point_for_array!(0, 1, 2, 3, 4, 5);
 implement_point_for_array!(0, 1, 2, 3, 4, 5, 6);
 implement_point_for_array!(0, 1, 2, 3, 4, 5, 6, 7);
 implement_point_for_array!(0, 1, 2, 3, 4, 5, 6, 7, 8);
+
+macro_rules! fixed_type {
+    ($expr:expr, $type:ty) => {
+        $type
+    };
+}
+
+macro_rules! impl_point_for_tuple {
+    ($($index:expr => $name:ident),+) => {
+        impl<S> Point for ($(fixed_type!($index, S),)+)
+        where
+            S: RTreeNum
+        {
+            type Scalar = S;
+
+            const DIMENSIONS: usize = count_exprs!($($index),*);
+
+            fn generate(mut generator: impl FnMut(usize) -> S) -> Self {
+                ($(generator($index),)+)
+            }
+
+            #[inline]
+            fn nth(&self, index: usize) -> Self::Scalar {
+                let ($($name,)+) = self;
+
+                match index {
+                    $($index => *$name,)+
+                    _ => unreachable!("index {} out of bounds for tuple", index),
+                }
+            }
+
+            #[inline]
+            fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
+                let ($($name,)+) = self;
+
+                match index {
+                    $($index => $name,)+
+                    _ => unreachable!("index {} out of bounds for tuple", index),
+                }
+            }
+        }
+    };
+}
+
+impl_point_for_tuple!(0 => a);
+impl_point_for_tuple!(0 => a, 1 => b);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f, 6 => g);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f, 6 => g, 7 => h);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f, 6 => g, 7 => h, 8 => i);
+impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f, 6 => g, 7 => h, 8 => i, 9 => j);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! test_tuple_configuration {
+        ($($index:expr),*) => {
+            let a = ($($index),*);
+            $(assert_eq!(a.nth($index), $index));*
+        }
+    }
+
+    #[test]
+    fn test_tuples() {
+        // Test a couple of simple cases
+        let simple_int = (0, 1, 2);
+        assert_eq!(simple_int.nth(2), 2);
+        let simple_float = (0.5, 0.67, 1234.56);
+        assert_eq!(simple_float.nth(2), 1234.56);
+        let long_int = (0, 1, 2, 3, 4, 5, 6, 7, 8);
+        assert_eq!(long_int.nth(8), 8);
+
+        // Generate the code to test every nth function for every Tuple length
+        test_tuple_configuration!(0, 1);
+        test_tuple_configuration!(0, 1, 2);
+        test_tuple_configuration!(0, 1, 2, 3);
+        test_tuple_configuration!(0, 1, 2, 3, 4);
+        test_tuple_configuration!(0, 1, 2, 3, 4, 5);
+        test_tuple_configuration!(0, 1, 2, 3, 4, 5, 6);
+        test_tuple_configuration!(0, 1, 2, 3, 4, 5, 6, 7);
+        test_tuple_configuration!(0, 1, 2, 3, 4, 5, 6, 7, 8);
+    }
+}

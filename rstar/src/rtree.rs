@@ -263,7 +263,7 @@ where
     /// # Example
     /// ```
     /// use rstar::RTree;
-    /// let tree = RTree::bulk_load(vec![[0.0, 0.1], [0.3, 0.2], [0.4, 0.2]]);
+    /// let tree = RTree::bulk_load(vec![(0.0, 0.1), (0.3, 0.2), (0.4, 0.2)]);
     /// for point in tree.iter() {
     ///     println!("This tree contains point {:?}", point);
     /// }
