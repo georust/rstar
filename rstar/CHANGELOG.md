@@ -1,6 +1,6 @@
 # Unreleased
 
-## Added
+# 0.9.2
 - Add `RTree::drain_*` methods to remove and drain selected items. ([PR](https://github.com/georust/rstar/pull/77))
 - Add trait `Point` for tuples containing elements of the same type, up to nine dimensions.
 - Pinned `pdqselect` to 0.1.0 as 0.1.1 has switched to the 2021 edition
