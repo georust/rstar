@@ -2,6 +2,8 @@ use crate::algorithm::bulk_load;
 use crate::algorithm::intersection_iterator::IntersectionIterator;
 use crate::algorithm::iterators::*;
 use crate::algorithm::nearest_neighbor;
+use crate::algorithm::nearest_neighbor::NearestNeighborDistance2Iterator;
+use crate::algorithm::nearest_neighbor::NearestNeighborIterator;
 use crate::algorithm::removal;
 use crate::algorithm::removal::DrainIterator;
 use crate::algorithm::selection_functions::*;
@@ -386,7 +388,7 @@ where
     pub fn locate_with_selection_function<S: SelectionFunction<T>>(
         &self,
         selection_function: S,
-    ) -> impl Iterator<Item = &T> {
+    ) -> SelectionIterator<T, S> {
         SelectionIterator::new(&self.root, selection_function)
     }
 
@@ -394,7 +396,7 @@ where
     pub fn locate_with_selection_function_mut<S: SelectionFunction<T>>(
         &mut self,
         selection_function: S,
-    ) -> impl Iterator<Item = &mut T> {
+    ) -> SelectionIteratorMut<T, S> {
         SelectionIteratorMut::new(&mut self.root, selection_function)
     }
 
@@ -721,7 +723,7 @@ where
     pub fn nearest_neighbor_iter(
         &self,
         query_point: &<T::Envelope as Envelope>::Point,
-    ) -> impl Iterator<Item = &T> {
+    ) -> NearestNeighborIterator<T> {
         nearest_neighbor::NearestNeighborIterator::new(&self.root, *query_point)
     }
 
@@ -733,7 +735,7 @@ where
     pub fn nearest_neighbor_iter_with_distance(
         &self,
         query_point: &<T::Envelope as Envelope>::Point,
-    ) -> impl Iterator<Item = (&T, <<T::Envelope as Envelope>::Point as Point>::Scalar)> {
+    ) -> NearestNeighborDistance2Iterator<T> {
         nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, *query_point)
     }
 
@@ -744,7 +746,7 @@ where
     pub fn nearest_neighbor_iter_with_distance_2(
         &self,
         query_point: &<T::Envelope as Envelope>::Point,
-    ) -> impl Iterator<Item = (&T, <<T::Envelope as Envelope>::Point as Point>::Scalar)> {
+    ) -> NearestNeighborDistance2Iterator<T> {
         nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, *query_point)
     }
 

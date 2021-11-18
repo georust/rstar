@@ -1,6 +1,6 @@
 [package]
 name = "rstar"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>", "The Georust Developers <mods@georust.org>"]
 description = "R*-tree library for the rust ecosystem"
 documentation = "https://docs.rs/rstar/"
@@ -17,7 +17,7 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 heapless = "0.6"
 num-traits = "0.2"
-pdqselect = "0.1"
+pdqselect = "=0.1.0"
 serde = { version = "1.0", optional = true, features = ["derive"] }
 smallvec = "1.6"
 
