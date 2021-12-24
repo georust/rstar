@@ -17,7 +17,6 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 heapless = "0.6"
 num-traits = "0.2"
-pdqselect = "=0.1.0"
 serde = { version = "1.0", optional = true, features = ["derive"] }
 smallvec = "1.6"
 
