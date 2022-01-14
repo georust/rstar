@@ -1,5 +1,5 @@
 use num_traits::{Bounded, Num, Signed, Zero};
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 /// Defines a number type that is compatible with rstar.
 ///
@@ -64,32 +64,32 @@ use std::fmt::Debug;
 /// #   fn one() -> Self { unimplemented!() }
 /// # }
 /// #
-/// # impl std::ops::Mul for MyFancyNumberType {
+/// # impl core::ops::Mul for MyFancyNumberType {
 /// #   type Output = Self;
 /// #   fn mul(self, rhs: Self) -> Self { unimplemented!() }
 /// # }
 /// #
-/// # impl std::ops::Add for MyFancyNumberType {
+/// # impl core::ops::Add for MyFancyNumberType {
 /// #   type Output = Self;
 /// #   fn add(self, rhs: Self) -> Self { unimplemented!() }
 /// # }
 /// #
-/// # impl std::ops::Sub for MyFancyNumberType {
+/// # impl core::ops::Sub for MyFancyNumberType {
 /// #   type Output = Self;
 /// #   fn sub(self, rhs: Self) -> Self { unimplemented!() }
 /// # }
 /// #
-/// # impl std::ops::Div for MyFancyNumberType {
+/// # impl core::ops::Div for MyFancyNumberType {
 /// #   type Output = Self;
 /// #   fn div(self, rhs: Self) -> Self { unimplemented!() }
 /// # }
 /// #
-/// # impl std::ops::Rem for MyFancyNumberType {
+/// # impl core::ops::Rem for MyFancyNumberType {
 /// #   type Output = Self;
 /// #   fn rem(self, rhs: Self) -> Self { unimplemented!() }
 /// # }
 /// #
-/// # impl std::ops::Neg for MyFancyNumberType {
+/// # impl core::ops::Neg for MyFancyNumberType {
 /// #   type Output = Self;
 /// #   fn neg(self) -> Self { unimplemented!() }
 /// # }

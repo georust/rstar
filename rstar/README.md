@@ -20,6 +20,7 @@ A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) imple
    - Rectangles
  - Small number of dependencies
  - Serde support with the `serde` feature
+ - `no_std` compatible (but requires [`alloc`](https://doc.rust-lang.org/alloc/))
 
 # Benchmarks
 All benchmarks are performed on a i7-8550U CPU @ 1.80Ghz and with uniformly distributed points. The underlying point type is `[f64; 2]`.

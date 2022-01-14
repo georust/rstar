@@ -1,10 +1,15 @@
-use std::mem::replace;
+use core::mem::replace;
 
 use crate::algorithm::selection_functions::SelectionFunction;
 use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::{Envelope, RTree};
+
+use alloc::{vec, vec::Vec};
+
+#[allow(unused_imports)] // Import is required when building without std
+use num_traits::Float;
 
 /// Iterator returned by `RTree::drain_*` methods.
 ///

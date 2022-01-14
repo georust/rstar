@@ -156,7 +156,7 @@ where
             max = max * max;
             min = min * min;
             if max < min {
-                std::mem::swap(&mut min, &mut max);
+                core::mem::swap(&mut min, &mut max);
             }
 
             let diff = max - min;
