@@ -4,7 +4,6 @@ extern crate criterion;
 extern crate rand;
 extern crate rand_hc;
 extern crate rstar;
-extern crate spade;
 
 use rand::{Rng, SeedableRng};
 use rand_hc::Hc128Rng;
@@ -39,16 +38,7 @@ fn bulk_load_baseline(c: &mut Criterion) {
 
 fn bulk_load_comparison(c: &mut Criterion) {
     let mut group = c.benchmark_group("rstar and spade benchmarks");
-    group.bench_function("rstar bench", |b| {
-        let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
-        b.iter(|| RTree::<_, Params>::bulk_load_with_params(points.clone()));
-    });
-    group.bench_function("spade bench", |b| {
-        let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
-        b.iter(move || {
-            spade::rtree::RTree::bulk_load(points.clone());
-        });
-    });
+
     group.bench_function("rstar sequential", |b| {
         let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
         b.iter(move || {
