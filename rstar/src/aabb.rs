@@ -206,7 +206,7 @@ where
         envelopes: &mut [T],
         selection_size: usize,
     ) {
-        ::pdqselect::select_by(envelopes, selection_size, |l, r| {
+        envelopes.select_nth_unstable_by(selection_size, |l, r| {
             l.envelope()
                 .lower
                 .nth(axis)
