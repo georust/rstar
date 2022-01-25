@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - rstar
+      - no_std
     steps:
       - name: Mark the job as a success
         if: success()
@@ -40,3 +41,24 @@ jobs:
       - run: cargo build-all-features
       - run: cargo test-all-features
       - run: cargo build -p rstar-benches
+
+  no_std:
+    name: rstar no_std test
+    runs-on: ubuntu-latest
+    env: 
+      NO_STD_TARGET: aarch64-unknown-none
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: ${{env.NO_STD_TARGET}}
+          toolchain: stable
+          override: true
+      - name: Run cargo build for ${{env.NO_STD_TARGET}}
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --package rstar --target ${{env.NO_STD_TARGET}}

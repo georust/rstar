@@ -13,6 +13,8 @@ use crate::object::{PointDistance, RTreeObject};
 use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
 use crate::Point;
 
+use alloc::vec::Vec;
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -148,33 +150,33 @@ where
 {
     root: ParentNode<T>,
     size: usize,
-    _params: ::std::marker::PhantomData<Params>,
+    _params: ::core::marker::PhantomData<Params>,
 }
 
 struct DebugHelper<'a, T, Params>
 where
-    T: RTreeObject + ::std::fmt::Debug + 'a,
+    T: RTreeObject + ::core::fmt::Debug + 'a,
     Params: RTreeParams + 'a,
 {
     rtree: &'a RTree<T, Params>,
 }
 
-impl<'a, T, Params> ::std::fmt::Debug for DebugHelper<'a, T, Params>
+impl<'a, T, Params> ::core::fmt::Debug for DebugHelper<'a, T, Params>
 where
-    T: RTreeObject + ::std::fmt::Debug,
+    T: RTreeObject + ::core::fmt::Debug,
     Params: RTreeParams,
 {
-    fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+    fn fmt(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         formatter.debug_set().entries(self.rtree.iter()).finish()
     }
 }
 
-impl<T, Params> ::std::fmt::Debug for RTree<T, Params>
+impl<T, Params> ::core::fmt::Debug for RTree<T, Params>
 where
     Params: RTreeParams,
-    T: RTreeObject + ::std::fmt::Debug,
+    T: RTreeObject + ::core::fmt::Debug,
 {
-    fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+    fn fmt(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         formatter
             .debug_struct("RTree")
             .field("size", &self.size)

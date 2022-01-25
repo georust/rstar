@@ -4,6 +4,8 @@ use crate::RTreeNode;
 use crate::RTreeNode::*;
 use crate::RTreeObject;
 
+use alloc::vec::Vec;
+
 #[cfg(doc)]
 use crate::RTree;
 

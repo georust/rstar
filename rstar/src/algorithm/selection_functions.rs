@@ -236,6 +236,6 @@ where
     }
 
     fn should_unpack_leaf(&self, leaf: &T) -> bool {
-        std::ptr::eq(self.element_address, leaf)
+        core::ptr::eq(self.element_address, leaf)
     }
 }

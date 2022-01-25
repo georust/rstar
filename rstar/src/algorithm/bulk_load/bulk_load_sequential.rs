@@ -4,6 +4,11 @@ use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::point::Point;
 
+use alloc::{vec, vec::Vec};
+
+#[allow(unused_imports)] // Import is required when building without std
+use num_traits::Float;
+
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
 fn bulk_load_recursive<T, Params>(elements: Vec<T>, depth: usize) -> ParentNode<T>
@@ -47,7 +52,7 @@ struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
     work_queue: Vec<PartitioningState<T>>,
     depth: usize,
     number_of_clusters_on_axis: usize,
-    _params: std::marker::PhantomData<Params>,
+    _params: core::marker::PhantomData<Params>,
 }
 
 impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Params> {

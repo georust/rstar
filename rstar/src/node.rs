@@ -2,6 +2,8 @@ use crate::envelope::Envelope;
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 
+use alloc::vec::Vec;
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
