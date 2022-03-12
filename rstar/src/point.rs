@@ -335,6 +335,9 @@ macro_rules! implement_point_for_array {
                 &mut self[index]
             }
         }
+        impl<S> PointExt for [S; count_exprs!($($index),*)]
+        where
+            S: RTreeNum {}
     };
 }
 
@@ -387,6 +390,10 @@ macro_rules! impl_point_for_tuple {
                 }
             }
         }
+
+        impl<S> PointExt for ($(fixed_type!($index, S),)+)
+        where
+            S: RTreeNum {}
     };
 }
 
