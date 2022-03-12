@@ -1,4 +1,4 @@
-use crate::{Point, RTreeObject};
+use crate::{Point, PointExt, RTreeObject};
 
 /// An envelope type that encompasses some child nodes.
 ///
@@ -8,7 +8,7 @@ use crate::{Point, RTreeObject};
 /// exists ([crate::AABB]) and should be used.
 pub trait Envelope: Clone + Copy + PartialEq + ::core::fmt::Debug {
     /// The envelope's point type.
-    type Point: Point;
+    type Point: Point + PointExt;
 
     /// Creates a new, empty envelope that does not encompass any child.
     fn new_empty() -> Self;

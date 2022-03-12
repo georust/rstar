@@ -191,7 +191,7 @@ pub trait PointDistance: RTreeObject {
 
 impl<P> RTreeObject for P
 where
-    P: Point,
+    P: Point + PointExt,
 {
     type Envelope = AABB<P>;
 
@@ -202,7 +202,7 @@ where
 
 impl<P> PointDistance for P
 where
-    P: Point,
+    P: Point + PointExt,
 {
     fn distance_2(&self, point: &P) -> P::Scalar {
         <Self as PointExt>::distance_2(self, point)

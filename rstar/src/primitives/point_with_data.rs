@@ -1,4 +1,4 @@
-use crate::{Point, PointDistance, RTreeObject, AABB};
+use crate::{Point, PointDistance, PointExt, RTreeObject, AABB};
 
 /// A point with some associated data that can be inserted into an r-tree.
 ///
@@ -49,7 +49,7 @@ impl<T, P> PointWithData<T, P> {
 
 impl<T, P> RTreeObject for PointWithData<T, P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     type Envelope = AABB<P>;
 
@@ -60,7 +60,7 @@ where
 
 impl<T, P> PointDistance for PointWithData<T, P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     fn distance_2(&self, point: &P) -> <P as Point>::Scalar {
         self.point.distance_2(point)

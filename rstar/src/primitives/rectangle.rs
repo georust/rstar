@@ -23,7 +23,7 @@ where
 
 impl<P> Rectangle<P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     /// Creates a new rectangle defined by two corners.
     pub fn from_corners(corner_1: P, corner_2: P) -> Self {
@@ -54,7 +54,7 @@ where
 
 impl<P> From<AABB<P>> for Rectangle<P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     fn from(aabb: AABB<P>) -> Self {
         Self::from_aabb(aabb)
@@ -63,7 +63,7 @@ where
 
 impl<P> RTreeObject for Rectangle<P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     type Envelope = AABB<P>;
 
@@ -74,7 +74,7 @@ where
 
 impl<P> Rectangle<P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     /// Returns the nearest point within this rectangle to a given point.
     ///
@@ -86,7 +86,7 @@ where
 
 impl<P> PointDistance for Rectangle<P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     fn distance_2(
         &self,

@@ -1,5 +1,5 @@
-use num_traits::{Bounded, Num, Signed, Zero};
 use core::fmt::Debug;
+use num_traits::{Bounded, Num, Signed, Zero};
 
 /// Defines a number type that is compatible with rstar.
 ///
@@ -179,7 +179,7 @@ pub trait Point: Copy + Clone + PartialEq + Debug {
     fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar;
 }
 
-impl<T> PointExt for T where T: Point {}
+// impl<T> PointExt for T where T: Point {}
 
 /// Utility functions for Point
 pub trait PointExt: Point {

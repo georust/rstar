@@ -46,7 +46,7 @@ where
 
 impl<P> RTreeObject for Line<P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     type Envelope = AABB<P>;
 
@@ -57,7 +57,7 @@ where
 
 impl<P> Line<P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     /// Returns the squared length of this line.
     ///
@@ -105,7 +105,7 @@ where
 
 impl<P> PointDistance for Line<P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     fn distance_2(
         &self,

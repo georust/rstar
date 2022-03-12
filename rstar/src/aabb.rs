@@ -30,7 +30,7 @@ where
 
 impl<P> AABB<P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     /// Returns the AABB encompassing a single point.
     pub fn from_point(p: P) -> Self {
@@ -98,7 +98,7 @@ where
 
 impl<P> Envelope for AABB<P>
 where
-    P: Point,
+    P: Point + PointExt,
 {
     type Point = P;
 
@@ -216,7 +216,7 @@ where
     }
 }
 
-fn new_empty<P: Point>() -> AABB<P> {
+fn new_empty<P: Point + PointExt>() -> AABB<P> {
     let max = P::Scalar::max_value();
     let min = P::Scalar::min_value();
     AABB {
