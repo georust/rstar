@@ -28,6 +28,7 @@ extern crate alloc;
 mod aabb;
 mod algorithm;
 mod envelope;
+mod geopoint;
 mod node;
 mod object;
 mod params;
