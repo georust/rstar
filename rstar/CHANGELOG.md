@@ -1,9 +1,10 @@
 # Unreleased
 ## Changed
 - Removed dependency on `pdqselect` ([PR](https://github.com/georust/rstar/pull/85))
-- New **minimal supported rust version (MSRV): 1.49.0**
+- New **minimal supported rust version (MSRV): 1.51.0**
 - Replace all usages of `std` with `core` & `alloc` to make `rstar` fit for
   `no_std`. ([PR](https://github.com/georust/rstar/pull/83))
+- Updated `heapless` dependency to 0.7 to make use of const generics. ([PR](https://github.com/georust/rstar/pull/87))
 
 # 0.9.2
 - Add `RTree::drain_*` methods to remove and drain selected items. ([PR](https://github.com/georust/rstar/pull/77))
