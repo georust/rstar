@@ -32,8 +32,9 @@ jobs:
     strategy:
       matrix:
         container_image:
-          - "georust/geo-ci:rust-1.50"
           - "georust/geo-ci:rust-1.51"
+          - "georust/geo-ci:rust-1.58"
+          - "georust/geo-ci:rust-1.59"
     container:
       image: ${{ matrix.container_image }}
     steps:
