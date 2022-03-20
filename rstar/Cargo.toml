@@ -8,6 +8,7 @@ repository = "https://github.com/georust/rstar"
 license = "MIT/Apache-2.0"
 readme = "README.md"
 edition = "2018"
+rust-version = "1.51"
 keywords = ["rtree", "r-tree", "rstar", "spatial", "nearest-neighbor"]
 categories = ["data-structures", "algorithms"]
 
