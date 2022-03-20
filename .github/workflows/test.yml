@@ -31,7 +31,9 @@ jobs:
         working-directory: rstar
     strategy:
       matrix:
-        container_image: ["georust/geo-ci:rust-1.50", "georust/geo-ci:rust-1.51"]
+        container_image:
+          - "georust/geo-ci:rust-1.50"
+          - "georust/geo-ci:rust-1.51"
     container:
       image: ${{ matrix.container_image }}
     steps:
