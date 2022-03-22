@@ -31,7 +31,12 @@ jobs:
         working-directory: rstar
     strategy:
       matrix:
-        container_image: ["georust/geo-ci:rust-1.50", "georust/geo-ci:rust-1.51"]
+        container_image:
+          # Minimum supported rust version (MSRV)
+          - "georust/geo-ci:rust-1.51"
+          # Two most recent releases - older ones are omitted.
+          - "georust/geo-ci:rust-1.58"
+          - "georust/geo-ci:rust-1.59"
     container:
       image: ${{ matrix.container_image }}
     steps:

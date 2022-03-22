@@ -141,7 +141,7 @@ where
 }
 
 enum SmallHeap<T: Ord> {
-    Stack(static_heap::BinaryHeap<T, heapless::consts::U32, static_heap::Max>),
+    Stack(static_heap::BinaryHeap<T, static_heap::Max, 32>),
     Heap(BinaryHeap<T>),
 }
 
