@@ -1,4 +1,6 @@
 # Unreleased
+
+# 0.9.3
 ## Changed
 - Removed dependency on `pdqselect` ([PR](https://github.com/georust/rstar/pull/85))
 - New **minimal supported rust version (MSRV): 1.51.0**
