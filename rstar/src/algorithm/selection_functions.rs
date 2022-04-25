@@ -87,7 +87,7 @@ where
     T: RTreeObject,
 {
     fn should_unpack_parent(&self, envelope: &T::Envelope) -> bool {
-        self.envelope.intersects(&envelope)
+        self.envelope.intersects(envelope)
     }
 
     fn should_unpack_leaf(&self, leaf: &T) -> bool {

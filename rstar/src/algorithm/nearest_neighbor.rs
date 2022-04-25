@@ -243,10 +243,10 @@ where
     None
 }
 
-pub fn nearest_neighbors<'a, T>(
-    node: &'a ParentNode<T>,
+pub fn nearest_neighbors<T>(
+    node: &ParentNode<T>,
     query_point: <T::Envelope as Envelope>::Point,
-) -> Vec<&'a T>
+) -> Vec<&T>
 where
     T: PointDistance,
 {

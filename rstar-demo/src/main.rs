@@ -219,16 +219,16 @@ fn draw_tree(window: &mut Window, render_data: &RenderData) {
     match render_data {
         RenderData::ThreeD(ref lines, ref points) => {
             for (from, to, color) in lines {
-                window.draw_line(&from, &to, &color);
+                window.draw_line(from, to, color);
             }
 
             for (point, color) in points {
-                window.draw_point(&point, &color);
+                window.draw_point(point, color);
             }
         }
         RenderData::TwoD(lines) => {
             for (from, to, color) in lines {
-                window.draw_planar_line(from, to, &color);
+                window.draw_planar_line(from, to, color);
             }
         }
     }

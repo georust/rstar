@@ -180,7 +180,7 @@ where
         formatter
             .debug_struct("RTree")
             .field("size", &self.size)
-            .field("items", &DebugHelper { rtree: &self })
+            .field("items", &DebugHelper { rtree: self })
             .finish()
     }
 }
@@ -320,7 +320,10 @@ where
     }
 
     /// Draining variant of [locate_in_envelope](#method.locate_in_envelope).
-    pub fn drain_in_envelope(&mut self, envelope: T::Envelope) -> DrainIterator<T, SelectInEnvelopeFunction<T>, Params> {
+    pub fn drain_in_envelope(
+        &mut self,
+        envelope: T::Envelope,
+    ) -> DrainIterator<T, SelectInEnvelopeFunction<T>, Params> {
         let sel = SelectInEnvelopeFunction::new(envelope);
         self.drain_with_selection_function(sel)
     }
@@ -481,8 +484,10 @@ where
     /// Drains elements intersecting the `envelope`. Similar to
     /// `locate_in_envelope_intersecting`, except the elements are removed
     /// and returned via an iterator.
-    pub fn drain_in_envelope_intersecting(&mut self, envelope: T::Envelope) -> DrainIterator<T, SelectInEnvelopeFuncIntersecting<T>, Params>
-    {
+    pub fn drain_in_envelope_intersecting(
+        &mut self,
+        envelope: T::Envelope,
+    ) -> DrainIterator<T, SelectInEnvelopeFuncIntersecting<T>, Params> {
         let selection_function = SelectInEnvelopeFuncIntersecting::new(envelope);
         self.drain_with_selection_function(selection_function)
     }
