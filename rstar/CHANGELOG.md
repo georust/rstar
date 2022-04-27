@@ -1,5 +1,8 @@
 # Unreleased
 
+## Changed
+- fixed all clippy lint issues
+
 # 0.9.3
 ## Changed
 - Removed dependency on `pdqselect` ([PR](https://github.com/georust/rstar/pull/85))

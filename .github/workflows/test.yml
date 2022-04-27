@@ -42,7 +42,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-      - run: cargo install cargo-all-features
+      - run: cargo install --version 1.6.0 cargo-all-features
       - run: cargo build-all-features
       - run: cargo test-all-features
       - run: cargo build -p rstar-benches

@@ -73,7 +73,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(next) = self.todo_list.pop() {
             match next {
-                (Leaf(t1), Leaf(t2)) => return Some((&t1, &t2)),
+                (Leaf(t1), Leaf(t2)) => return Some((t1, t2)),
                 (leaf @ Leaf(_), Parent(p)) => {
                     p.children()
                         .iter()
