@@ -362,6 +362,7 @@ where
     /// let elements_intersecting_large_piece = tree.locate_in_envelope_intersecting(&large_piece);
     /// // Any element that is fully contained should also be returned:
     /// assert_eq!(elements_intersecting_large_piece.count(), 3);
+    /// ```
     pub fn locate_in_envelope_intersecting(
         &self,
         envelope: &T::Envelope,
@@ -853,6 +854,25 @@ mod test {
         const MAX_SIZE: usize = 20;
         const REINSERTION_COUNT: usize = 1;
         type DefaultInsertionStrategy = RStarInsertionStrategy;
+    }
+
+    #[test]
+    fn test_remove_capacity() {
+        pub struct WeirdParams;
+
+        impl RTreeParams for WeirdParams {
+            const MIN_SIZE: usize = 1;
+            const MAX_SIZE: usize = 10;
+            const REINSERTION_COUNT: usize = 1;
+            type DefaultInsertionStrategy = RStarInsertionStrategy;
+        }
+
+        let mut items: Vec<[f32; 2]> = Vec::new();
+        for i in 0..2 {
+            items.push([i as f32, i as f32]);
+        }
+        let mut tree: RTree<_, WeirdParams> = RTree::bulk_load_with_params(items);
+        assert_eq!(tree.remove(&[1.0, 1.0]).unwrap(), [1.0, 1.0]);
     }
 
     #[test]

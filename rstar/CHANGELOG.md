@@ -10,6 +10,7 @@
 - Replace all usages of `std` with `core` & `alloc` to make `rstar` fit for
   `no_std`. ([PR](https://github.com/georust/rstar/pull/83))
 - Updated `heapless` dependency to 0.7 to make use of const generics. ([PR](https://github.com/georust/rstar/pull/87))
+- Fixed error when setting MIN_SIZE = 1 in `RTreeParams` and added assert for positive MIN_SIZE
 
 # 0.9.2
 - Add `RTree::drain_*` methods to remove and drain selected items. ([PR](https://github.com/georust/rstar/pull/77))
