@@ -35,10 +35,12 @@ use crate::{Envelope, Point, RTree, RTreeObject};
 /// # }
 /// ```
 pub trait RTreeParams: Send + Sync {
-    /// The minimum size of an internal node. Must be at most half as large as `MAX_SIZE`.
-    /// Choosing a value around one half or one third of `MAX_SIZE` is recommended. Higher
-    /// values should yield slightly better tree quality while lower values may benefit
-    /// insertion performance.
+    /// The minimum size of an internal node. `MIN_SIZE` must be greater than zero, and up to half
+    /// as large as `MAX_SIZE`.
+    ///
+    /// Choosing a value around one half or one third of `MAX_SIZE` is recommended. Larger values
+    /// should yield slightly better tree quality, while lower values may benefit insertion
+    /// performance.
     const MIN_SIZE: usize;
 
     /// The maximum size of an internal node. Larger values will improve insertion performance
