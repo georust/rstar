@@ -319,6 +319,17 @@ where
         LocateInEnvelopeMut::new(&mut self.root, SelectInEnvelopeFunction::new(*envelope))
     }
 
+    /// Returns a draining iterator over all elements contained in the tree.
+    ///
+    /// The order in which the elements are returned is not specified.
+    ///
+    /// See
+    /// [drain_with_selection_function](#method.drain_with_selection_function)
+    /// for more information.
+    pub fn drain(&mut self) -> DrainIterator<T, SelectAllFunc, Params> {
+        self.drain_with_selection_function(SelectAllFunc)
+    }
+
     /// Draining variant of [locate_in_envelope](#method.locate_in_envelope).
     pub fn drain_in_envelope(
         &mut self,
