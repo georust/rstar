@@ -24,7 +24,8 @@ pub trait Envelope: Clone + Copy + PartialEq + ::core::fmt::Debug {
     /// Returns the minimal envelope containing `self` and another envelope.
     fn merged(&self, other: &Self) -> Self;
 
-    /// Sets `self` to the intersection of `self` and another envelope.
+    /// Returns true if `self` and `other` intersect. The intersection might be
+    /// of zero area (the two envelopes only touching each other).
     fn intersects(&self, other: &Self) -> bool;
     /// Returns the area of the intersection of `self` and another envelope.
     fn intersection_area(&self, other: &Self) -> <Self::Point as Point>::Scalar;
