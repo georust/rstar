@@ -34,7 +34,10 @@ where
 {
     /// Returns the AABB encompassing a single point.
     pub fn from_point(p: P) -> Self {
-        AABB { lower: p.clone(), upper: p.clone() }
+        AABB {
+            lower: p.clone(),
+            upper: p.clone(),
+        }
     }
 
     /// Returns the AABB's lower corner.

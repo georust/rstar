@@ -316,7 +316,10 @@ where
 
     /// Mutable variant of [locate_in_envelope](#method.locate_in_envelope).
     pub fn locate_in_envelope_mut(&mut self, envelope: &T::Envelope) -> LocateInEnvelopeMut<T> {
-        LocateInEnvelopeMut::new(&mut self.root, SelectInEnvelopeFunction::new(envelope.clone()))
+        LocateInEnvelopeMut::new(
+            &mut self.root,
+            SelectInEnvelopeFunction::new(envelope.clone()),
+        )
     }
 
     /// Returns a draining iterator over all elements contained in the tree.

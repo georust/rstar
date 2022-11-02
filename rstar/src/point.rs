@@ -1,5 +1,5 @@
-use num_traits::{Bounded, Num, Signed, Zero};
 use core::fmt::Debug;
+use num_traits::{Bounded, Num, Signed, Zero};
 
 /// Defines a number type that is compatible with rstar.
 ///
