@@ -10,7 +10,7 @@ pub fn create_render_data_for_tree_2d(tree: &DemoTree2D) -> RenderData {
         for child in cur.children() {
             match child {
                 RTreeNode::Leaf(point) => {
-                    push_2d_point(&mut lines, *point);
+                    push_2d_point(&mut lines, point.clone());
                 }
                 RTreeNode::Parent(ref data) => {
                     to_visit.push((data, depth + 1));

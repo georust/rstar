@@ -53,7 +53,7 @@ where
     fn envelope(&self) -> Self::Envelope {
         match self {
             RTreeNode::Leaf(ref t) => t.envelope(),
-            RTreeNode::Parent(ref data) => data.envelope,
+            RTreeNode::Parent(ref data) => data.envelope.clone(),
         }
     }
 }
@@ -82,7 +82,7 @@ where
 
     /// Returns the smallest envelope that encompasses all children.
     pub fn envelope(&self) -> T::Envelope {
-        self.envelope
+        self.envelope.clone()
     }
 
     pub(crate) fn new_root<Params>() -> Self

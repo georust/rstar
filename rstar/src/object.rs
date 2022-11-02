@@ -196,7 +196,7 @@ where
     type Envelope = AABB<P>;
 
     fn envelope(&self) -> AABB<P> {
-        AABB::from_point(*self)
+        AABB::from_point(self.clone())
     }
 }
 

@@ -68,7 +68,7 @@ where
     type Envelope = AABB<P>;
 
     fn envelope(&self) -> Self::Envelope {
-        self.aabb
+        self.aabb.clone()
     }
 }
 

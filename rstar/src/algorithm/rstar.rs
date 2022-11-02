@@ -186,7 +186,7 @@ where
 
         for (index, child1) in node.children.iter().enumerate() {
             let envelope = child1.envelope();
-            let mut new_envelope = envelope;
+            let mut new_envelope = envelope.clone();
             new_envelope.merge(&insertion_envelope);
             let overlap_increase = if all_leaves {
                 // Calculate minimal overlap increase
@@ -307,8 +307,8 @@ where
             second_envelope.merge(&child.envelope());
         }
         for k in min_size..until {
-            let mut first_modified = first_envelope;
-            let mut second_modified = second_envelope;
+            let mut first_modified = first_envelope.clone();
+            let mut second_modified = second_envelope.clone();
             let (l, r) = node.children.split_at(k);
             for child in l {
                 first_modified.merge(&child.envelope());
