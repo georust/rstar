@@ -6,11 +6,12 @@ use crate::algorithm::nearest_neighbor::NearestNeighborDistance2Iterator;
 use crate::algorithm::nearest_neighbor::NearestNeighborIterator;
 use crate::algorithm::removal;
 use crate::algorithm::removal::DrainIterator;
+use crate::algorithm::rstar::rstar_insert;
 use crate::algorithm::selection_functions::*;
 use crate::envelope::Envelope;
 use crate::node::ParentNode;
 use crate::object::{PointDistance, RTreeObject};
-use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
+use crate::params::Params;
 use crate::Point;
 
 use alloc::vec::Vec;
@@ -18,13 +19,12 @@ use alloc::vec::Vec;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-impl<T, Params> Default for RTree<T, Params>
+impl<T> Default for RTree<T>
 where
     T: RTreeObject,
-    Params: RTreeParams,
 {
     fn default() -> Self {
-        Self::new_with_params()
+        Self::new_with_params(Params::default())
     }
 }
 
@@ -98,11 +98,10 @@ where
 /// If a library defines a method that should be generic over the r-tree type signature, make
 /// sure to include both type parameters like this:
 /// ```
-/// # use rstar::{RTree,RTreeObject, RTreeParams};
-/// pub fn generic_rtree_function<T, Params>(tree: &mut RTree<T, Params>)
+/// # use rstar::{RTree, RTreeObject};
+/// pub fn generic_rtree_function<T>(tree: &mut RTree<T>)
 /// where
-///   T: RTreeObject,
-///   Params: RTreeParams
+///   T: RTreeObject
 /// {
 ///   // ...
 /// }
@@ -143,37 +142,33 @@ where
         deserialize = "T: Deserialize<'de>, T::Envelope: Deserialize<'de>"
     ))
 )]
-pub struct RTree<T, Params = DefaultParams>
+pub struct RTree<T>
 where
-    Params: RTreeParams,
     T: RTreeObject,
 {
     root: ParentNode<T>,
     size: usize,
-    _params: ::core::marker::PhantomData<Params>,
+    pub(crate) params: Params,
 }
 
-struct DebugHelper<'a, T, Params>
+struct DebugHelper<'a, T>
 where
     T: RTreeObject + ::core::fmt::Debug + 'a,
-    Params: RTreeParams + 'a,
 {
-    rtree: &'a RTree<T, Params>,
+    rtree: &'a RTree<T>,
 }
 
-impl<'a, T, Params> ::core::fmt::Debug for DebugHelper<'a, T, Params>
+impl<'a, T> ::core::fmt::Debug for DebugHelper<'a, T>
 where
     T: RTreeObject + ::core::fmt::Debug,
-    Params: RTreeParams,
 {
     fn fmt(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         formatter.debug_set().entries(self.rtree.iter()).finish()
     }
 }
 
-impl<T, Params> ::core::fmt::Debug for RTree<T, Params>
+impl<T> ::core::fmt::Debug for RTree<T>
 where
-    Params: RTreeParams,
     T: RTreeObject + ::core::fmt::Debug,
 {
     fn fmt(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -193,7 +188,7 @@ where
     ///
     /// The created r-tree is configured with [default parameters](DefaultParams).
     pub fn new() -> Self {
-        Self::new_with_params()
+        Self::new_with_params(Params::default())
     }
 
     /// Creates a new r-tree with some elements already inserted.
@@ -209,25 +204,24 @@ where
     /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
     /// elements.
     pub fn bulk_load(elements: Vec<T>) -> Self {
-        Self::bulk_load_with_params(elements)
+        Self::bulk_load_with_params(Params::default(), elements)
     }
 }
 
-impl<T, Params> RTree<T, Params>
+impl<T> RTree<T>
 where
-    Params: RTreeParams,
     T: RTreeObject,
 {
     /// Creates a new, empty r-tree.
     ///
     /// The tree's compile time parameters must be specified. Refer to the
     /// [RTreeParams] trait for more information and a usage example.
-    pub fn new_with_params() -> Self {
-        verify_parameters::<T, Params>();
+    pub fn new_with_params(params: Params) -> Self {
+        params.check::<T>();
         RTree {
-            root: ParentNode::new_root::<Params>(),
+            root: ParentNode::new_root(&params),
             size: 0,
-            _params: Default::default(),
+            params,
         }
     }
 
@@ -235,8 +229,8 @@ where
     ///
     /// For more information refer to [RTree::bulk_load]
     /// and [RTreeParams].
-    pub fn bulk_load_with_params(elements: Vec<T>) -> Self {
-        Self::new_from_bulk_loading(elements, bulk_load::bulk_load_sequential::<_, Params>)
+    pub fn bulk_load_with_params(params: Params, elements: Vec<T>) -> Self {
+        Self::new_from_bulk_loading(params, elements, bulk_load::bulk_load_sequential::<_>)
     }
 
     /// Returns the number of objects in an r-tree.
@@ -326,7 +320,7 @@ where
     /// See
     /// [drain_with_selection_function](#method.drain_with_selection_function)
     /// for more information.
-    pub fn drain(&mut self) -> DrainIterator<T, SelectAllFunc, Params> {
+    pub fn drain(&mut self) -> DrainIterator<T, SelectAllFunc> {
         self.drain_with_selection_function(SelectAllFunc)
     }
 
@@ -334,7 +328,7 @@ where
     pub fn drain_in_envelope(
         &mut self,
         envelope: T::Envelope,
-    ) -> DrainIterator<T, SelectInEnvelopeFunction<T>, Params> {
+    ) -> DrainIterator<T, SelectInEnvelopeFunction<T>> {
         let sel = SelectInEnvelopeFunction::new(envelope);
         self.drain_with_selection_function(sel)
     }
@@ -445,21 +439,18 @@ where
     }
 
     fn new_from_bulk_loading(
+        params: Params,
         elements: Vec<T>,
-        root_loader: impl Fn(Vec<T>) -> ParentNode<T>,
+        root_loader: impl Fn(&Params, Vec<T>) -> ParentNode<T>,
     ) -> Self {
-        verify_parameters::<T, Params>();
+        params.check::<T>();
         let size = elements.len();
         let root = if size == 0 {
-            ParentNode::new_root::<Params>()
+            ParentNode::new_root(&params)
         } else {
-            root_loader(elements)
+            root_loader(&params, elements)
         };
-        RTree {
-            root,
-            size,
-            _params: Default::default(),
-        }
+        RTree { root, size, params }
     }
 
     /// Removes and returns a single element from the tree. The element to remove is specified
@@ -486,7 +477,7 @@ where
     /// iteration would stop the removal. However, the returned iterator
     /// must be properly dropped. Leaking this iterator leads to a leak
     /// amplification, where all the elements in the tree are leaked.
-    pub fn drain_with_selection_function<F>(&mut self, function: F) -> DrainIterator<T, F, Params>
+    pub fn drain_with_selection_function<F>(&mut self, function: F) -> DrainIterator<T, F>
     where
         F: SelectionFunction<T>,
     {
@@ -499,15 +490,14 @@ where
     pub fn drain_in_envelope_intersecting(
         &mut self,
         envelope: T::Envelope,
-    ) -> DrainIterator<T, SelectInEnvelopeFuncIntersecting<T>, Params> {
+    ) -> DrainIterator<T, SelectInEnvelopeFuncIntersecting<T>> {
         let selection_function = SelectInEnvelopeFuncIntersecting::new(envelope);
         self.drain_with_selection_function(selection_function)
     }
 }
 
-impl<T, Params> RTree<T, Params>
+impl<T> RTree<T>
 where
-    Params: RTreeParams,
     T: PointDistance,
 {
     /// Returns a single object that covers a given point.
@@ -586,9 +576,8 @@ where
     }
 }
 
-impl<T, Params> RTree<T, Params>
+impl<T> RTree<T>
 where
-    Params: RTreeParams,
     T: RTreeObject + PartialEq,
 {
     /// Returns `true` if a given element is equal (`==`) to an element in the
@@ -636,9 +625,8 @@ where
     }
 }
 
-impl<T, Params> RTree<T, Params>
+impl<T> RTree<T>
 where
-    Params: RTreeParams,
     T: PointDistance,
 {
     /// Returns the nearest neighbor for a given point.
@@ -715,7 +703,7 @@ where
         &mut self,
         query_point: <T::Envelope as Envelope>::Point,
         max_squared_radius: <<T::Envelope as Envelope>::Point as Point>::Scalar,
-    ) -> DrainIterator<T, SelectWithinDistanceFunction<T>, Params> {
+    ) -> DrainIterator<T, SelectWithinDistanceFunction<T>> {
         let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
         self.drain_with_selection_function(selection_function)
     }
@@ -798,10 +786,9 @@ where
     }
 }
 
-impl<T, Params> RTree<T, Params>
+impl<T> RTree<T>
 where
     T: RTreeObject,
-    Params: RTreeParams,
 {
     /// Inserts a new element into the r-tree.
     ///
@@ -812,23 +799,21 @@ where
     /// The [r-tree documentation](RTree) contains more information about
     /// r-tree performance.
     pub fn insert(&mut self, t: T) {
-        Params::DefaultInsertionStrategy::insert(self, t);
+        rstar_insert(self, t);
         self.size += 1;
     }
 }
 
-impl<T, Params> RTree<T, Params>
+impl<T> RTree<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
-    Params: RTreeParams,
 {
 }
 
-impl<'a, T, Params> IntoIterator for &'a RTree<T, Params>
+impl<'a, T> IntoIterator for &'a RTree<T>
 where
     T: RTreeObject,
-    Params: RTreeParams,
 {
     type IntoIter = RTreeIterator<'a, T>;
     type Item = &'a T;
@@ -838,10 +823,9 @@ where
     }
 }
 
-impl<'a, T, Params> IntoIterator for &'a mut RTree<T, Params>
+impl<'a, T> IntoIterator for &'a mut RTree<T>
 where
     T: RTreeObject,
-    Params: RTreeParams,
 {
     type IntoIter = RTreeIteratorMut<'a, T>;
     type Item = &'a mut T;
@@ -854,41 +838,24 @@ where
 #[cfg(test)]
 mod test {
     use super::RTree;
-    use crate::algorithm::rstar::RStarInsertionStrategy;
-    use crate::params::RTreeParams;
+    use crate::params::Params;
     use crate::test_utilities::{create_random_points, SEED_1};
-    use crate::DefaultParams;
-
-    struct TestParams;
-    impl RTreeParams for TestParams {
-        const MIN_SIZE: usize = 10;
-        const MAX_SIZE: usize = 20;
-        const REINSERTION_COUNT: usize = 1;
-        type DefaultInsertionStrategy = RStarInsertionStrategy;
-    }
 
     #[test]
     fn test_remove_capacity() {
-        pub struct WeirdParams;
-
-        impl RTreeParams for WeirdParams {
-            const MIN_SIZE: usize = 1;
-            const MAX_SIZE: usize = 10;
-            const REINSERTION_COUNT: usize = 1;
-            type DefaultInsertionStrategy = RStarInsertionStrategy;
-        }
-
+        let params = Params::new(1, 10, 1);
         let mut items: Vec<[f32; 2]> = Vec::new();
         for i in 0..2 {
             items.push([i as f32, i as f32]);
         }
-        let mut tree: RTree<_, WeirdParams> = RTree::bulk_load_with_params(items);
+        let mut tree: RTree<_> = RTree::bulk_load_with_params(params, items);
         assert_eq!(tree.remove(&[1.0, 1.0]).unwrap(), [1.0, 1.0]);
     }
 
     #[test]
     fn test_create_rtree_with_parameters() {
-        let tree: RTree<[f32; 2], TestParams> = RTree::new_with_params();
+        let params = Params::new(10, 20, 1);
+        let tree: RTree<[f32; 2]> = RTree::new_with_params(params);
         assert_eq!(tree.size(), 0);
     }
 
@@ -908,7 +875,7 @@ mod test {
         let mut tree = RTree::new();
         for p in &points {
             tree.insert(*p);
-            tree.root.sanity_check::<DefaultParams>(true);
+            tree.root.sanity_check(&tree.params, true);
         }
         assert_eq!(tree.size(), NUM_POINTS);
         for p in &points {
@@ -1009,7 +976,7 @@ mod test {
             // Bulk loading will create nodes larger than Params::MAX_SIZE,
             // which is intentional and not harmful.
             tree.insert(node);
-            tree.root().sanity_check::<DefaultParams>(false);
+            tree.root().sanity_check(&tree.params, false);
         }
     }
 }

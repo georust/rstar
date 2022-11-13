@@ -1,6 +1,6 @@
 use crate::envelope::Envelope;
 use crate::object::RTreeObject;
-use crate::params::RTreeParams;
+use crate::params::Params;
 
 use alloc::vec::Vec;
 
@@ -85,13 +85,10 @@ where
         self.envelope
     }
 
-    pub(crate) fn new_root<Params>() -> Self
-    where
-        Params: RTreeParams,
-    {
+    pub(crate) fn new_root(params: &Params) -> Self {
         ParentNode {
             envelope: Envelope::new_empty(),
-            children: Vec::with_capacity(Params::MAX_SIZE + 1),
+            children: Vec::with_capacity(params.max_size() + 1),
         }
     }
 
@@ -102,35 +99,31 @@ where
     }
 
     #[cfg(test)]
-    pub fn sanity_check<Params>(&self, check_max_size: bool) -> Option<usize>
-    where
-        Params: RTreeParams,
-    {
+    pub fn sanity_check(&self, params: &Params, check_max_size: bool) -> Option<usize> {
         if self.children.is_empty() {
             Some(0)
         } else {
             let mut result = None;
-            self.sanity_check_inner::<Params>(check_max_size, 1, &mut result);
+            self.sanity_check_inner(params, check_max_size, 1, &mut result);
             result
         }
     }
 
     #[cfg(test)]
-    fn sanity_check_inner<Params>(
+    fn sanity_check_inner(
         &self,
+        params: &Params,
         check_max_size: bool,
         height: usize,
         leaf_height: &mut Option<usize>,
-    ) where
-        Params: RTreeParams,
-    {
+    ) {
         if height > 1 {
-            let min_size = Params::MIN_SIZE;
+            let min_size = params.min_size();
             assert!(self.children.len() >= min_size);
         }
         let mut envelope = T::Envelope::new_empty();
         if check_max_size {
-            let max_size = Params::MAX_SIZE;
+            let max_size = params.max_size();
             assert!(self.children.len() <= max_size);
         }
 
@@ -146,7 +139,7 @@ where
                 }
                 RTreeNode::Parent(ref data) => {
                     envelope.merge(&data.envelope);
-                    data.sanity_check_inner::<Params>(check_max_size, height + 1, leaf_height);
+                    data.sanity_check_inner(params, check_max_size, height + 1, leaf_height);
                 }
             }
         }

@@ -3,7 +3,6 @@ use core::mem::replace;
 use crate::algorithm::selection_functions::SelectionFunction;
 use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
-use crate::params::RTreeParams;
 use crate::{Envelope, RTree};
 
 use alloc::{vec, vec::Vec};
@@ -24,25 +23,23 @@ use num_traits::Float;
 /// the yielded values (this behaviour is unlike `Vec::drain_*`). Leaking
 /// this iterator leads to a leak amplification where all elements of the
 /// tree are leaked.
-pub struct DrainIterator<'a, T, R, Params>
+pub struct DrainIterator<'a, T, R>
 where
     T: RTreeObject,
-    Params: RTreeParams,
     R: SelectionFunction<T>,
 {
     node_stack: Vec<(ParentNode<T>, usize, usize)>,
     removal_function: R,
-    rtree: &'a mut RTree<T, Params>,
+    rtree: &'a mut RTree<T>,
     original_size: usize,
 }
 
-impl<'a, T, R, Params> DrainIterator<'a, T, R, Params>
+impl<'a, T, R> DrainIterator<'a, T, R>
 where
     T: RTreeObject,
-    Params: RTreeParams,
     R: SelectionFunction<T>,
 {
-    pub(crate) fn new(rtree: &'a mut RTree<T, Params>, removal_function: R) -> Self {
+    pub(crate) fn new(rtree: &'a mut RTree<T>, removal_function: R) -> Self {
         // We replace with a root as a brand new RTree in case the iterator is
         // `mem::forgot`ten.
 
@@ -57,7 +54,7 @@ where
         );
         let original_size = replace(rtree.size_mut(), 0);
 
-        let m = Params::MIN_SIZE;
+        let m = rtree.params.min_size();
         let max_depth = (original_size as f32).log(m.max(2) as f32).ceil() as usize;
         let mut node_stack = Vec::with_capacity(max_depth);
         node_stack.push((root, 0, 0));
@@ -120,10 +117,9 @@ where
     }
 }
 
-impl<'a, T, R, Params> Iterator for DrainIterator<'a, T, R, Params>
+impl<'a, T, R> Iterator for DrainIterator<'a, T, R>
 where
     T: RTreeObject,
-    Params: RTreeParams,
     R: SelectionFunction<T>,
 {
     type Item = T;
@@ -180,10 +176,9 @@ where
     }
 }
 
-impl<'a, T, R, Params> Drop for DrainIterator<'a, T, R, Params>
+impl<'a, T, R> Drop for DrainIterator<'a, T, R>
 where
     T: RTreeObject,
-    Params: RTreeParams,
     R: SelectionFunction<T>,
 {
     fn drop(&mut self) {

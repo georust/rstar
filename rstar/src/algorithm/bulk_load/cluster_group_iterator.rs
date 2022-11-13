@@ -1,4 +1,4 @@
-use crate::{Envelope, Point, RTreeObject, RTreeParams};
+use crate::{Envelope, Params, Point, RTreeObject};
 
 use alloc::vec::Vec;
 
@@ -47,12 +47,11 @@ impl<T: RTreeObject> Iterator for ClusterGroupIterator<T> {
 /// Calculates the desired number of clusters on any axis
 ///
 /// A 'cluster' refers to a set of elements that will finally form an rtree node.
-pub fn calculate_number_of_clusters_on_axis<T, Params>(number_of_elements: usize) -> usize
+pub fn calculate_number_of_clusters_on_axis<T>(params: &Params, number_of_elements: usize) -> usize
 where
     T: RTreeObject,
-    Params: RTreeParams,
 {
-    let max_size = Params::MAX_SIZE as f32;
+    let max_size = params.max_size() as f32;
     // The depth of the resulting tree, assuming all leaf nodes will be filled up to MAX_SIZE
     let depth = (number_of_elements as f32).log(max_size).ceil() as usize;
     // The number of elements each subtree will hold
