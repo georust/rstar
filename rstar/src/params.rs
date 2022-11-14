@@ -41,7 +41,7 @@ impl Default for Params {
 
 impl Params {
     /// hi
-    pub const fn new(min_size: usize, max_size: usize, reinsertion_count: usize) -> Self {
+    pub fn new(min_size: usize, max_size: usize, reinsertion_count: usize) -> Self {
         // FIXME: add an Error enum and make this function return
         // Result<Self, rstar::Error> instead of asserting....
 
