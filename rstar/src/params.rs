@@ -41,9 +41,12 @@ impl Default for Params {
 
 impl Params {
     /// hi
-    pub fn new(min_size: usize, max_size: usize, reinsertion_count: usize) -> Self {
+    pub const fn new(min_size: usize, max_size: usize, reinsertion_count: usize) -> Self {
         // FIXME: add an Error enum and make this function return
         // Result<Self, rstar::Error> instead of asserting....
+
+        // If we don't want to do that, to make this const, we could
+        // use the `const_format` crate....
         assert!(max_size >= 4, "MAX_SIZE too small. Must be larger than 4.");
 
         assert!(min_size > 0, "MIN_SIZE must be at least 1",);
