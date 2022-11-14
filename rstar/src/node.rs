@@ -85,7 +85,7 @@ where
         self.envelope
     }
 
-    pub(crate) fn new_root(params: &Params) -> Self {
+    pub(crate) fn new_root(params: Params) -> Self {
         ParentNode {
             envelope: Envelope::new_empty(),
             children: Vec::with_capacity(params.max_size() + 1),

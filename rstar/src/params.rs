@@ -1,5 +1,3 @@
-use crate::{Envelope, Point, RTreeObject};
-
 /// Defines static parameters for an r-tree.
 ///
 /// Internally, an r-tree contains several nodes, similar to a b-tree. These parameters change
@@ -44,6 +42,25 @@ impl Default for Params {
 impl Params {
     /// hi
     pub fn new(min_size: usize, max_size: usize, reinsertion_count: usize) -> Self {
+        // FIXME: add an Error enum and make this function return
+        // Result<Self, rstar::Error> instead of asserting....
+        assert!(max_size >= 4, "MAX_SIZE too small. Must be larger than 4.");
+
+        assert!(min_size > 0, "MIN_SIZE must be at least 1",);
+        let max_min_size = (max_size + 1) / 2;
+        assert!(
+            min_size <= max_min_size,
+            "MIN_SIZE too large. Must be less or equal to {:?}",
+            max_min_size
+        );
+
+        let max_reinsertion_count = max_size - min_size;
+        assert!(
+            reinsertion_count < max_reinsertion_count,
+            "REINSERTION_COUNT too large. Must be smaller than {:?}",
+            max_reinsertion_count
+        );
+
         Params {
             min_size,
             max_size,
@@ -64,34 +81,5 @@ impl Params {
     /// hi
     pub fn reinsertion_count(&self) -> usize {
         self.reinsertion_count
-    }
-
-    /// hi
-    pub fn check<T: RTreeObject>(&self) {
-        assert!(
-            self.max_size() >= 4,
-            "MAX_SIZE too small. Must be larger than 4."
-        );
-
-        assert!(self.min_size() > 0, "MIN_SIZE must be at least 1",);
-        let max_min_size = (self.max_size() + 1) / 2;
-        assert!(
-            self.min_size() <= max_min_size,
-            "MIN_SIZE too large. Must be less or equal to {:?}",
-            max_min_size
-        );
-
-        let max_reinsertion_count = self.max_size() - self.min_size();
-        assert!(
-            self.reinsertion_count() < max_reinsertion_count,
-            "REINSERTION_COUNT too large. Must be smaller than {:?}",
-            max_reinsertion_count
-        );
-
-        let dimension = <T::Envelope as Envelope>::Point::DIMENSIONS;
-        assert!(
-            dimension > 1,
-            "Point dimension too small - must be at least 2"
-        );
     }
 }

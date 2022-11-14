@@ -36,7 +36,8 @@ where
         PerformReinsert(RTreeNode<T>),
     }
 
-    let first = recursive_insert::<_>(&tree.params.clone(), tree.root_mut(), RTreeNode::Leaf(t), 0);
+    let params = tree.params.clone();
+    let first = recursive_insert::<_>(params, tree.root_mut(), RTreeNode::Leaf(t), 0);
     let mut target_height = 0;
     let mut insertion_stack = Vec::new();
     match first {
@@ -52,7 +53,7 @@ where
         match next {
             PerformSplit(node) => {
                 // The root node was split, create a new root and increase height
-                let new_root = ParentNode::new_root(&tree.params);
+                let new_root = ParentNode::new_root(tree.params);
                 let old_root = ::core::mem::replace(tree.root_mut(), new_root);
                 let new_envelope = old_root.envelope.merged(&node.envelope());
                 let root = tree.root_mut();
@@ -62,9 +63,8 @@ where
                 target_height += 1;
             }
             PerformReinsert(node_to_reinsert) => {
-                let params = tree.params.clone();
                 let root = tree.root_mut();
-                match forced_insertion::<T>(&params, root, node_to_reinsert, target_height) {
+                match forced_insertion::<T>(params, root, node_to_reinsert, target_height) {
                     InsertionResult::Split(node) => insertion_stack.push(PerformSplit(node)),
                     InsertionResult::Reinsert(_, _) => {
                         panic!("Unexpected reinsert. This is a bug in rstar.")
@@ -77,7 +77,7 @@ where
 }
 
 fn forced_insertion<T>(
-    params: &Params,
+    params: Params,
     node: &mut ParentNode<T>,
     t: RTreeNode<T>,
     target_height: usize,
@@ -109,7 +109,7 @@ where
 }
 
 fn recursive_insert<T>(
-    params: &Params,
+    params: Params,
     node: &mut ParentNode<T>,
     t: RTreeNode<T>,
     current_height: usize,
@@ -217,7 +217,7 @@ where
 
 // Never returns a request for reinsertion
 fn resolve_overflow_without_reinsertion<T>(
-    params: &Params,
+    params: Params,
     node: &mut ParentNode<T>,
 ) -> InsertionResult<T>
 where
@@ -232,7 +232,7 @@ where
 }
 
 fn resolve_overflow<T>(
-    params: &Params,
+    params: Params,
     node: &mut ParentNode<T>,
     current_depth: usize,
 ) -> InsertionResult<T>
@@ -249,7 +249,7 @@ where
     }
 }
 
-fn split<T>(params: &Params, node: &mut ParentNode<T>) -> RTreeNode<T>
+fn split<T>(params: Params, node: &mut ParentNode<T>) -> RTreeNode<T>
 where
     T: RTreeObject,
 {
@@ -286,7 +286,7 @@ where
     RTreeNode::Parent(ParentNode::new_parent(off_split))
 }
 
-fn get_split_axis<T>(params: &Params, node: &mut ParentNode<T>) -> usize
+fn get_split_axis<T>(params: Params, node: &mut ParentNode<T>) -> usize
 where
     T: RTreeObject,
 {
@@ -327,7 +327,7 @@ where
     best_axis
 }
 
-fn get_nodes_for_reinsertion<T>(params: &Params, node: &mut ParentNode<T>) -> Vec<RTreeNode<T>>
+fn get_nodes_for_reinsertion<T>(params: Params, node: &mut ParentNode<T>) -> Vec<RTreeNode<T>>
 where
     T: RTreeObject,
 {

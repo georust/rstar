@@ -47,7 +47,7 @@ impl<T: RTreeObject> Iterator for ClusterGroupIterator<T> {
 /// Calculates the desired number of clusters on any axis
 ///
 /// A 'cluster' refers to a set of elements that will finally form an rtree node.
-pub fn calculate_number_of_clusters_on_axis<T>(params: &Params, number_of_elements: usize) -> usize
+pub fn calculate_number_of_clusters_on_axis<T>(params: Params, number_of_elements: usize) -> usize
 where
     T: RTreeObject,
 {

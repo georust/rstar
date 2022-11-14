@@ -208,6 +208,21 @@ where
     }
 }
 
+struct PointDimensionAssert<T> {
+    // See https://github.com/rust-lang/rust/issues/57775#issuecomment-1098001375
+    marker: core::marker::PhantomData<T>,
+}
+
+impl<T> PointDimensionAssert<T>
+where
+    T: RTreeObject,
+{
+    const DIMENSIONS_GOOD: () = assert!(
+        <T::Envelope as Envelope>::Point::DIMENSIONS > 1,
+        "Point dimension too small - must be at least 2"
+    );
+}
+
 impl<T> RTree<T>
 where
     T: RTreeObject,
@@ -217,9 +232,11 @@ where
     /// The tree's compile time parameters must be specified. Refer to the
     /// [RTreeParams] trait for more information and a usage example.
     pub fn new_with_params(params: Params) -> Self {
-        params.check::<T>();
+        // This is a load-bearing do-nothing statement!
+        let _ = PointDimensionAssert::<T>::DIMENSIONS_GOOD;
+
         RTree {
-            root: ParentNode::new_root(&params),
+            root: ParentNode::new_root(params),
             size: 0,
             params,
         }
@@ -441,14 +458,16 @@ where
     fn new_from_bulk_loading(
         params: Params,
         elements: Vec<T>,
-        root_loader: impl Fn(&Params, Vec<T>) -> ParentNode<T>,
+        root_loader: impl Fn(Params, Vec<T>) -> ParentNode<T>,
     ) -> Self {
-        params.check::<T>();
+        // This is a load-bearing do-nothing statement!
+        let _ = PointDimensionAssert::<T>::DIMENSIONS_GOOD;
+
         let size = elements.len();
         let root = if size == 0 {
-            ParentNode::new_root(&params)
+            ParentNode::new_root(params)
         } else {
-            root_loader(&params, elements)
+            root_loader(params, elements)
         };
         RTree { root, size, params }
     }
