@@ -34,7 +34,10 @@ where
 {
     /// Returns the AABB encompassing a single point.
     pub fn from_point(p: P) -> Self {
-        AABB { lower: p, upper: p }
+        AABB {
+            lower: p.clone(),
+            upper: p.clone(),
+        }
     }
 
     /// Returns the AABB's lower corner.
@@ -42,7 +45,7 @@ where
     /// This is the point contained within the AABB with the smallest coordinate value in each
     /// dimension.
     pub fn lower(&self) -> P {
-        self.lower
+        self.lower.clone()
     }
 
     /// Returns the AABB's upper corner.
@@ -50,7 +53,7 @@ where
     /// This is the point contained within the AABB with the largest coordinate value in each
     /// dimension.
     pub fn upper(&self) -> P {
-        self.upper
+        self.upper.clone()
     }
 
     /// Creates a new AABB encompassing two points.

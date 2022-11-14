@@ -1,5 +1,5 @@
-use num_traits::{Bounded, Num, Signed, Zero};
 use core::fmt::Debug;
+use num_traits::{Bounded, Num, Signed, Zero};
 
 /// Defines a number type that is compatible with rstar.
 ///
@@ -156,7 +156,7 @@ impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialO
 ///   }
 /// }
 /// ```
-pub trait Point: Copy + Clone + PartialEq + Debug {
+pub trait Point: Clone + PartialEq + Debug {
     /// The number type used by this point type.
     type Scalar: RTreeNum;
 

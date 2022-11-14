@@ -51,7 +51,7 @@ where
     type Envelope = AABB<P>;
 
     fn envelope(&self) -> Self::Envelope {
-        AABB::from_corners(self.from, self.to)
+        AABB::from_corners(self.from.clone(), self.to.clone())
     }
 }
 
@@ -73,7 +73,7 @@ where
     }
 
     fn project_point(&self, query_point: &P) -> P::Scalar {
-        let (ref p1, ref p2) = (self.from, self.to);
+        let (ref p1, ref p2) = (self.from.clone(), self.to.clone());
         let dir = p2.sub(p1);
         query_point.sub(p1).dot(&dir) / dir.length_2()
     }
@@ -90,7 +90,7 @@ where
     /// assert_eq!(line.nearest_point(&[10., 12.]), [1.0, 1.0]);
     /// ```
     pub fn nearest_point(&self, query_point: &P) -> P {
-        let (p1, p2) = (self.from, self.to);
+        let (p1, p2) = (self.from.clone(), self.to.clone());
         let dir = p2.sub(&p1);
         let s = self.project_point(query_point);
         if P::Scalar::zero() < s && s < One::one() {

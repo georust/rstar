@@ -7,6 +7,7 @@
 ## Changed
 - fixed all clippy lint issues
 - Fixed error when setting MIN_SIZE = 1 in `RTreeParams` and added assert for positive MIN_SIZE
+- BREAKING: Removed the `Copy` bound from `Point` and `Envelope`. ([PR](https://github.com/georust/rstar/pull/103))
 
 # 0.9.3
 ## Changed

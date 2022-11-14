@@ -223,14 +223,14 @@ where
     let mut smallest_min_max: <<T::Envelope as Envelope>::Point as Point>::Scalar =
         Bounded::max_value();
     let mut nodes = SmallHeap::new();
-    extend_heap(&mut nodes, node, query_point, &mut smallest_min_max);
+    extend_heap(&mut nodes, node, query_point.clone(), &mut smallest_min_max);
     while let Some(current) = nodes.pop() {
         match current {
             RTreeNodeDistanceWrapper {
                 node: RTreeNode::Parent(ref data),
                 ..
             } => {
-                extend_heap(&mut nodes, data, query_point, &mut smallest_min_max);
+                extend_heap(&mut nodes, data, query_point.clone(), &mut smallest_min_max);
             }
             RTreeNodeDistanceWrapper {
                 node: RTreeNode::Leaf(ref t),
@@ -250,7 +250,7 @@ pub fn nearest_neighbors<T>(
 where
     T: PointDistance,
 {
-    let mut nearest_neighbors = NearestNeighborIterator::new(node, query_point);
+    let mut nearest_neighbors = NearestNeighborIterator::new(node, query_point.clone());
 
     let first_nearest_neighbor = match nearest_neighbors.next() {
         None => return vec![], // If we have an empty tree, just return an empty vector.

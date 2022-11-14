@@ -7,8 +7,8 @@ use crate::RTree;
 
 use smallvec::SmallVec;
 
-pub use super::removal::DrainIterator;
 pub use super::intersection_iterator::IntersectionIterator;
+pub use super::removal::DrainIterator;
 
 /// Iterator returned by [`RTree::locate_all_at_point`].
 pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunction<T>>;
@@ -261,7 +261,7 @@ mod test {
         let points = create_random_points(NUM_POINTS, SEED_1);
         let mut tree = RTree::new();
         for p in &points {
-            tree.insert(*p);
+            tree.insert(p.clone());
         }
         let mut count = 0usize;
         for p in tree.iter() {
