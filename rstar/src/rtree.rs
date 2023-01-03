@@ -242,6 +242,20 @@ where
         Self::new_from_bulk_loading(elements, bulk_load::bulk_load_sequential::<_, Params>)
     }
 
+    /// Creates a new r-tree from an existing root node. The size parameter must match the number of
+    /// leaves in the tree.
+    ///
+    /// The tree's compile time parameters must be specified. Refer to the
+    /// [RTreeParams] trait for more information and a usage example.
+    pub fn new_from_root(root: ParentNode<T>, size: usize) -> Self {
+        verify_parameters::<T, Params>();
+        RTree {
+            root: root,
+            size: size,
+            _params: Default::default(),
+        }
+    }
+
     /// Returns the number of objects in an r-tree.
     ///
     /// # Example

@@ -12,6 +12,8 @@
 ## Added
 - Added method `RTree::drain()`.
 - Changed license field to [SPDX 2.1 license expression](https://spdx.dev/spdx-specification-21-web-version/#h.jxpfx0ykyb60)
+- `ParentNode::new_root` and `ParentNode::new_parent` are now public.
+- Added `RTree::new_from_root`.
 
 ## Changed
 - fixed all clippy lint issues
