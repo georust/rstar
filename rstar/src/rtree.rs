@@ -245,6 +245,18 @@ where
     /// Creates a new r-tree from an existing root node. The size parameter must match the number of
     /// leaves in the tree.
     ///
+    /// **Warning:** Manually constructed trees are **NOT** officially supported. You may only use
+    /// this method to load an r-tree previously constructed using this crate through a sequence of
+    /// safe operations such as [RTree::bulk_load], [RTree::insert], and [RTree::remove].
+    /// The leaf nodes' envelopes should match the envelopes of the items used to construct the
+    /// tree being loaded. Do not use this method to load a subtree of an r-tree as its own tree.
+    /// Failure to uphold any of the internal invariants will result in unexpected panics and
+    /// potentially incorrect behavior.
+    ///
+    /// **Warning:** The tree with the specified root node must be a correct r-tree as produced by
+    /// the current version of this crate with the same compile time parameters. Forward and
+    /// backward compatibility is **NOT** guaranteed.
+    ///
     /// The tree's compile time parameters must be specified. Refer to the
     /// [RTreeParams] trait for more information and a usage example.
     pub fn new_from_root(root: ParentNode<T>, size: usize) -> Self {
