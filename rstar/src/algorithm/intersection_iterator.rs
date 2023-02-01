@@ -50,13 +50,14 @@ where
             .iter()
             .filter(|c1| c1.envelope().intersects(&parent2.envelope()));
 
-        for child1 in children1 {
-            let children2 = parent2
-                .children()
-                .iter()
-                .filter(|c2| c2.envelope().intersects(&parent1.envelope()));
+        let children2: Vec<&RTreeNode<U>> = parent2
+            .children()
+            .iter()
+            .filter(|c2| c2.envelope().intersects(&parent1.envelope()))
+            .collect();
 
-            for child2 in children2 {
+        for child1 in children1 {
+            for child2 in &children2 {
                 self.push_if_intersecting(child1, child2);
             }
         }
