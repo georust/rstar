@@ -145,20 +145,20 @@ where
                             // No need to increment idx as something else has replaced it;
                             // or idx == new len, and we'll handle it in the next iteration.
                             let child = match node.children.swap_remove(*idx) {
-                                RTreeNode::Leaf(_) => unreachable!("DrainIterator bug!"),
+                                RTreeNode::Leaf(_, _) => unreachable!("DrainIterator bug!"),
                                 RTreeNode::Parent(node) => node,
                             };
                             self.node_stack.push((child, 0, 0));
                             return self.next();
                         }
-                        RTreeNode::Leaf(ref leaf) => {
+                        RTreeNode::Leaf(ref leaf, _) => {
                             if self.removal_function.should_unpack_leaf(leaf) {
                                 // Swap node with last, remove and return the value.
                                 // No need to increment idx as something else has replaced it;
                                 // or idx == new len, and we'll handle it in the next iteration.
                                 *remove_count += 1;
                                 return match node.children.swap_remove(*idx) {
-                                    RTreeNode::Leaf(data) => Some(data),
+                                    RTreeNode::Leaf(data, _) => Some(data),
                                     _ => unreachable!("RemovalIterator bug!"),
                                 };
                             }

@@ -40,7 +40,8 @@ impl InsertionStrategy for RStarInsertionStrategy {
             PerformReinsert(RTreeNode<T>),
         }
 
-        let first = recursive_insert::<_, Params>(tree.root_mut(), RTreeNode::Leaf(t), 0);
+        let env = t.envelope();
+        let first = recursive_insert::<_, Params>(tree.root_mut(), RTreeNode::Leaf(t, env), 0);
         let mut target_height = 0;
         let mut insertion_stack = Vec::new();
         match first {
@@ -155,7 +156,7 @@ where
     T: RTreeObject,
 {
     let all_leaves = match node.children.first() {
-        Some(RTreeNode::Leaf(_)) => return usize::max_value(),
+        Some(RTreeNode::Leaf(_, _)) => return usize::max_value(),
         Some(RTreeNode::Parent(ref data)) => data
             .children
             .first()

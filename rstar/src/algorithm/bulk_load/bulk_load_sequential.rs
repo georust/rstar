@@ -20,7 +20,13 @@ where
     let m = Params::MAX_SIZE;
     if elements.len() <= m {
         // Reached leaf level
-        let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
+        let elements: Vec<_> = elements
+            .into_iter()
+            .map(|elem| {
+                let env = elem.envelope();
+                RTreeNode::Leaf(elem, env)
+            })
+            .collect();
         return ParentNode::new_parent(elements);
     }
     let number_of_clusters_on_axis =

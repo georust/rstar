@@ -75,7 +75,7 @@ where
     fn next(&mut self) -> Option<&'a T> {
         while let Some(next) = self.current_nodes.pop() {
             match next {
-                RTreeNode::Leaf(ref t) => {
+                RTreeNode::Leaf(ref t, _) => {
                     if self.func.should_unpack_leaf(t) {
                         return Some(t);
                     }
@@ -130,7 +130,7 @@ where
     fn next(&mut self) -> Option<&'a mut T> {
         while let Some(next) = self.current_nodes.pop() {
             match next {
-                RTreeNode::Leaf(ref mut t) => {
+                RTreeNode::Leaf(ref mut t, _) => {
                     if self.func.should_unpack_leaf(t) {
                         return Some(t);
                     }

@@ -12,7 +12,7 @@ pub fn create_render_data_for_tree_3d(tree: &DemoTree3D) -> RenderData {
         push_cuboid(&mut lines, get_color_for_depth(depth), &cur.envelope());
         for child in cur.children() {
             match child {
-                RTreeNode::Leaf(point) => vertices.push((
+                RTreeNode::Leaf(point, _) => vertices.push((
                     Point3::new(point[0] as f32, point[1] as f32, point[2] as f32),
                     vertex_color,
                 )),

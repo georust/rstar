@@ -73,13 +73,13 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(next) = self.todo_list.pop() {
             match next {
-                (Leaf(t1), Leaf(t2)) => return Some((t1, t2)),
-                (leaf @ Leaf(_), Parent(p)) => {
+                (Leaf(t1, _), Leaf(t2, _)) => return Some((t1, t2)),
+                (leaf @ Leaf(_, _), Parent(p)) => {
                     p.children()
                         .iter()
                         .for_each(|c| self.push_if_intersecting(leaf, c));
                 }
-                (Parent(p), leaf @ Leaf(_)) => {
+                (Parent(p), leaf @ Leaf(_, _)) => {
                     p.children()
                         .iter()
                         .for_each(|c| self.push_if_intersecting(c, leaf));

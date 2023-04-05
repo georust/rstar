@@ -25,7 +25,7 @@ where
     T: RTreeObject,
 {
     /// A leaf node, only containing the r-tree object
-    Leaf(T),
+    Leaf(T, T::Envelope),
     /// A parent node containing several child nodes
     Parent(ParentNode<T>),
 }
@@ -52,7 +52,7 @@ where
 
     fn envelope(&self) -> Self::Envelope {
         match self {
-            RTreeNode::Leaf(ref t) => t.envelope(),
+            RTreeNode::Leaf(_, e) => e.clone(),
             RTreeNode::Parent(ref data) => data.envelope.clone(),
         }
     }
@@ -136,8 +136,8 @@ where
 
         for child in &self.children {
             match child {
-                RTreeNode::Leaf(ref t) => {
-                    envelope.merge(&t.envelope());
+                RTreeNode::Leaf(_, env) => {
+                    envelope.merge(env);
                     if let Some(ref leaf_height) = leaf_height {
                         assert_eq!(height, *leaf_height);
                     } else {
