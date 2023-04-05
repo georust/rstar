@@ -6,7 +6,7 @@ authors = ["Stefan Altmayer <stoeoef@gmail.com>", "The Georust Developers <mods@
 [dev-dependencies]
 rand = "0.7"
 rand_hc = "0.2"
-criterion = { version = "0.3.4", features = ["html_reports"] }
+criterion = { version = "0.4.0", features = ["html_reports"] }
 rstar = { path = "../rstar" }
 
 [[bench]]
