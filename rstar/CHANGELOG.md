@@ -11,6 +11,7 @@
 ## Added
 - Added method `RTree::drain()`.
 - Changed license field to [SPDX 2.1 license expression](https://spdx.dev/spdx-specification-21-web-version/#h.jxpfx0ykyb60)
+- `Point` is now implemented as const generic for any length of `RTreeNum` array
 
 ## Changed
 - fixed all clippy lint issues
