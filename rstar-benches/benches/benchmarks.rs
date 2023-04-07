@@ -55,7 +55,7 @@ fn bulk_load_comparison(c: &mut Criterion) {
 
 fn bulk_load_complex_geom(c: &mut Criterion) {
     c.bench_function("Bulk load complex geom", move |b| {
-        let polys: Vec<_> = create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 64, SEED_1);
+        let polys: Vec<_> = create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1);
 
         b.iter(|| {
             RTree::<Polygon<f64>, Params>::bulk_load_with_params(polys.clone());
