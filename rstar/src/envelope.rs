@@ -60,7 +60,7 @@ pub trait Envelope: Clone + PartialEq + ::core::fmt::Debug {
     /// than envelopes[selection_size + 1..].
     fn partition_envelopes<T: RTreeObject<Envelope = Self>>(
         axis: usize,
-        envelopes: &mut [T],
+        envelopes: &mut [(T, Self)],
         selection_size: usize,
     );
 }

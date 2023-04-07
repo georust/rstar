@@ -36,7 +36,7 @@ where
     pub fn from_point(p: P) -> Self {
         AABB {
             lower: p.clone(),
-            upper: p.clone(),
+            upper: p,
         }
     }
 
@@ -206,14 +206,13 @@ where
 
     fn partition_envelopes<T: RTreeObject<Envelope = Self>>(
         axis: usize,
-        envelopes: &mut [T],
+        envelopes: &mut [(T, Self)],
         selection_size: usize,
     ) {
         envelopes.select_nth_unstable_by(selection_size, |l, r| {
-            l.envelope()
-                .lower
+            l.1.lower
                 .nth(axis)
-                .partial_cmp(&r.envelope().lower.nth(axis))
+                .partial_cmp(&r.1.lower.nth(axis))
                 .unwrap()
         });
     }

@@ -235,7 +235,7 @@ where
     ///
     /// For more information refer to [RTree::bulk_load]
     /// and [RTreeParams].
-    pub fn bulk_load_with_params(elements: Vec<T>) -> Self {
+    pub fn bulk_load_with_params<I: IntoIterator<Item = T>>(elements: I) -> Self {
         Self::new_from_bulk_loading(elements, bulk_load::bulk_load_sequential::<_, Params>)
     }
 
@@ -447,11 +447,18 @@ where
         &mut self.root
     }
 
-    fn new_from_bulk_loading(
-        elements: Vec<T>,
-        root_loader: impl Fn(Vec<T>) -> ParentNode<T>,
+    fn new_from_bulk_loading<I: IntoIterator<Item = T>>(
+        elements: I,
+        root_loader: impl Fn(Vec<(T, T::Envelope)>) -> ParentNode<T>,
     ) -> Self {
         verify_parameters::<T, Params>();
+        let elements = elements
+            .into_iter()
+            .map(|element| {
+                let envelope = element.envelope();
+                (element, envelope)
+            })
+            .collect::<Vec<_>>();
         let size = elements.len();
         let root = if size == 0 {
             ParentNode::new_root::<Params>()

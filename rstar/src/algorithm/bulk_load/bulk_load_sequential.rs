@@ -11,7 +11,7 @@ use num_traits::Float;
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
-fn bulk_load_recursive<T, Params>(elements: Vec<T>, depth: usize) -> ParentNode<T>
+fn bulk_load_recursive<T, Params>(elements: Vec<(T, T::Envelope)>, depth: usize) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
@@ -20,7 +20,10 @@ where
     let m = Params::MAX_SIZE;
     if elements.len() <= m {
         // Reached leaf level
-        let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
+        let elements: Vec<_> = elements
+            .into_iter()
+            .map(|(element, _envelope)| RTreeNode::Leaf(element))
+            .collect();
         return ParentNode::new_parent(elements);
     }
     let number_of_clusters_on_axis =
@@ -43,7 +46,7 @@ where
 /// A partitioning iterator will take this item from its work queue and start partitioning "elements"
 /// along "current_axis" .
 struct PartitioningState<T: RTreeObject> {
-    elements: Vec<T>,
+    elements: Vec<(T, T::Envelope)>,
     current_axis: usize,
 }
 
@@ -89,7 +92,7 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
 /// A multi dimensional implementation of the OMT bulk loading algorithm.
 ///
 /// See http://ceur-ws.org/Vol-74/files/FORUM_18.pdf
-pub fn bulk_load_sequential<T, Params>(elements: Vec<T>) -> ParentNode<T>
+pub(crate) fn bulk_load_sequential<T, Params>(elements: Vec<(T, T::Envelope)>) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
