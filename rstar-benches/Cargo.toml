@@ -12,3 +12,7 @@ rstar = { path = "../rstar" }
 [[bench]]
 name = "benchmarks"
 harness = false
+
+[dependencies]
+geo = "0.24.1"
+geo-types = { version = "0.7.9", features = ["use-rstar_0_10"] }

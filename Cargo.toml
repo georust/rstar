@@ -5,3 +5,9 @@ members = [
     "rstar-demo",
     "rstar-benches"
 ]
+
+[patch.crates-io]
+
+# Ensure any transitive dependencies also use the local geo/geo-types
+rstar = { path = "rstar" }
+rstar-benches = { path = "rstar-benches" }
