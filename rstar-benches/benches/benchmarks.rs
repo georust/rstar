@@ -1,10 +1,12 @@
 #[macro_use]
 extern crate criterion;
-
+extern crate geo;
+extern crate geo_types;
 extern crate rand;
 extern crate rand_hc;
 extern crate rstar;
 
+use geo::*;
 use rand::{Rng, SeedableRng};
 use rand_hc::Hc128Rng;
 
@@ -49,6 +51,16 @@ fn bulk_load_comparison(c: &mut Criterion) {
         });
     });
     group.finish();
+}
+
+fn bulk_load_complex_geom(c: &mut Criterion) {
+    c.bench_function("Bulk load complex geom", move |b| {
+        let polys: Vec<_> = create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1);
+
+        b.iter(|| {
+            RTree::<Polygon<f64>, Params>::bulk_load_with_params(polys.clone());
+        });
+    });
 }
 
 fn tree_creation_quality(c: &mut Criterion) {
@@ -100,6 +112,7 @@ criterion_group!(
     benches,
     bulk_load_baseline,
     bulk_load_comparison,
+    bulk_load_complex_geom,
     tree_creation_quality,
     locate_successful,
     locate_unsuccessful
@@ -113,4 +126,34 @@ fn create_random_points(num_points: usize, seed: &[u8; 32]) -> Vec<[f64; 2]> {
         result.push(rng.gen());
     }
     result
+}
+
+fn create_random_polygons(num_points: usize, size: usize, seed: &[u8; 32]) -> Vec<Polygon<f64>> {
+    (0..num_points)
+        .map(|_| {
+            let mut rng = Hc128Rng::from_seed(*seed);
+            let [scale_x, scale_y]: [f64; 2] = rng.gen();
+            let [shift_x, shift_y]: [f64; 2] = rng.gen();
+            circular_polygon(size).map_coords(|c| Coord {
+                x: (shift_x + c.x) * scale_x,
+                y: (shift_y + c.y) * scale_y,
+            })
+        })
+        .collect()
+}
+
+pub fn circular_polygon(steps: usize) -> Polygon<f64> {
+    use std::f64::consts::PI;
+    let mut ring = Vec::with_capacity(steps);
+    let ang_step = 2. * PI / steps as f64;
+    // let ang_nudge = ang_step / 100.;
+
+    let mut angle: f64 = 0.0;
+    (0..steps).for_each(|_| {
+        let r: f64 = 1.0;
+        let (sin, cos) = angle.sin_cos();
+        ring.push((r * cos, r * sin).into());
+        angle += ang_step;
+    });
+    Polygon::new(LineString(ring), vec![])
 }
