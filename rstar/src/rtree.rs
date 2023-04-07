@@ -208,7 +208,7 @@ where
     /// # Runtime
     /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
     /// elements.
-    pub fn bulk_load(elements: Vec<T>) -> Self {
+    pub fn bulk_load<I: IntoIterator<Item = T>>(elements: I) -> Self {
         Self::bulk_load_with_params(elements)
     }
 }

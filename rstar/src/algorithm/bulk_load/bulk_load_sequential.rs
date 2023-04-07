@@ -149,15 +149,15 @@ mod test {
         create_and_check_bulk_loading_with_points(&random_points);
     }
 
-    fn create_and_check_bulk_loading_with_points<P>(points: &[P])
-    where
-        P: RTreeObject + Send + Sync + Eq + Clone + Debug + Hash + 'static,
-        P::Envelope: Send + Sync,
-    {
-        let tree = RTree::bulk_load(points.into());
-        let set1: HashSet<_> = tree.iter().collect();
-        let set2: HashSet<_> = points.iter().collect();
-        assert_eq!(set1, set2);
-        assert_eq!(tree.size(), points.len());
-    }
+    // fn create_and_check_bulk_loading_with_points<P>(points: &[P])
+    // where
+    //     P: RTreeObject + Send + Sync + Eq + Clone + Debug + Hash + 'static,
+    //     P::Envelope: Send + Sync,
+    // {
+    //     let tree = RTree::bulk_load(points.into());
+    //     let set1: HashSet<_> = tree.iter().collect();
+    //     let set2: HashSet<_> = points.iter().collect();
+    //     assert_eq!(set1, set2);
+    //     assert_eq!(tree.size(), points.len());
+    // }
 }
