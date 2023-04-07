@@ -11,7 +11,7 @@ use num_traits::Float;
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
-fn bulk_load_recursive<T, Params>(elements: Vec<T>, depth: usize) -> ParentNode<T>
+fn bulk_load_recursive<T, Params>(elements: Vec<RTreeNode<T>>, depth: usize) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
@@ -19,14 +19,6 @@ where
 {
     let m = Params::MAX_SIZE;
     if elements.len() <= m {
-        // Reached leaf level
-        let elements: Vec<_> = elements
-            .into_iter()
-            .map(|elem| {
-                let env = elem.envelope();
-                RTreeNode::Leaf(elem, env)
-            })
-            .collect();
         return ParentNode::new_parent(elements);
     }
     let number_of_clusters_on_axis =
@@ -61,7 +53,7 @@ struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
     _params: core::marker::PhantomData<Params>,
 }
 
-impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Params> {
+impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<RTreeNode<T>, Params> {
     type Item = RTreeNode<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -103,6 +95,13 @@ where
 {
     let m = Params::MAX_SIZE;
     let depth = (elements.len() as f32).log(m as f32).ceil() as usize;
+    let elements: Vec<_> = elements
+        .into_iter()
+        .map(|elem| {
+            let env = elem.envelope();
+            RTreeNode::Leaf(elem, env)
+        })
+        .collect();
     bulk_load_recursive::<_, Params>(elements, depth)
 }
 
