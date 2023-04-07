@@ -20,11 +20,19 @@ where
     let m = Params::MAX_SIZE;
     if elements.len() <= m {
         // Reached leaf level
-        let elements: Vec<_> = elements
+        let envelope = elements.iter().fold(
+            T::Envelope::new_empty(),
+            |mut envelope, (_element, envelope1)| {
+                envelope.merge(envelope1);
+                envelope
+            },
+        );
+
+        let children: Vec<_> = elements
             .into_iter()
             .map(|(element, _envelope)| RTreeNode::Leaf(element))
             .collect();
-        return ParentNode::new_parent(elements);
+        return ParentNode { children, envelope };
     }
     let number_of_clusters_on_axis =
         calculate_number_of_clusters_on_axis::<T, Params>(elements.len());
