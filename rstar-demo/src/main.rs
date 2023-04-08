@@ -7,7 +7,7 @@ use kiss3d::window::Window;
 use nalgebra::{Point2, Point3, Vector2};
 use rand::distributions::Uniform;
 use rand::Rng;
-use rstar::{Point, RStarInsertionStrategy, RTree, RTreeNode, RTreeParams, AABB};
+use rstar::{Params, Point, RTree, RTreeNode, AABB};
 
 mod three_d;
 mod two_d;
@@ -67,14 +67,14 @@ impl Scene {
 
     fn reset_to_empty(&mut self) {
         match self.render_mode {
-            RenderMode::TwoD => self.tree_2d = Default::default(),
-            RenderMode::ThreeD => self.tree_3d = Default::default(),
+            RenderMode::TwoD => self.tree_2d = DemoTree2D::new_with_params(params()),
+            RenderMode::ThreeD => self.tree_3d = DemoTree3D::new_with_params(params()),
         }
     }
 
     fn bulk_load_tree_3d() -> DemoTree3D {
         let points_3d = create_random_points(500);
-        DemoTree3D::bulk_load_with_params(points_3d)
+        DemoTree3D::bulk_load_with_params(params(), points_3d)
     }
 
     fn bulk_load_tree_2d(window_width: u32, window_height: u32) -> DemoTree2D {
@@ -83,23 +83,19 @@ impl Scene {
             *x = *x * window_width as f32 * 0.5;
             *y = *y * window_height as f32 * 0.5;
         }
-        DemoTree2D::bulk_load_with_params(points_2d)
+        DemoTree2D::bulk_load_with_params(params(), points_2d)
     }
 }
 
-type DemoTree3D = RTree<TreePointType3D, Params>;
+fn params() -> Params {
+    Params::new(5, 9, 3)
+}
+
+type DemoTree3D = RTree<TreePointType3D>;
 type TreePointType3D = [f32; 3];
 
 type DemoTree2D = RTree<TreePointType2D>;
 type TreePointType2D = [f32; 2];
-
-pub struct Params;
-impl RTreeParams for Params {
-    const MIN_SIZE: usize = 5;
-    const MAX_SIZE: usize = 9;
-    const REINSERTION_COUNT: usize = 3;
-    type DefaultInsertionStrategy = RStarInsertionStrategy;
-}
 
 pub enum RenderData {
     ThreeD(

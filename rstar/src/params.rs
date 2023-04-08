@@ -1,6 +1,3 @@
-use crate::algorithm::rstar::RStarInsertionStrategy;
-use crate::{Envelope, Point, RTree, RTreeObject};
-
 /// Defines static parameters for an r-tree.
 ///
 /// Internally, an r-tree contains several nodes, similar to a b-tree. These parameters change
@@ -8,109 +5,84 @@ use crate::{Envelope, Point, RTree, RTreeObject};
 ///
 /// # Example
 /// ```
-/// use rstar::{RTreeParams, RTree, RStarInsertionStrategy};
-///
+/// use rstar::{Params, RTree};
 /// // This example uses an rtree with larger internal nodes.
-/// struct LargeNodeParameters;
-///
-/// impl RTreeParams for LargeNodeParameters
-/// {
-///     const MIN_SIZE: usize = 10;
-///     const MAX_SIZE: usize = 30;
-///     const REINSERTION_COUNT: usize = 5;
-///     type DefaultInsertionStrategy = RStarInsertionStrategy;
-/// }
-///
-/// // Optional but helpful: Define a type alias for the new r-tree
-/// type LargeNodeRTree<T> = RTree<T, LargeNodeParameters>;
 ///
 /// # fn main() {
 /// // The only difference from now on is the usage of "new_with_params" instead of "new"
-/// let mut large_node_tree: LargeNodeRTree<_> = RTree::new_with_params();
+/// let params = Params::new(10, 30, 5);
+/// let mut large_node_tree: RTree<_> = RTree::new_with_params(params.clone());
 /// // Using the r-tree should allow inference for the point type
 /// large_node_tree.insert([1.0, -1.0f32]);
 /// // There is also a bulk load method with parameters:
 /// # let some_elements = vec![[0.0, 0.0]];
-/// let tree: LargeNodeRTree<_> = RTree::bulk_load_with_params(some_elements);
+/// let tree: RTree<_> = RTree::bulk_load_with_params(params, some_elements);
 /// # }
 /// ```
-pub trait RTreeParams: Send + Sync {
-    /// The minimum size of an internal node. `MIN_SIZE` must be greater than zero, and up to half
-    /// as large as `MAX_SIZE`.
-    ///
-    /// Choosing a value around one half or one third of `MAX_SIZE` is recommended. Larger values
-    /// should yield slightly better tree quality, while lower values may benefit insertion
-    /// performance.
-    const MIN_SIZE: usize;
 
-    /// The maximum size of an internal node. Larger values will improve insertion performance
-    /// but increase the average query time.
-    const MAX_SIZE: usize;
-
-    /// The number of nodes that the insertion strategy tries to occasionally reinsert to
-    /// maintain a good tree quality. Must be smaller than `MAX_SIZE` - `MIN_SIZE`.
-    /// Larger values will improve query times but increase insertion time.
-    const REINSERTION_COUNT: usize;
-
-    /// The insertion strategy which is used when calling [RTree::insert].
-    type DefaultInsertionStrategy: InsertionStrategy;
-}
-
-/// The default parameters used when creating an r-tree without specific parameters.
+/// hi
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct DefaultParams;
-
-impl RTreeParams for DefaultParams {
-    const MIN_SIZE: usize = 3;
-    const MAX_SIZE: usize = 6;
-    const REINSERTION_COUNT: usize = 2;
-    type DefaultInsertionStrategy = RStarInsertionStrategy;
+pub struct Params {
+    min_size: usize,
+    max_size: usize,
+    reinsertion_count: usize,
 }
 
-/// Defines how points are inserted into an r-tree.
-///
-/// Different strategies try to minimize both _insertion time_ (how long does it take to add a new
-/// object into the tree?) and _querying time_ (how long does an average nearest neighbor query
-/// take?).
-/// Currently, only one insertion strategy is implemented: R* (R-star) insertion. R* insertion
-/// tries to minimize querying performance while yielding reasonable insertion times, making it a
-/// good default strategy. More strategies may be implemented in the future.
-///
-/// Only calls to [RTree::insert] are affected by this strategy.
-///
-/// This trait is not meant to be implemented by the user.
-pub trait InsertionStrategy {
-    #[doc(hidden)]
-    fn insert<T, Params>(tree: &mut RTree<T, Params>, t: T)
-    where
-        Params: RTreeParams,
-        T: RTreeObject;
+impl Default for Params {
+    fn default() -> Self {
+        Self {
+            min_size: 3,
+            max_size: 6,
+            reinsertion_count: 2,
+        }
+    }
 }
 
-pub fn verify_parameters<T: RTreeObject, P: RTreeParams>() {
-    assert!(
-        P::MAX_SIZE >= 4,
-        "MAX_SIZE too small. Must be larger than 4."
-    );
+impl Params {
+    /// hi
+    pub fn new(min_size: usize, max_size: usize, reinsertion_count: usize) -> Self {
+        // FIXME: add an Error enum and make this function return
+        // Result<Self, rstar::Error> instead of asserting....
 
-    assert!(P::MIN_SIZE > 0, "MIN_SIZE must be at least 1",);
-    let max_min_size = (P::MAX_SIZE + 1) / 2;
-    assert!(
-        P::MIN_SIZE <= max_min_size,
-        "MIN_SIZE too large. Must be less or equal to {:?}",
-        max_min_size
-    );
+        // If we don't want to do that, to make this const, we could
+        // use the `const_format` crate....
+        assert!(max_size >= 4, "MAX_SIZE too small. Must be larger than 4.");
 
-    let max_reinsertion_count = P::MAX_SIZE - P::MIN_SIZE;
-    assert!(
-        P::REINSERTION_COUNT < max_reinsertion_count,
-        "REINSERTION_COUNT too large. Must be smaller than {:?}",
-        max_reinsertion_count
-    );
+        assert!(min_size > 0, "MIN_SIZE must be at least 1",);
+        let max_min_size = (max_size + 1) / 2;
+        assert!(
+            min_size <= max_min_size,
+            "MIN_SIZE too large. Must be less or equal to {:?}",
+            max_min_size
+        );
 
-    let dimension = <T::Envelope as Envelope>::Point::DIMENSIONS;
-    assert!(
-        dimension > 1,
-        "Point dimension too small - must be at least 2"
-    );
+        let max_reinsertion_count = max_size - min_size;
+        assert!(
+            reinsertion_count < max_reinsertion_count,
+            "REINSERTION_COUNT too large. Must be smaller than {:?}",
+            max_reinsertion_count
+        );
+
+        Params {
+            min_size,
+            max_size,
+            reinsertion_count,
+        }
+    }
+
+    /// hi
+    pub fn min_size(&self) -> usize {
+        self.min_size
+    }
+
+    /// hi
+    pub fn max_size(&self) -> usize {
+        self.max_size
+    }
+
+    /// hi
+    pub fn reinsertion_count(&self) -> usize {
+        self.reinsertion_count
+    }
 }

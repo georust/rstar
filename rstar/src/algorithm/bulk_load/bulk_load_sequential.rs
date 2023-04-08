@@ -1,7 +1,7 @@
 use crate::envelope::Envelope;
 use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
-use crate::params::RTreeParams;
+use crate::params::Params;
 use crate::point::Point;
 
 use alloc::{vec, vec::Vec};
@@ -11,29 +11,28 @@ use num_traits::Float;
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
-fn bulk_load_recursive<T, Params>(elements: Vec<T>, depth: usize) -> ParentNode<T>
+fn bulk_load_recursive<T>(params: Params, elements: Vec<T>, depth: usize) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
-    Params: RTreeParams,
 {
-    let m = Params::MAX_SIZE;
+    let m = params.max_size();
     if elements.len() <= m {
         // Reached leaf level
         let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
         return ParentNode::new_parent(elements);
     }
     let number_of_clusters_on_axis =
-        calculate_number_of_clusters_on_axis::<T, Params>(elements.len());
+        calculate_number_of_clusters_on_axis::<T>(params, elements.len());
 
-    let iterator = PartitioningTask::<_, Params> {
+    let iterator = PartitioningTask::<_> {
         number_of_clusters_on_axis,
         depth,
         work_queue: vec![PartitioningState {
             current_axis: <T::Envelope as Envelope>::Point::DIMENSIONS,
             elements,
         }],
-        _params: Default::default(),
+        params: params.clone(),
     };
     ParentNode::new_parent(iterator.collect())
 }
@@ -48,14 +47,14 @@ struct PartitioningState<T: RTreeObject> {
 }
 
 /// Successively partitions the given elements into  cluster groups and finally into clusters.
-struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
+struct PartitioningTask<T: RTreeObject> {
     work_queue: Vec<PartitioningState<T>>,
     depth: usize,
     number_of_clusters_on_axis: usize,
-    _params: core::marker::PhantomData<Params>,
+    params: Params,
 }
 
-impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Params> {
+impl<T: RTreeObject> Iterator for PartitioningTask<T> {
     type Item = RTreeNode<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -66,7 +65,7 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
             } = next;
             if current_axis == 0 {
                 // Partitioning finished successfully on all axis. The remaining cluster forms a new node
-                let data = bulk_load_recursive::<_, Params>(elements, self.depth - 1);
+                let data = bulk_load_recursive::<_>(self.params, elements, self.depth - 1);
                 return RTreeNode::Parent(data).into();
             } else {
                 // The cluster group needs to be partitioned further along the next axis
@@ -89,15 +88,14 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
 /// A multi dimensional implementation of the OMT bulk loading algorithm.
 ///
 /// See http://ceur-ws.org/Vol-74/files/FORUM_18.pdf
-pub fn bulk_load_sequential<T, Params>(elements: Vec<T>) -> ParentNode<T>
+pub fn bulk_load_sequential<T>(params: Params, elements: Vec<T>) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
-    Params: RTreeParams,
 {
-    let m = Params::MAX_SIZE;
+    let m = params.max_size();
     let depth = (elements.len() as f32).log(m as f32).ceil() as usize;
-    bulk_load_recursive::<_, Params>(elements, depth)
+    bulk_load_recursive::<_>(params, elements, depth)
 }
 
 #[cfg(test)]
