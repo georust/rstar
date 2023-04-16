@@ -1,5 +1,8 @@
 # UNRELEASED
 
+## Added
+- Add `GeomWithCachedEnvelope` combinator which simplifies memoizing envelope computations. ([PR](https://github.com/georust/rstar/pull/118))
+
 # 0.10.0
 
 ## Added
