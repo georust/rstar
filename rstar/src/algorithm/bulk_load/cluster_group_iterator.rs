@@ -56,7 +56,7 @@ where
     // The depth of the resulting tree, assuming all leaf nodes will be filled up to MAX_SIZE
     let depth = (number_of_elements as f32).log(max_size).ceil() as usize;
     // The number of elements each subtree will hold
-    let n_subtree = (max_size as f32).powi(depth as i32 - 1);
+    let n_subtree = max_size.powi(depth as i32 - 1);
     // How many clusters will this node contain
     let number_of_clusters = (number_of_elements as f32 / n_subtree).ceil();
 
