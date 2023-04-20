@@ -210,7 +210,7 @@ where
     /// elements.
     ///
     /// Note that the envelope of each element will be accessed many times,
-    /// so if that computation is expensive, consider memoizing it using [`GeomWithCachedEnvelope`][crate::primitives::GeomWithCachedEnvelope].
+    /// so if that computation is expensive, consider memoizing it using [`CachedEnvelope`][crate::primitives::CachedEnvelope].
     pub fn bulk_load(elements: Vec<T>) -> Self {
         Self::bulk_load_with_params(elements)
     }

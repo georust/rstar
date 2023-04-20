@@ -10,15 +10,15 @@ use core::ops::Deref;
 /// stores it and then returns a copy.
 ///
 /// **Note:** the container itself implements [RTreeObject] and inner geometry `T` can be
-/// accessed via the [`geom`][Self::geom] method and an implementation of `Deref<Target=T>`.
+/// accessed via an implementation of `Deref<Target=T>`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct GeomWithCachedEnvelope<T: RTreeObject> {
-    geom: T,
+pub struct CachedEnvelope<T: RTreeObject> {
+    inner: T,
     cached_env: T::Envelope,
 }
 
-impl<T: RTreeObject> RTreeObject for GeomWithCachedEnvelope<T>
+impl<T: RTreeObject> RTreeObject for CachedEnvelope<T>
 where
     T::Envelope: Clone,
 {
@@ -29,16 +29,16 @@ where
     }
 }
 
-impl<T: PointDistance> PointDistance for GeomWithCachedEnvelope<T> {
+impl<T: PointDistance> PointDistance for CachedEnvelope<T> {
     fn distance_2(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
     ) -> <<Self::Envelope as Envelope>::Point as Point>::Scalar {
-        self.geom.distance_2(point)
+        self.inner.distance_2(point)
     }
 
     fn contains_point(&self, p: &<Self::Envelope as Envelope>::Point) -> bool {
-        self.geom.contains_point(p)
+        self.inner.contains_point(p)
     }
 
     fn distance_2_if_less_or_equal(
@@ -46,35 +46,31 @@ impl<T: PointDistance> PointDistance for GeomWithCachedEnvelope<T> {
         point: &<Self::Envelope as Envelope>::Point,
         max_distance_2: <<Self::Envelope as Envelope>::Point as Point>::Scalar,
     ) -> Option<<<Self::Envelope as Envelope>::Point as Point>::Scalar> {
-        self.geom.distance_2_if_less_or_equal(point, max_distance_2)
+        self.inner
+            .distance_2_if_less_or_equal(point, max_distance_2)
     }
 }
 
-impl<T: RTreeObject> GeomWithCachedEnvelope<T> {
-    /// Create a new [GeomWithCachedEnvelope] struct using the provided geometry.
-    pub fn new(geom: T) -> Self {
-        let cached_env = geom.envelope();
+impl<T: RTreeObject> CachedEnvelope<T> {
+    /// Create a new [CachedEnvelope] struct using the provided geometry.
+    pub fn new(inner: T) -> Self {
+        let cached_env = inner.envelope();
 
-        Self { geom, cached_env }
-    }
-
-    /// Get a reference to the container's geometry.
-    pub fn geom(&self) -> &T {
-        &self.geom
+        Self { inner, cached_env }
     }
 }
 
-impl<T: RTreeObject> Deref for GeomWithCachedEnvelope<T> {
+impl<T: RTreeObject> Deref for CachedEnvelope<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.geom()
+        &self.inner
     }
 }
 
 #[cfg(test)]
 mod test {
-    use super::GeomWithCachedEnvelope;
+    use super::CachedEnvelope;
     use crate::object::PointDistance;
     use crate::primitives::GeomWithData;
 
@@ -84,8 +80,8 @@ mod test {
 
     #[test]
     fn container_in_rtree() {
-        let line_1 = GeomWithCachedEnvelope::new(Line::new([0.0, 0.0], [1.0, 1.0]));
-        let line_2 = GeomWithCachedEnvelope::new(Line::new([0.0, 0.0], [-1.0, 1.0]));
+        let line_1 = CachedEnvelope::new(Line::new([0.0, 0.0], [1.0, 1.0]));
+        let line_2 = CachedEnvelope::new(Line::new([0.0, 0.0], [-1.0, 1.0]));
         let tree = RTree::bulk_load(vec![line_1, line_2]);
 
         assert!(tree.contains(&line_1));
@@ -93,7 +89,7 @@ mod test {
 
     #[test]
     fn container_edge_distance() {
-        let edge = GeomWithCachedEnvelope::new(Line::new([0.5, 0.5], [0.5, 2.0]));
+        let edge = CachedEnvelope::new(Line::new([0.5, 0.5], [0.5, 2.0]));
 
         assert_abs_diff_eq!(edge.distance_2(&[0.5, 0.5]), 0.0);
         assert_abs_diff_eq!(edge.distance_2(&[0.0, 0.5]), 0.5 * 0.5);
@@ -106,20 +102,20 @@ mod test {
 
     #[test]
     fn container_length_2() {
-        let line = GeomWithCachedEnvelope::new(Line::new([1, -1], [5, 5]));
+        let line = CachedEnvelope::new(Line::new([1, -1], [5, 5]));
 
-        assert_eq!(line.geom().length_2(), 16 + 36);
+        assert_eq!(line.length_2(), 16 + 36);
     }
 
     #[test]
     fn container_nearest_neighbour() {
         let mut lines = RTree::new();
         lines.insert(GeomWithData::new(
-            GeomWithCachedEnvelope::new(Line::new([0.0, 0.0], [1.0, 1.0])),
+            CachedEnvelope::new(Line::new([0.0, 0.0], [1.0, 1.0])),
             "Line A",
         ));
         lines.insert(GeomWithData::new(
-            GeomWithCachedEnvelope::new(Line::new([0.0, 0.0], [-1.0, 1.0])),
+            CachedEnvelope::new(Line::new([0.0, 0.0], [-1.0, 1.0])),
             "Line B",
         ));
         let my_location = [0.0, 0.0];
