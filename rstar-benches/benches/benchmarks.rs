@@ -27,7 +27,7 @@ impl RTreeParams for Params {
 const DEFAULT_BENCHMARK_TREE_SIZE: usize = 2000;
 
 fn bulk_load_baseline(c: &mut Criterion) {
-    c.bench_function("Bulk load baseline", move |b| {
+    c.bench_function("bulk load baseline", move |b| {
         let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
 
         b.iter(|| {
@@ -37,18 +37,15 @@ fn bulk_load_baseline(c: &mut Criterion) {
 }
 
 fn bulk_load_comparison(c: &mut Criterion) {
-    let mut group = c.benchmark_group("rstar and spade benchmarks");
-
-    group.bench_function("rstar sequential", |b| {
+    c.bench_function("insert sequential", |b| {
         let points: Vec<_> = create_random_points(DEFAULT_BENCHMARK_TREE_SIZE, SEED_1);
         b.iter(move || {
             let mut rtree = rstar::RTree::new();
             for point in &points {
-                rtree.insert(point.clone());
+                rtree.insert(*point);
             }
         });
     });
-    group.finish();
 }
 
 fn tree_creation_quality(c: &mut Criterion) {
@@ -57,7 +54,7 @@ fn tree_creation_quality(c: &mut Criterion) {
     let tree_bulk_loaded = RTree::<_, Params>::bulk_load_with_params(points.clone());
     let mut tree_sequential = RTree::new();
     for point in &points {
-        tree_sequential.insert(point.clone());
+        tree_sequential.insert(*point);
     }
 
     let query_points = create_random_points(100, SEED_2);
@@ -65,14 +62,14 @@ fn tree_creation_quality(c: &mut Criterion) {
     c.bench_function("bulk load quality", move |b| {
         b.iter(|| {
             for query_point in &query_points {
-                tree_bulk_loaded.nearest_neighbor(&query_point).unwrap();
+                tree_bulk_loaded.nearest_neighbor(query_point).unwrap();
             }
         })
     })
     .bench_function("sequential load quality", move |b| {
         b.iter(|| {
             for query_point in &query_points_cloned_1 {
-                tree_sequential.nearest_neighbor(&query_point).unwrap();
+                tree_sequential.nearest_neighbor(query_point).unwrap();
             }
         });
     });

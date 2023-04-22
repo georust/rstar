@@ -316,7 +316,7 @@ mod test {
     #[test]
     fn test_nearest_neighbors() {
         let points = create_random_points(1000, SEED_1);
-        let tree = RTree::bulk_load(points.clone());
+        let tree = RTree::bulk_load(points);
 
         let sample_points = create_random_points(50, SEED_2);
         for sample_point in &sample_points {
@@ -342,7 +342,7 @@ mod test {
         for sample_point in &sample_points {
             points.sort_by(|r, l| {
                 r.distance_2(sample_point)
-                    .partial_cmp(&l.distance_2(&sample_point))
+                    .partial_cmp(&l.distance_2(sample_point))
                     .unwrap()
             });
             let collected: Vec<_> = tree.nearest_neighbor_iter(sample_point).cloned().collect();
@@ -353,12 +353,12 @@ mod test {
     #[test]
     fn test_nearest_neighbor_iterator_with_distance_2() {
         let points = create_random_points(1000, SEED_2);
-        let tree = RTree::bulk_load(points.clone());
+        let tree = RTree::bulk_load(points);
 
         let sample_points = create_random_points(50, SEED_1);
         for sample_point in &sample_points {
             let mut last_distance = 0.0;
-            for (point, distance) in tree.nearest_neighbor_iter_with_distance_2(&sample_point) {
+            for (point, distance) in tree.nearest_neighbor_iter_with_distance_2(sample_point) {
                 assert_eq!(point.distance_2(sample_point), distance);
                 assert!(last_distance < distance);
                 last_distance = distance;

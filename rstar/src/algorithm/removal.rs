@@ -299,7 +299,7 @@ mod test {
     fn test_drain_iterator() {
         const SIZE: usize = 1000;
         let points = create_random_points(SIZE, SEED_1);
-        let mut tree = RTree::bulk_load(points.clone());
+        let mut tree = RTree::bulk_load(points);
 
         let drain_count = DrainIterator::new(&mut tree, SelectAllFunc)
             .take(250)
@@ -320,7 +320,7 @@ mod test {
         assert_eq!(tree.size(), 0);
 
         let points = create_random_points(1000, SEED_1);
-        points.clone().into_iter().for_each(|pt| tree.insert(pt));
+        points.into_iter().for_each(|pt| tree.insert(pt));
 
         // The total for this is 406 (for SEED_1)
         let env = AABB::from_corners([-2., -0.6], [0.5, 0.85]);

@@ -208,6 +208,9 @@ where
     /// # Runtime
     /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
     /// elements.
+    ///
+    /// Note that the envelope of each element will be accessed many times,
+    /// so if that computation is expensive, consider memoizing it using [`CachedEnvelope`][crate::primitives::CachedEnvelope].
     pub fn bulk_load(elements: Vec<T>) -> Self {
         Self::bulk_load_with_params(elements)
     }

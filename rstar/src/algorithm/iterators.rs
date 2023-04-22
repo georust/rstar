@@ -261,7 +261,7 @@ mod test {
         let points = create_random_points(NUM_POINTS, SEED_1);
         let mut tree = RTree::new();
         for p in &points {
-            tree.insert(p.clone());
+            tree.insert(*p);
         }
         let mut count = 0usize;
         for p in tree.iter() {

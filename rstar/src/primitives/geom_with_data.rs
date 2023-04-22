@@ -8,7 +8,7 @@ use crate::{object::RTreeObject, point::Point};
 /// into an r-tree. This struct removes some of the boilerplate required to do so.
 ///
 /// **Note:** while the container itself implements [RTreeObject], you will have to go through its
-/// [`geom`](GeomWithData::geom) method in order to access geometry-specific methods.
+/// [`geom`][Self::geom] method in order to access geometry-specific methods.
 ///
 /// # Example
 /// ```

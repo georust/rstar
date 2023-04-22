@@ -36,7 +36,7 @@ where
     pub fn from_point(p: P) -> Self {
         AABB {
             lower: p.clone(),
-            upper: p.clone(),
+            upper: p,
         }
     }
 
