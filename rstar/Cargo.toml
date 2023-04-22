@@ -9,8 +9,8 @@ license = "MIT OR Apache-2.0"
 readme = "README.md"
 edition = "2018"
 rust-version = "1.51"
-keywords = ["rtree", "r-tree", "rstar", "spatial", "nearest-neighbor"]
-categories = ["data-structures", "algorithms"]
+keywords = ["rtree", "r-tree", "rstar", "spatial", "spatial-index", "nearest-neighbor"]
+categories = ["data-structures", "algorithms", "science::geo"]
 
 [badges]
 maintenance = { status = "actively-developed" }
