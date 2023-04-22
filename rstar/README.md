@@ -13,7 +13,7 @@ A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) imple
    - Nearest neighbor iteration
    - Locate at point
    - Element removal
-   - efficient bulk loading
+   - Efficient bulk loading
  - Features geometric primitives that can readily be inserted into an r-tree:
    - Points (arrays with a constant size)
    - Lines
