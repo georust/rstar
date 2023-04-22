@@ -5,6 +5,7 @@ use crate::RTreeNode::*;
 use crate::RTreeObject;
 
 use alloc::vec::Vec;
+use core::mem::take;
 
 #[cfg(doc)]
 use crate::RTree;
@@ -16,6 +17,7 @@ where
     U: RTreeObject,
 {
     todo_list: Vec<(&'a RTreeNode<T>, &'a RTreeNode<U>)>,
+    candidates: Vec<&'a RTreeNode<U>>,
 }
 
 impl<'a, T, U> IntersectionIterator<'a, T, U>
@@ -26,6 +28,7 @@ where
     pub(crate) fn new(root1: &'a ParentNode<T>, root2: &'a ParentNode<U>) -> Self {
         let mut intersections = IntersectionIterator {
             todo_list: Vec::new(),
+            candidates: Vec::new(),
         };
         intersections.add_intersecting_children(root1, root2);
         intersections
@@ -50,17 +53,22 @@ where
             .iter()
             .filter(|c1| c1.envelope().intersects(&parent2.envelope()));
 
-        let children2: Vec<&RTreeNode<U>> = parent2
-            .children()
-            .iter()
-            .filter(|c2| c2.envelope().intersects(&parent1.envelope()))
-            .collect();
+        let mut children2 = take(&mut self.candidates);
+        children2.extend(
+            parent2
+                .children()
+                .iter()
+                .filter(|c2| c2.envelope().intersects(&parent1.envelope())),
+        );
 
         for child1 in children1 {
             for child2 in &children2 {
                 self.push_if_intersecting(child1, child2);
             }
         }
+
+        children2.clear();
+        self.candidates = children2;
     }
 }
 
