@@ -1,14 +1,15 @@
 use crate::envelope::Envelope;
 use crate::object::PointDistance;
 use crate::{object::RTreeObject, point::Point};
+use core::ops::Deref;
 
 /// An [RTreeObject] with a geometry and some associated data that can be inserted into an r-tree.
 ///
 /// Often, adding metadata (like a database ID) to a geometry is required before adding it
 /// into an r-tree. This struct removes some of the boilerplate required to do so.
 ///
-/// **Note:** while the container itself implements [RTreeObject], you will have to go through its
-/// [`geom`][Self::geom] method in order to access geometry-specific methods.
+/// **Note:** while the container itself implements [RTreeObject], its geometry-specific methods
+/// are accessible via the `Deref` impl.
 ///
 /// # Example
 /// ```
@@ -73,7 +74,19 @@ impl<R: RTreeObject, T> GeomWithData<R, T> {
     }
 
     /// Get a reference to the container's geometry.
+    #[deprecated(
+        since = "0.10.1",
+        note = "Use the `Deref` impl to access the inner geometry instead."
+    )]
     pub fn geom(&self) -> &R {
+        &self.geom
+    }
+}
+
+impl<R: RTreeObject, T> Deref for GeomWithData<R, T> {
+    type Target = R;
+
+    fn deref(&self) -> &Self::Target {
         &self.geom
     }
 }
@@ -113,7 +126,7 @@ mod test {
     fn container_length_2() {
         let line = GeomWithData::new(Line::new([1, -1], [5, 5]), 1usize);
 
-        assert_eq!(line.geom().length_2(), 16 + 36);
+        assert_eq!(line.length_2(), 16 + 36);
     }
 
     #[test]
