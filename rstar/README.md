@@ -1,6 +1,6 @@
 # rstar
 
-A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) implementation for the rust ecosystem.
+A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) implementation for the Rust ecosystem, suitable for use as a spatial index.
 
 # Features
  - A flexible r*-tree written in safe rust
@@ -21,6 +21,10 @@ A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) imple
  - Small number of dependencies
  - Serde support with the `serde` feature
  - `no_std` compatible (but requires [`alloc`](https://doc.rust-lang.org/alloc/))
+
+## Geometries
+
+Primitives are provided for point, line, and rectangle geometries. The [`geo`](https://crates.io/crates/geo) crate uses rstar as an efficient spatial index and provides [`RTreeObject`](file:///Users/sth/dev/rstar/target/doc/rstar/trait.RTreeObject.html) implementations for storing complex geometries such as linestrings and polygons.
 
 # Benchmarks
 All benchmarks are performed on a i7-8550U CPU @ 1.80Ghz and with uniformly distributed points. The underlying point type is `[f64; 2]`.
