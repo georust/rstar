@@ -1,6 +1,7 @@
 use crate::aabb::AABB;
 use crate::envelope::Envelope;
 use crate::point::{Point, PointExt};
+use crate::primitives::{CachedEnvelope, GeomWithData};
 
 /// An object that can be inserted into an r-tree.
 ///
@@ -223,5 +224,37 @@ where
         } else {
             None
         }
+    }
+}
+
+/// TODO
+pub trait RTreeObjectExt: RTreeObject {
+    /// TODO
+    fn with_data<S>(self, data: S) -> GeomWithData<Self, S>
+    where
+        Self: Sized;
+
+    /// TODO
+    fn cached_envelope(self) -> CachedEnvelope<Self>
+    where
+        Self: Sized;
+}
+
+impl<T> RTreeObjectExt for T
+where
+    T: RTreeObject,
+{
+    fn with_data<S>(self, data: S) -> GeomWithData<Self, S>
+    where
+        Self: Sized,
+    {
+        GeomWithData::new(self, data)
+    }
+
+    fn cached_envelope(self) -> CachedEnvelope<Self>
+    where
+        Self: Sized,
+    {
+        CachedEnvelope::new(self)
     }
 }
