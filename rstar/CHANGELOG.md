@@ -3,6 +3,9 @@
 ## Added
 - Add `CachedEnvelope` combinator which simplifies memoizing envelope computations. ([PR](https://github.com/georust/rstar/pull/118))
 
+## Deprecated
+- Deprecated `GeomWithData` `.inner()` method in favour of a `Deref` impl, matching `CachedEnvelope`
+
 # 0.10.0
 
 ## Added
