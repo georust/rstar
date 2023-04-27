@@ -5,3 +5,7 @@ members = [
     "rstar-demo",
     "rstar-benches"
 ]
+
+# Ensure any transitive dependencies, e.g. via `geo`, use the local `rstar` crate
+[patch.crates-io]
+rstar = { path = "rstar" }

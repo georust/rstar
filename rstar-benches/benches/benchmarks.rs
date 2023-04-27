@@ -1,10 +1,14 @@
 #[macro_use]
 extern crate criterion;
-
+extern crate geo;
+extern crate geo_types;
 extern crate rand;
 extern crate rand_hc;
 extern crate rstar;
 
+use std::f64::consts::PI;
+
+use geo::{Coord, LineString, MapCoords, Polygon};
 use rand::{Rng, SeedableRng};
 use rand_hc::Hc128Rng;
 
@@ -44,6 +48,16 @@ fn bulk_load_comparison(c: &mut Criterion) {
             for point in &points {
                 rtree.insert(*point);
             }
+        });
+    });
+}
+
+fn bulk_load_complex_geom(c: &mut Criterion) {
+    c.bench_function("Bulk load complex geom", move |b| {
+        let polys: Vec<_> = create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1);
+
+        b.iter(|| {
+            RTree::<Polygon<f64>, Params>::bulk_load_with_params(polys.clone());
         });
     });
 }
@@ -97,6 +111,7 @@ criterion_group!(
     benches,
     bulk_load_baseline,
     bulk_load_comparison,
+    bulk_load_complex_geom,
     tree_creation_quality,
     locate_successful,
     locate_unsuccessful
@@ -104,10 +119,37 @@ criterion_group!(
 criterion_main!(benches);
 
 fn create_random_points(num_points: usize, seed: &[u8; 32]) -> Vec<[f64; 2]> {
-    let mut result = Vec::with_capacity(num_points);
     let mut rng = Hc128Rng::from_seed(*seed);
-    for _ in 0..num_points {
-        result.push(rng.gen());
-    }
-    result
+    (0..num_points).map(|_| rng.gen()).collect()
+}
+
+fn create_random_polygons(num_points: usize, size: usize, seed: &[u8; 32]) -> Vec<Polygon<f64>> {
+    let mut rng = Hc128Rng::from_seed(*seed);
+    let base_polygon = circular_polygon(size);
+
+    (0..num_points)
+        .map(|_| {
+            let [scale_x, scale_y]: [f64; 2] = rng.gen();
+            let [shift_x, shift_y]: [f64; 2] = rng.gen();
+            base_polygon.clone().map_coords(|c| Coord {
+                x: (shift_x + c.x) * scale_x,
+                y: (shift_y + c.y) * scale_y,
+            })
+        })
+        .collect()
+}
+
+pub fn circular_polygon(steps: usize) -> Polygon<f64> {
+    let delta = 2. * PI / steps as f64;
+    let r = 1.0;
+
+    let ring = (0..steps)
+        .scan(0.0_f64, |angle, _step| {
+            let (sin, cos) = angle.sin_cos();
+            *angle += delta;
+            Some((r * cos, r * sin).into())
+        })
+        .collect();
+
+    Polygon::new(LineString(ring), Vec::new())
 }
