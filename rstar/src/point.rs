@@ -304,48 +304,41 @@ where
     }
 }
 
+impl<S, const N: usize> Point for [S; N]
+where
+    S: RTreeNum,
+{
+    type Scalar = S;
+
+    const DIMENSIONS: usize = N;
+
+    fn generate(mut generator: impl FnMut(usize) -> S) -> Self {
+        // The same implementation used in std::array::from_fn
+        // Since this is a const generic it gets unrolled
+        let mut idx = 0;
+        [(); N].map(|_| {
+            let res = generator(idx);
+            idx += 1;
+            res
+        })
+    }
+
+    #[inline]
+    fn nth(&self, index: usize) -> Self::Scalar {
+        self[index]
+    }
+
+    #[inline]
+    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
+        &mut self[index]
+    }
+}
+
 macro_rules! count_exprs {
     () => (0);
     ($head:expr) => (1);
     ($head:expr, $($tail:expr),*) => (1 + count_exprs!($($tail),*));
 }
-
-macro_rules! implement_point_for_array {
-    ($($index:expr),*) => {
-        impl<S> Point for [S; count_exprs!($($index),*)]
-        where
-            S: RTreeNum,
-        {
-            type Scalar = S;
-
-            const DIMENSIONS: usize = count_exprs!($($index),*);
-
-            fn generate(mut generator: impl FnMut(usize) -> S) -> Self
-            {
-                [$(generator($index)),*]
-            }
-
-            #[inline]
-            fn nth(&self, index: usize) -> Self::Scalar {
-                self[index]
-            }
-
-            #[inline]
-            fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
-                &mut self[index]
-            }
-        }
-    };
-}
-
-implement_point_for_array!(0, 1);
-implement_point_for_array!(0, 1, 2);
-implement_point_for_array!(0, 1, 2, 3);
-implement_point_for_array!(0, 1, 2, 3, 4);
-implement_point_for_array!(0, 1, 2, 3, 4, 5);
-implement_point_for_array!(0, 1, 2, 3, 4, 5, 6);
-implement_point_for_array!(0, 1, 2, 3, 4, 5, 6, 7);
-implement_point_for_array!(0, 1, 2, 3, 4, 5, 6, 7, 8);
 
 macro_rules! fixed_type {
     ($expr:expr, $type:ty) => {
