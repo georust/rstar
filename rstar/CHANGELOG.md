@@ -1,4 +1,4 @@
-# UNRELEASED
+# 0.11.0
 
 ## Added
 - Add `CachedEnvelope` combinator which simplifies memoizing envelope computations. ([PR](https://github.com/georust/rstar/pull/118))
