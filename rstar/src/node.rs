@@ -85,7 +85,8 @@ where
         self.envelope.clone()
     }
 
-    pub(crate) fn new_root<Params>() -> Self
+    /// Creates an empty root ParentNode.
+    pub fn new_root<Params>() -> Self
     where
         Params: RTreeParams,
     {
@@ -95,7 +96,8 @@ where
         }
     }
 
-    pub(crate) fn new_parent(children: Vec<RTreeNode<T>>) -> Self {
+    /// Creates a ParentNode with the specified children.
+    pub fn new_parent(children: Vec<RTreeNode<T>>) -> Self {
         let envelope = envelope_for_children(&children);
 
         ParentNode { envelope, children }

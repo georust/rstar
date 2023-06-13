@@ -1,3 +1,11 @@
+# Unreleased
+
+## Added
+- Added `RTree::new_from_root`.
+
+## Changed
+- `ParentNode::new_root` and `ParentNode::new_parent` are now public.
+
 # 0.11.0
 
 ## Added
