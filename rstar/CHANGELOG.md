@@ -1,3 +1,8 @@
+# Unreleased
+
+## Changed
+- Fixed a stack overflow error in `DrainIterator::next`
+
 # 0.11.0
 
 ## Added
