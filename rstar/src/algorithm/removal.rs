@@ -129,7 +129,7 @@ where
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
+        'attempt_loop: loop {
             // Get reference to top node or return None.
             let (node, idx, remove_count) = match self.node_stack.last_mut() {
                 Some(node) => (&mut node.0, &mut node.1, &mut node.2),
@@ -149,7 +149,7 @@ where
                                 RTreeNode::Parent(node) => node,
                             };
                             self.node_stack.push((child, 0, 0));
-                            return self.next();
+                            continue 'attempt_loop;
                         }
                         RTreeNode::Leaf(ref leaf) => {
                             if self.removal_function.should_unpack_leaf(leaf) {
