@@ -28,8 +28,7 @@ where
     T: PointDistance,
 {
     fn partial_cmp(&self, other: &Self) -> Option<::core::cmp::Ordering> {
-        // Inverse comparison creates a min heap
-        other.distance.partial_cmp(&self.distance)
+        Some(self.cmp(other))
     }
 }
 
@@ -40,7 +39,8 @@ where
     T: PointDistance,
 {
     fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
+        // Inverse comparison creates a min heap
+        other.distance.partial_cmp(&self.distance).unwrap()
     }
 }
 

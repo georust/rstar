@@ -11,7 +11,7 @@ use num_traits::Float;
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
-fn bulk_load_recursive<T, Params>(elements: Vec<T>, depth: usize) -> ParentNode<T>
+fn bulk_load_recursive<T, Params>(elements: Vec<T>) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
@@ -28,7 +28,6 @@ where
 
     let iterator = PartitioningTask::<_, Params> {
         number_of_clusters_on_axis,
-        depth,
         work_queue: vec![PartitioningState {
             current_axis: <T::Envelope as Envelope>::Point::DIMENSIONS,
             elements,
@@ -50,7 +49,6 @@ struct PartitioningState<T: RTreeObject> {
 /// Successively partitions the given elements into  cluster groups and finally into clusters.
 struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
     work_queue: Vec<PartitioningState<T>>,
-    depth: usize,
     number_of_clusters_on_axis: usize,
     _params: core::marker::PhantomData<Params>,
 }
@@ -66,7 +64,7 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
             } = next;
             if current_axis == 0 {
                 // Partitioning finished successfully on all axis. The remaining cluster forms a new node
-                let data = bulk_load_recursive::<_, Params>(elements, self.depth - 1);
+                let data = bulk_load_recursive::<_, Params>(elements);
                 return RTreeNode::Parent(data).into();
             } else {
                 // The cluster group needs to be partitioned further along the next axis
@@ -95,9 +93,7 @@ where
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    let m = Params::MAX_SIZE;
-    let depth = (elements.len() as f32).log(m as f32).ceil() as usize;
-    bulk_load_recursive::<_, Params>(elements, depth)
+    bulk_load_recursive::<_, Params>(elements)
 }
 
 #[cfg(test)]

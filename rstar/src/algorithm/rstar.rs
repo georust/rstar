@@ -150,7 +150,7 @@ where
     }
 }
 
-fn choose_subtree<T>(node: &mut ParentNode<T>, to_insert: &RTreeNode<T>) -> usize
+fn choose_subtree<T>(node: &ParentNode<T>, to_insert: &RTreeNode<T>) -> usize
 where
     T: RTreeObject,
 {
