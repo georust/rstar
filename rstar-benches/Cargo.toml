@@ -5,7 +5,7 @@ authors = ["Stefan Altmayer <stoeoef@gmail.com>", "The Georust Developers <mods@
 
 [dev-dependencies]
 criterion = { version = "0.4.0", features = ["html_reports"] }
-geo = "0.24.1"
+geo = "0.26.0"
 geo-types = { version = "0.7.9", features = ["use-rstar_0_10"] }
 rand = "0.7"
 rand_hc = "0.2"
