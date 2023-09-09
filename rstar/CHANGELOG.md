@@ -1,5 +1,9 @@
 # Unreleased
 
+## Added
+- Add optional support for the [mint](https://docs.rs/mint/0.5.9/mint/index.html) crate
+  (only the Point trait for mint::Point2 implemented so far)
+
 ## Changed
 - Fixed a stack overflow error in `DrainIterator::next`
 
