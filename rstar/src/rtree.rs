@@ -689,8 +689,15 @@ where
     ///   [0.0, 1.0],
     ///   [1.0, 0.0],
     /// ]);
-    /// assert_eq!(tree.nearest_neighbors(&[1.0, 1.0]), &[&[0.0, 1.0], &[1.0, 0.0]]);
+    ///
+    /// // A single nearest neighbor
     /// assert_eq!(tree.nearest_neighbors(&[0.01, 0.01]), &[&[0.0, 0.0]]);
+    ///
+    /// // Two nearest neighbors
+    /// let nearest_two = tree.nearest_neighbors(&[1.0, 1.0]);
+    /// assert_eq!(nearest_two.len(), 2);
+    /// assert!(nearest_two.contains(&&[0.0, 1.0]));
+    /// assert!(nearest_two.contains(&&[1.0, 0.0]));
     /// ```
     pub fn nearest_neighbors(&self, query_point: &<T::Envelope as Envelope>::Point) -> Vec<&T> {
         nearest_neighbor::nearest_neighbors(&self.root, query_point.clone())
