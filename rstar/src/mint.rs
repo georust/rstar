@@ -6,7 +6,9 @@
 //!
 //! Here is an example of how you might do that using `mint` types for
 //! compatibility between the two libraries. Make sure to enable the
-//! `mint` features on both `nalgebra` and `rstar` for this to work.
+//! `mint` features on both the `nalgebra` and the `rstar` crates for
+//! this to work. You will also need to depend on the
+//! [`mint`](https://crates.io/crates/mint) crate.
 //!
 //! ```
 //! use rstar::RTree;

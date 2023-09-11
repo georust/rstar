@@ -42,7 +42,7 @@ pub mod primitives;
 mod rtree;
 
 #[cfg(feature = "mint")]
-mod mint;
+pub mod mint;
 
 #[cfg(test)]
 mod test_utilities;
