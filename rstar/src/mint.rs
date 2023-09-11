@@ -1,7 +1,7 @@
 //! [`mint`](https://crates.io/crates/mint) is a library for
 //! interoperability between maths crates, for example, you may want
 //! to use [nalgebra](https://crates.io/crates/nalgebra) types for
-//! representing your points and ALSO use the same points with the
+//! representing your points and _also_ use the same points with the
 //! `rstar` library.
 //!
 //! Here is an example of how you might do that using `mint` types for
