@@ -9,7 +9,7 @@
 //! `mint` features on both `nalgebra` and `rstar` for this to work.
 //!
 //! ```
-//! use crate::RTree;
+//! use rstar::RTree;
 //!
 //! let point1 = nalgebra::Point2::new(0.0, 0.0);
 //! let point2 = nalgebra::Point2::new(1.0, 1.0);
@@ -17,15 +17,15 @@
 //! // First we have to convert the foreign points into the mint
 //! // compatibility types before we can store them in the rtree
 //!
-//! let mint_point1: mint::Point2 = point1.into();
-//! let mint_point2: mint::Point2 = point2.into();
+//! let mint_point1: mint::Point2<f64> = point1.into();
+//! let mint_point2: mint::Point2<f64> = point2.into();
 //!
 //! // Now we can use them with rtree structs and methods
 //! let mut rtree = RTree::new();
 //!
 //! rtree.insert(mint_point2);
 //!
-//! assert_eq!(rtree.nearest_neighbor(mint_point1), mint_point2);
+//! assert_eq!(rtree.nearest_neighbor(&mint_point1), Some(&mint_point2));
 //! ```
 
 use crate::{Point, RTreeNum};
