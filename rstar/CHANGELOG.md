@@ -1,5 +1,8 @@
 # Unreleased
 
+## Added
+- Add optional support for the [mint](https://docs.rs/mint/0.5.9/mint/index.html) crate
+
 ## Changed
 - Fixed a stack overflow error in `DrainIterator::next`
 

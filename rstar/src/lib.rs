@@ -17,8 +17,14 @@
 //! the [primitives module](crate::primitives) may be of interest for a quick start.
 //!
 //! # (De)Serialization
-//! Enable the `serde` feature for [Serde](https://crates.io/crates/serde) support.
+//! Enable the `serde` feature for [serde](https://crates.io/crates/serde) support.
 //!
+//! # Mint compatibility with other crates
+//! Enable the `mint` feature for
+//! [`mint`](https://crates.io/crates/mint) support. See the
+//! documentation on the [mint] module for an expample of an
+//! integration with the
+//! [`nalgebra`](https://crates.io/crates/nalgebra) crate.
 #![deny(missing_docs)]
 #![forbid(unsafe_code)]
 #![cfg_attr(not(test), no_std)]
@@ -34,6 +40,9 @@ mod params;
 mod point;
 pub mod primitives;
 mod rtree;
+
+#[cfg(feature = "mint")]
+pub mod mint;
 
 #[cfg(test)]
 mod test_utilities;
