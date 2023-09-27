@@ -41,7 +41,7 @@ where
 ///
 /// However, creating an r-tree is time consuming
 /// and runs in `O(n * log(n))`. Thus, r-trees are suited best if many queries and only few
-/// insertions are made. rstar also supports [bulk loading](RTree::bulk_load),
+/// insertions are made. `rstar` also supports [bulk loading](RTree::bulk_load),
 /// which cuts down the constant factors when creating an r-tree significantly compared to
 /// sequential insertions.
 ///
@@ -53,16 +53,13 @@ where
 /// on fast insertion operations, the resulting r-trees were often suboptimally structured. Another
 /// heuristic, called `R*-tree` (r-star-tree), was proposed to improve the tree structure at the cost of
 /// longer insertion operations and is currently the crate's only implemented
-/// [insertion strategy].
-///
-/// ## Further reading
-/// For more information refer to the [wikipedia article](https://en.wikipedia.org/wiki/R-tree).
+/// [InsertionStrategy].
 ///
 /// # Usage
 /// The items inserted into an r-tree must implement the [RTreeObject]
 /// trait. To support nearest neighbor queries, implement the [PointDistance]
 /// trait. Some useful geometric primitives that implement the above traits can be found in the
-/// [crate::primitives]x module. Several primitives in the [`geo-types`](https://docs.rs/geo-types/) crate also
+/// [crate::primitives] module. Several primitives in the [`geo-types`](https://docs.rs/geo-types/) crate also
 /// implement these traits.
 ///
 /// ## Example
@@ -89,12 +86,36 @@ where
 /// All types implementing the [Point] trait can be used as underlying point type.
 /// By default, fixed size arrays can be used as points.
 ///
-/// ## Type Parameters
+/// # Associating Data with Geometries
+/// Users wishing to store associated data with geometries can use [crate::primitives::GeomWithData].
+///
+/// # Runtime and Performance
+/// The runtime of query operations (e.g. `nearest neighbor` or `contains`) is usually
+/// `O(log(n))`, where `n` refers to the number of elements contained in the r-tree.
+/// A naive sequential algorithm would take `O(n)` time. However, r-trees incur higher
+/// build up times: inserting an element into an r-tree costs `O(log(n))` time.
+///
+/// # Bulk loading
+/// In many scenarios, insertion is only carried out once for many points. In this case,
+/// [RTree::bulk_load] will be considerably faster. Its total run time
+/// is still `O(log(n))`. **Note the performance caveat related to the computation of the envelope**.
+///
+/// # Element distribution
+/// The tree's performance heavily relies on the spatial distribution of its elements.
+/// Best performance is achieved if:
+///  * No element is inserted more than once
+///  * The overlapping area of elements is as small as
+///    possible.
+///
+/// For the edge case that all elements are overlapping (e.g, one and the same element
+/// is contained `n` times), the performance of most operations usually degrades to `O(n)`.
+///
+/// # Type Parameters
 /// * `T`: The type of objects stored in the r-tree.
 /// * `Params`: Compile time parameters that change the r-tree's internal layout. Refer to the
 /// [RTreeParams] trait for more information.
 ///
-/// ## Defining methods generic over r-trees
+/// # Defining methods generic over r-trees
 /// If a library defines a method that should be generic over the r-tree type signature, make
 /// sure to include both type parameters like this:
 /// ```
@@ -110,29 +131,11 @@ where
 /// Otherwise, any user of `generic_rtree_function` would be forced to use
 /// a tree with default parameters.
 ///
-/// # Runtime and Performance
-/// The runtime of query operations (e.g. `nearest neighbor` or `contains`) is usually
-/// `O(log(n))`, where `n` refers to the number of elements contained in the r-tree.
-/// A naive sequential algorithm would take `O(n)` time. However, r-trees incur higher
-/// build up times: inserting an element into an r-tree costs `O(log(n))` time.
-///
-/// ## Bulk loading
-/// In many scenarios, insertion is only carried out once for many points. In this case,
-/// [RTree::bulk_load] will be considerably faster. Its total run time
-/// is still `O(log(n))`.
-///
-/// ## Element distribution
-/// The tree's performance heavily relies on the spatial distribution of its elements.
-/// Best performance is achieved if:
-///  * No element is inserted more than once
-///  * The overlapping area of elements is as small as
-///    possible.
-///
-/// For the edge case that all elements are overlapping (e.g, one and the same element
-/// is contained `n` times), the performance of most operations usually degrades to `O(n)`.
-///
 /// # (De)Serialization
 /// Enable the `serde` feature for [Serde](https://crates.io/crates/serde) support.
+///
+/// ## Further reading
+/// For more information refer to the [wikipedia article](https://en.wikipedia.org/wiki/R-tree).
 ///
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -209,8 +212,9 @@ where
     /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
     /// elements.
     ///
-    /// Note that the envelope of each element will be accessed many times,
-    /// so if that computation is expensive, consider memoizing it using [`CachedEnvelope`][crate::primitives::CachedEnvelope].
+    /// # Note
+    /// The envelope of each element will be accessed many times during loading. If that computation
+    /// is expensive, **consider memoizing it** using [`CachedEnvelope`][crate::primitives::CachedEnvelope].
     pub fn bulk_load(elements: Vec<T>) -> Self {
         Self::bulk_load_with_params(elements)
     }

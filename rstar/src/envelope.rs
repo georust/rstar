@@ -33,7 +33,13 @@ pub trait Envelope: Clone + PartialEq + ::core::fmt::Debug {
     /// Returns this envelope's area. Must be at least 0.
     fn area(&self) -> <Self::Point as Point>::Scalar;
 
-    /// Returns the euclidean distance to the envelope's border.
+    /// Returns the squared distance between the envelope's border and a point.
+    ///
+    /// # Notes
+    /// - While euclidean distance will be the correct choice for most use cases, any distance metric
+    /// fulfilling the [usual axioms](https://en.wikipedia.org/wiki/Metric_space)
+    /// can be used when implementing this method
+    /// - Implementers **must** ensure that the distance metric used matches that of [crate::PointDistance::distance_2]
     fn distance_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
 
     /// Returns the squared min-max distance, a concept that helps to find nearest neighbors efficiently.
