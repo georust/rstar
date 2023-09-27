@@ -145,7 +145,12 @@ pub trait RTreeObject {
 /// assert!(circle.contains_point(&[1.0, 0.0]));
 /// ```
 pub trait PointDistance: RTreeObject {
-    /// Returns the squared euclidean distance between an object to a point.
+    /// Returns the squared distance between an object to a point.
+    ///
+    /// # Notes
+    /// While euclidean distance will be the correct choice for most use cases, any distance metric
+    /// fulfilling the [usual axioms](https://en.wikipedia.org/wiki/Metric_space)
+    /// can be used when implementing this method.
     fn distance_2(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
