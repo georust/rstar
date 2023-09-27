@@ -145,7 +145,7 @@ pub trait RTreeObject {
 /// assert!(circle.contains_point(&[1.0, 0.0]));
 /// ```
 pub trait PointDistance: RTreeObject {
-    /// Returns the squared distance between an object to a point.
+    /// Returns the squared distance between an object and a point.
     ///
     /// # Notes
     /// While euclidean distance will be the correct choice for most use cases, any distance metric
