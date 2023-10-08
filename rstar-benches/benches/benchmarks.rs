@@ -68,13 +68,9 @@ fn bulk_load_complex_geom_cached(c: &mut Criterion) {
     c.bench_function(
         "Bulk load complex geo-types geom with cached envelope",
         move |b| {
-            let polys: Vec<_> =
-                create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1).collect();
-            let cached: Vec<_> = polys
-                .into_iter()
-                .map(|poly| CachedEnvelope::new(poly))
+            let cached: Vec<_> = create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1)
+                .map(CachedEnvelope::new)
                 .collect();
-
             b.iter(|| {
                 RTree::<CachedEnvelope<_>, Params>::bulk_load_with_params(cached.clone());
             });
