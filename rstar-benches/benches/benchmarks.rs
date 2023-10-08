@@ -12,6 +12,7 @@ use geo::{Coord, LineString, MapCoords, Polygon};
 use rand::{Rng, SeedableRng};
 use rand_hc::Hc128Rng;
 
+use rstar::primitives::CachedEnvelope;
 use rstar::{RStarInsertionStrategy, RTree, RTreeParams};
 
 use criterion::Criterion;
@@ -53,13 +54,28 @@ fn bulk_load_comparison(c: &mut Criterion) {
 }
 
 fn bulk_load_complex_geom(c: &mut Criterion) {
-    c.bench_function("Bulk load complex geom", move |b| {
-        let polys: Vec<_> = create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1);
+    c.bench_function("Bulk load complex geo-types geom", move |b| {
+        let polys: Vec<_> =
+            create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1).collect();
 
         b.iter(|| {
             RTree::<Polygon<f64>, Params>::bulk_load_with_params(polys.clone());
         });
     });
+}
+
+fn bulk_load_complex_geom_cached(c: &mut Criterion) {
+    c.bench_function(
+        "Bulk load complex geo-types geom with cached envelope",
+        move |b| {
+            let cached: Vec<_> = create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1)
+                .map(CachedEnvelope::new)
+                .collect();
+            b.iter(|| {
+                RTree::<CachedEnvelope<_>, Params>::bulk_load_with_params(cached.clone());
+            });
+        },
+    );
 }
 
 fn tree_creation_quality(c: &mut Criterion) {
@@ -112,6 +128,7 @@ criterion_group!(
     bulk_load_baseline,
     bulk_load_comparison,
     bulk_load_complex_geom,
+    bulk_load_complex_geom_cached,
     tree_creation_quality,
     locate_successful,
     locate_unsuccessful
@@ -123,23 +140,25 @@ fn create_random_points(num_points: usize, seed: &[u8; 32]) -> Vec<[f64; 2]> {
     (0..num_points).map(|_| rng.gen()).collect()
 }
 
-fn create_random_polygons(num_points: usize, size: usize, seed: &[u8; 32]) -> Vec<Polygon<f64>> {
+fn create_random_polygons(
+    num_points: usize,
+    size: usize,
+    seed: &[u8; 32],
+) -> impl Iterator<Item = Polygon<f64>> {
     let mut rng = Hc128Rng::from_seed(*seed);
     let base_polygon = circular_polygon(size);
 
-    (0..num_points)
-        .map(|_| {
-            let [scale_x, scale_y]: [f64; 2] = rng.gen();
-            let [shift_x, shift_y]: [f64; 2] = rng.gen();
-            base_polygon.clone().map_coords(|c| Coord {
-                x: (shift_x + c.x) * scale_x,
-                y: (shift_y + c.y) * scale_y,
-            })
+    (0..num_points).map(move |_| {
+        let [scale_x, scale_y]: [f64; 2] = rng.gen();
+        let [shift_x, shift_y]: [f64; 2] = rng.gen();
+        base_polygon.clone().map_coords(|c| Coord {
+            x: (shift_x + c.x) * scale_x,
+            y: (shift_y + c.y) * scale_y,
         })
-        .collect()
+    })
 }
 
-pub fn circular_polygon(steps: usize) -> Polygon<f64> {
+fn circular_polygon(steps: usize) -> Polygon<f64> {
     let delta = 2. * PI / steps as f64;
     let r = 1.0;
 
