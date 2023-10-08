@@ -12,6 +12,7 @@ use geo::{Coord, LineString, MapCoords, Polygon};
 use rand::{Rng, SeedableRng};
 use rand_hc::Hc128Rng;
 
+use rstar::primitives::CachedEnvelope;
 use rstar::{RStarInsertionStrategy, RTree, RTreeParams};
 
 use criterion::Criterion;
@@ -53,13 +54,30 @@ fn bulk_load_comparison(c: &mut Criterion) {
 }
 
 fn bulk_load_complex_geom(c: &mut Criterion) {
-    c.bench_function("Bulk load complex geom", move |b| {
+    c.bench_function("Bulk load complex geo-types geom", move |b| {
         let polys: Vec<_> = create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1);
 
         b.iter(|| {
             RTree::<Polygon<f64>, Params>::bulk_load_with_params(polys.clone());
         });
     });
+}
+
+fn bulk_load_complex_geom_cached(c: &mut Criterion) {
+    c.bench_function(
+        "Bulk load complex geo-types geom with cached envelope",
+        move |b| {
+            let polys: Vec<_> = create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1);
+            let cached: Vec<_> = polys
+                .into_iter()
+                .map(|poly| CachedEnvelope::new(poly))
+                .collect();
+
+            b.iter(|| {
+                RTree::<CachedEnvelope<_>, Params>::bulk_load_with_params(cached.clone());
+            });
+        },
+    );
 }
 
 fn tree_creation_quality(c: &mut Criterion) {
@@ -112,6 +130,7 @@ criterion_group!(
     bulk_load_baseline,
     bulk_load_comparison,
     bulk_load_complex_geom,
+    bulk_load_complex_geom_cached,
     tree_creation_quality,
     locate_successful,
     locate_unsuccessful
