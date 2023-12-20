@@ -1,20 +1,24 @@
-//! An n-dimensional r*-tree implementation.
+//! An n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*-tree) implementation for use as a spatial index.
 //!
 //! This crate implements a flexible, n-dimensional r-tree implementation with
 //! the r* (r star) insertion strategy.
 //!
 //! # R-Tree
-//! An r-tree is a data structure containing _spatial data_ and is optimized for
+//! An r-tree is a data structure containing _spatial data_, optimized for
 //! nearest neighbor search.
-//! _Spatial data_ refers to an object that has the notion of a position and extent,
+//! _Spatial data_ refers to an object that has the notion of a position and extent:
 //! for example points, lines and rectangles in any dimension.
 //!
 //!
 //! # Further documentation
 //! The crate's main data structure and documentation is the [RTree] struct.
 //!
-//! Also, the pre-defined primitives like lines and rectangles contained in
+//! ## Primitives
+//! The pre-defined primitives like lines and rectangles contained in
 //! the [primitives module](crate::primitives) may be of interest for a quick start.
+//! ## `Geo`
+//! For use with the wider Georust ecosystem, the primitives in the [`geo`](https://docs.rs/geo/latest/geo/#types) crate
+//! can also be used.
 //!
 //! # (De)Serialization
 //! Enable the `serde` feature for [serde](https://crates.io/crates/serde) support.
