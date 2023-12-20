@@ -1,3 +1,5 @@
+name: Run tests
+
 on:
   push:
     branches:
@@ -8,7 +10,13 @@ on:
   pull_request:
   merge_group:
 
-name: Run tests
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   # The `ci-success` job doesn't actually test anything - it just aggregates the
   # overall build status, otherwise the merge queue would need an entry
@@ -60,7 +68,7 @@ jobs:
       image: ${{ matrix.container_image }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: cargo install --version 1.6.0 cargo-all-features
       - run: cargo build-all-features
       - run: cargo test-all-features
@@ -71,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -88,10 +96,26 @@ jobs:
       NO_STD_TARGET: aarch64-unknown-none
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{env.NO_STD_TARGET}}
       - name: Run cargo build for ${{env.NO_STD_TARGET}}
         run: cargo build --package rstar --target ${{env.NO_STD_TARGET}}
+
+  conclusion:
+    needs:
+      - rstar
+      - check
+      - no_std
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Result
+        run: |
+          jq -C <<< "${needs}"
+          # Check if all needs were successful or skipped.
+          "$(jq -r 'all(.result as $result | (["success", "skipped"] | contains([$result])))' <<< "${needs}")"
+        env:
+          needs: ${{ toJson(needs) }}
