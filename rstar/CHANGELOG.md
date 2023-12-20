@@ -8,6 +8,7 @@
 - Fixed a stack overflow error in `DrainIterator::next`
 - Clarified that the distance measure in `distance_2` is not restricted to euclidean distance
 - updated to `heapless=0.8`
+- Updated CI config to use merge queue ([PR](https://github.com/georust/rstar/pull/143))
 
 # 0.11.0
 
