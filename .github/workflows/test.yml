@@ -38,7 +38,7 @@ jobs:
       - name: Mark the job as a failure
         run: exit 1
 
-    rstar:
+  rstar:
     name: rstar
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
