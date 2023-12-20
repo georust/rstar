@@ -7,6 +7,7 @@
 ## Changed
 - Fixed a stack overflow error in `DrainIterator::next`
 - Clarified that the distance measure in `distance_2` is not restricted to euclidean distance
+- Updated CI to be compatible with the merge queue and to run for new PRs
 
 # 0.11.0
 
