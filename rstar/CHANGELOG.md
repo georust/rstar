@@ -7,6 +7,7 @@
 ## Changed
 - Fixed a stack overflow error in `DrainIterator::next`
 - Clarified that the distance measure in `distance_2` is not restricted to euclidean distance
+- updated to `heapless=0.8`
 
 # 0.11.0
 
