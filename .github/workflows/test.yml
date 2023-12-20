@@ -19,34 +19,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # The `ci-success` job doesn't actually test anything - it just aggregates the
-  # overall build status, otherwise the merge queue would need an entry
-  # for each individual job produced by the job-matrix.
-  #
-  # ALL THE SUBSEQUENT JOBS NEED THEIR `name` ADDED TO THE `needs` SECTION OF both "ci result" JOBS!
-  ci-success:
-    name: ci result
-    runs-on: ubuntu-latest
-    needs:
-      - rstar
-      - check
-      - no_std
-    if: success()
-    steps:
-      - name: Mark the job as a success
-        run: exit 0
-  ci-failure:
-    name: ci result
-    runs-on: ubuntu-latest
-    needs:
-      - rstar
-      - check
-      - no_std
-    if: failure()
-    steps:
-      - name: Mark the job as a failure
-        run: exit 1
-
   rstar:
     name: rstar
     runs-on: ubuntu-latest
