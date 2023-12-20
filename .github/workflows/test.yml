@@ -1,28 +1,24 @@
-on: push
 name: Run tests
-jobs:
-  # The `ci-result` job doesn't actually test anything - it just aggregates the
-  # overall build status for bors, otherwise our bors.toml would need an entry
-  # for each individual job produced by the job-matrix.
-  #
-  # Ref: https://github.com/rust-lang/crater/blob/9ab6f9697c901c4a44025cf0a39b73ad5b37d198/.github/workflows/bors.yml#L125-L149
-  #
-  # ALL THE SUBSEQUENT JOBS NEED THEIR `name` ADDED TO THE `needs` SECTION OF THIS JOB!
-  ci-result:
-    name: ci result
-    runs-on: ubuntu-latest
-    needs:
-      - rstar
-      - check
-      - no_std
-    steps:
-      - name: Mark the job as a success
-        if: success()
-        run: exit 0
-      - name: Mark the job as a failure
-        if: "!success()"
-        run: exit 1
 
+on:
+  push:
+    branches:
+      - master
+      - main
+      - staging
+      - trying
+      - release/**
+  pull_request:
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
   rstar:
     name: rstar
     runs-on: ubuntu-latest
@@ -33,16 +29,19 @@ jobs:
     strategy:
       matrix:
         container_image:
+          # We aim to support rust-stable plus (at least) the prior 3 releases,
+          # giving us about 6 months of coverage.
+          #
           # Minimum supported rust version (MSRV)
           - "georust/geo-ci:rust-1.63"
           # Two most recent releases - we omit older ones for expedient CI
-          - "georust/geo-ci:rust-1.65"
-          - "georust/geo-ci:rust-1.66"
+          - "georust/geo-ci:proj-9.2.1-rust-1.71"
+          - "georust/geo-ci:proj-9.2.1-rust-1.72"
     container:
       image: ${{ matrix.container_image }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: cargo install --version 1.6.0 cargo-all-features
       - run: cargo build-all-features
       - run: cargo test-all-features
@@ -53,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -70,10 +69,26 @@ jobs:
       NO_STD_TARGET: aarch64-unknown-none
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{env.NO_STD_TARGET}}
       - name: Run cargo build for ${{env.NO_STD_TARGET}}
         run: cargo build --package rstar --target ${{env.NO_STD_TARGET}}
+
+  conclusion:
+    needs:
+      - rstar
+      - check
+      - no_std
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Result
+        run: |
+          jq -C <<< "${needs}"
+          # Check if all needs were successful or skipped.
+          "$(jq -r 'all(.result as $result | (["success", "skipped"] | contains([$result])))' <<< "${needs}")"
+        env:
+          needs: ${{ toJson(needs) }}
