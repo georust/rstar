@@ -834,12 +834,17 @@ where
     }
 }
 
-impl<T, Params> RTree<T, Params>
+impl<T, Params> IntoIterator for RTree<T, Params>
 where
     T: RTreeObject,
-    <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
+    type IntoIter = IntoIter<T>;
+    type Item = T;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter::new(self.root)
+    }
 }
 
 impl<'a, T, Params> IntoIterator for &'a RTree<T, Params>

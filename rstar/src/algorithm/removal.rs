@@ -11,6 +11,45 @@ use alloc::{vec, vec::Vec};
 #[allow(unused_imports)] // Import is required when building without std
 use num_traits::Float;
 
+/// Iterator returned by `impl IntoIter for RTree`.
+///
+/// Consumes the whole tree and yields all leaf objects.
+pub struct IntoIter<T>
+where
+    T: RTreeObject,
+{
+    node_stack: Vec<RTreeNode<T>>,
+}
+
+impl<T> IntoIter<T>
+where
+    T: RTreeObject,
+{
+    pub(crate) fn new(root: ParentNode<T>) -> Self {
+        Self {
+            node_stack: vec![RTreeNode::Parent(root)],
+        }
+    }
+}
+
+impl<T> Iterator for IntoIter<T>
+where
+    T: RTreeObject,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(node) = self.node_stack.pop() {
+            match node {
+                RTreeNode::Leaf(object) => return Some(object),
+                RTreeNode::Parent(parent) => self.node_stack.extend(parent.children),
+            }
+        }
+
+        None
+    }
+}
+
 /// Iterator returned by `RTree::drain_*` methods.
 ///
 /// Draining iterator that removes elements of the tree selected by a
@@ -337,5 +376,21 @@ mod test {
         let sel_count = tree.locate_with_selection_function(sel).count();
         assert_eq!(sel_count, 0);
         assert_eq!(tree.size(), 1000 - 80 - 326);
+    }
+
+    #[test]
+    fn test_into_iter() {
+        const SIZE: usize = 100;
+        let mut points = create_random_points(SIZE, SEED_1);
+        let tree = RTree::bulk_load(points.clone());
+
+        let mut vec = tree.into_iter().collect::<Vec<_>>();
+
+        assert_eq!(vec.len(), points.len());
+
+        points.sort_unstable_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap());
+        vec.sort_unstable_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap());
+
+        assert_eq!(points, vec);
     }
 }

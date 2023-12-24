@@ -8,7 +8,7 @@ use crate::RTree;
 use smallvec::SmallVec;
 
 pub use super::intersection_iterator::IntersectionIterator;
-pub use super::removal::DrainIterator;
+pub use super::removal::{DrainIterator, IntoIter};
 
 /// Iterator returned by [`RTree::locate_all_at_point`].
 pub type LocateAllAtPoint<'a, T> = SelectionIterator<'a, T, SelectAtPointFunction<T>>;
