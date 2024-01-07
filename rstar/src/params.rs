@@ -57,7 +57,7 @@ pub trait RTreeParams: Send + Sync {
 }
 
 /// The default parameters used when creating an r-tree without specific parameters.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct DefaultParams;
 
 impl RTreeParams for DefaultParams {
