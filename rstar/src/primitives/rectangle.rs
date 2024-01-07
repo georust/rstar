@@ -12,7 +12,7 @@ use crate::point::{Point, PointExt};
 ///
 /// # Type parameters
 /// `P`: The rectangle's [Point] type.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Rectangle<P>
 where
