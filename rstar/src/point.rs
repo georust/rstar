@@ -4,10 +4,9 @@ use num_traits::{Bounded, Num, Signed, Zero};
 /// Defines a number type that is compatible with rstar.
 ///
 /// rstar works out of the box with the following standard library types:
-///  - i32
-///  - i64
-///  - f32
-///  - f64
+///  - i8, i16, i32, i64, i128, isize
+///  - [Wrapping](core::num::Wrapping) versions of the above
+///  - f32, f64
 ///
 /// This type cannot be implemented directly. Instead, it is required to implement
 /// all required traits from the `num_traits` crate.
@@ -397,6 +396,27 @@ impl_point_for_tuple!(0 => a, 1 => b, 2 => c, 3 => d, 4 => e, 5 => f, 6 => g, 7 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::num::Wrapping;
+
+    #[test]
+    fn test_types() {
+        fn assert_impl_rtreenum<S: RTreeNum>() {}
+
+        assert_impl_rtreenum::<i8>();
+        assert_impl_rtreenum::<i16>();
+        assert_impl_rtreenum::<i32>();
+        assert_impl_rtreenum::<i64>();
+        assert_impl_rtreenum::<i128>();
+        assert_impl_rtreenum::<isize>();
+        assert_impl_rtreenum::<Wrapping<i8>>();
+        assert_impl_rtreenum::<Wrapping<i16>>();
+        assert_impl_rtreenum::<Wrapping<i32>>();
+        assert_impl_rtreenum::<Wrapping<i64>>();
+        assert_impl_rtreenum::<Wrapping<i128>>();
+        assert_impl_rtreenum::<Wrapping<isize>>();
+        assert_impl_rtreenum::<f32>();
+        assert_impl_rtreenum::<f64>();
+    }
 
     macro_rules! test_tuple_configuration {
         ($($index:expr),*) => {

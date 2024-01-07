@@ -4,6 +4,8 @@
 - Add optional support for the [mint](https://docs.rs/mint/0.5.9/mint/index.html) crate
 - Implemented `IntoIter` for `RTree`, i.e. added a owning iterator
 - Added cached envelope bulk load benchmark
+- Implemented `Hash` for `AABB`, `Line`, and `Rectangle`, provided the `Point` used implements `Hash` itself
+- Implemented `Default` for `DefaultParams`
 
 ## Changed
 - Fixed a stack overflow error in `DrainIterator::next`

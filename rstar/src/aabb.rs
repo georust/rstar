@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 /// # Type arguments
 /// `P`: The struct is generic over which point type is used. Using an n-dimensional point
 /// type will result in an n-dimensional bounding box.
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AABB<P>
 where
