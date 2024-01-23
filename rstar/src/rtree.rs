@@ -98,7 +98,10 @@ where
 /// # Bulk loading
 /// In many scenarios, insertion is only carried out once for many points. In this case,
 /// [RTree::bulk_load] will be considerably faster. Its total run time
-/// is still `O(log(n))`. **Note the performance caveat related to the computation of the envelope**.
+/// is still `O(nlog(n))`, i.e. `O(log(n))` per element inserted, but the scaling
+/// factor is, in average, significantly improved compared with performing single
+/// insertion n times in a row. **Note the performance caveat
+/// related to the computation of the envelope**.
 ///
 /// # Element distribution
 /// The tree's performance heavily relies on the spatial distribution of its elements.
