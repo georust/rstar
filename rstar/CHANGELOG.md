@@ -1,4 +1,4 @@
-# Unreleased
+# 0.12.0
 
 ## Added
 - Add optional support for the [mint](https://docs.rs/mint/0.5.9/mint/index.html) crate
