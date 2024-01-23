@@ -99,7 +99,7 @@ where
 /// In many scenarios, insertion is only carried out once for many points. In this case,
 /// [RTree::bulk_load] will be considerably faster. Its total run time
 /// is still `O(nlog(n))`, i.e. `O(log(n))` per element inserted, but the scaling
-/// factor is, in average, significantly improved compared with performing single
+/// factor is, on average, significantly improved compared with performing single
 /// insertion n times in a row. **Note the performance caveat
 /// related to the computation of the envelope**.
 ///
