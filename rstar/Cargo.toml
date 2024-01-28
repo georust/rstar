@@ -1,8 +1,8 @@
 [package]
 name = "rstar"
-version = "0.11.0"
+version = "0.12.0"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>", "The Georust Developers <mods@georust.org>"]
-description = "R*-tree library for the Rust ecosystem"
+description = "An R*-tree spatial index"
 documentation = "https://docs.rs/rstar/"
 repository = "https://github.com/georust/rstar"
 license = "MIT OR Apache-2.0"
