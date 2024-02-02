@@ -106,7 +106,7 @@ impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialO
 /// [`crate::primitives::GeomWithData`] instead.
 /// This trait defines points, not points with metadata.
 ///
-/// `Point` is implemented out of the box for arrays like `[f32; 2]` or `[f64; 7]` (up to dimension 9)
+/// `Point` is implemented out of the box for arrays like `[f32; 2]` or `[f64; 7]` (for any number of dimensions),
 /// and for tuples like `(int, int)` and `(f64, f64, f64)` so tuples with only elements of the same type (up to dimension 9).
 ///
 ///
