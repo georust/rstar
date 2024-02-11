@@ -60,6 +60,9 @@ pub trait Envelope: Clone + PartialEq + ::core::fmt::Debug {
     /// Sorts a given set of objects with envelopes along one of their axes.
     fn sort_envelopes<T: RTreeObject<Envelope = Self>>(axis: usize, envelopes: &mut [T]);
 
+    /// Sorts a given set of objects with envelopes based on their center points.
+    fn sort_envelopes_by_center<T: RTreeObject<Envelope = Self>>(&self, envelopes: &mut [T]);
+
     /// Partitions objects with an envelope along a certain axis.
     ///
     /// After calling this, envelopes[0..selection_size] are all smaller

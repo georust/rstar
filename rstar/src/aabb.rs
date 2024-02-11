@@ -204,6 +204,49 @@ where
         });
     }
 
+    fn sort_envelopes_by_center<T: RTreeObject<Envelope = Self>>(&self, envelopes: &mut [T]) {
+        let one = <Self::Point as Point>::Scalar::one();
+        let two = one + one;
+
+        envelopes.sort_by(|l, r| {
+            let l = l.envelope();
+            let r = r.envelope();
+
+            let l = Self::Point::generate(|axis| {
+                let x1 = l.lower.nth(axis);
+                let y1 = l.upper.nth(axis);
+                let x2 = self.lower.nth(axis);
+                let y2 = self.upper.nth(axis);
+
+                // x2 <= x1 <= y1 <= y2
+                // (x1 + y1) / two - (x2 + y2) / two
+                // x1 + (y1 - x1) / two - x2 - (y2 - x2) / two
+                // (x1 / two - x2 / two) - (y2 / two - y1 / two)
+
+                let x12 = x1 / two - x2 / two;
+                let y12 = y2 / two - y1 / two;
+
+                x12 * x12 + y12 * y12 - two * x12 * y12
+            })
+            .fold(Zero::zero(), |acc, cur| cur + acc);
+
+            let r = Self::Point::generate(|axis| {
+                let x1 = r.lower.nth(axis);
+                let y1 = r.upper.nth(axis);
+                let x2 = self.lower.nth(axis);
+                let y2 = self.upper.nth(axis);
+
+                let x12 = x1 / two - x2 / two;
+                let y12 = y2 / two - y1 / two;
+
+                x12 * x12 + y12 * y12 - two * x12 * y12
+            })
+            .fold(Zero::zero(), |acc, cur| cur + acc);
+
+            l.partial_cmp(&r).unwrap()
+        });
+    }
+
     fn partition_envelopes<T: RTreeObject<Envelope = Self>>(
         axis: usize,
         envelopes: &mut [T],
