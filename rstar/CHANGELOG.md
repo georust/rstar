@@ -1,3 +1,8 @@
+# Unreleased
+
+## Changed
+- Switched to unstable sort for envelopes and node reinsertion ([PR](https://github.com/georust/rstar/pull/160))
+
 # 0.12.0
 
 ## Added
