@@ -195,7 +195,7 @@ where
     }
 
     fn sort_envelopes<T: RTreeObject<Envelope = Self>>(axis: usize, envelopes: &mut [T]) {
-        envelopes.sort_by(|l, r| {
+        envelopes.sort_unstable_by(|l, r| {
             l.envelope()
                 .lower
                 .nth(axis)

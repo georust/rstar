@@ -335,7 +335,7 @@ where
 {
     let center = node.envelope.center();
     // Sort with increasing order so we can use Vec::split_off
-    node.children.sort_by(|l, r| {
+    node.children.sort_unstable_by(|l, r| {
         let l_center = l.envelope().center();
         let r_center = r.envelope().center();
         l_center
