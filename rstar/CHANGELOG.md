@@ -2,6 +2,7 @@
 
 ## Changed
 - Switched to unstable sort for envelopes and node reinsertion ([PR](https://github.com/georust/rstar/pull/160))
+- Use a more tame value for `AABB::new_empty` to avoid overflow panics applying selections on empty trees ([PR](https://github.com/georust/rstar/pull/162))
 
 # 0.12.0
 
