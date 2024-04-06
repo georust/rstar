@@ -202,13 +202,7 @@ pub trait PointExt: Point {
         other: &Self,
         mut f: impl FnMut(Self::Scalar, Self::Scalar) -> bool,
     ) -> bool {
-        // TODO: Maybe do this by proper iteration
-        for i in 0..Self::DIMENSIONS {
-            if !f(self.nth(i), other.nth(i)) {
-                return false;
-            }
-        }
-        true
+        (0..Self::DIMENSIONS).all(|i| f(self.nth(i), other.nth(i)))
     }
 
     /// Returns the dot product of `self` and `rhs`.
@@ -225,12 +219,7 @@ pub trait PointExt: Point {
     ///
     /// After applying the closure to every component of the Point, fold() returns the accumulator.
     fn fold<T>(&self, start_value: T, mut f: impl FnMut(T, Self::Scalar) -> T) -> T {
-        let mut accumulated = start_value;
-        // TODO: Maybe do this by proper iteration
-        for i in 0..Self::DIMENSIONS {
-            accumulated = f(accumulated, self.nth(i));
-        }
-        accumulated
+        (0..Self::DIMENSIONS).fold(start_value, |accumulated, i| f(accumulated, self.nth(i)))
     }
 
     /// Returns a Point with every component set to `value`.
