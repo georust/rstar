@@ -14,16 +14,20 @@ use num_traits::{Bounded, Num, Signed, Zero};
 /// # Example
 /// ```
 /// # extern crate num_traits;
-/// use num_traits::{Bounded, Num, Signed};
+/// use num_traits::{Num, One, Signed, Zero};
 ///
 /// #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 /// struct MyFancyNumberType(f32);
 ///
-/// impl Bounded for MyFancyNumberType {
+/// impl Zero for MyFancyNumberType {
 ///   // ... details hidden ...
-/// # fn min_value() -> Self { MyFancyNumberType(Bounded::min_value()) }
-/// #
-/// # fn max_value() -> Self { MyFancyNumberType(Bounded::max_value()) }
+/// # fn zero() -> Self { MyFancyNumberType(Zero::zero()) }
+/// # fn is_zero(&self) -> bool { unimplemented!() }
+/// }
+///
+/// impl One for MyFancyNumberType {
+///   // ... details hidden ...
+/// # fn one() -> Self { MyFancyNumberType(One::one()) }
 /// }
 ///
 /// impl Signed for MyFancyNumberType {
@@ -54,13 +58,9 @@ use num_traits::{Bounded, Num, Signed, Zero};
 /// rtree.insert([MyFancyNumberType(0.0), MyFancyNumberType(0.0)]);
 /// # }
 ///
-/// # impl num_traits::Zero for MyFancyNumberType {
-/// #   fn zero() -> Self { unimplemented!() }
-/// #   fn is_zero(&self) -> bool { unimplemented!() }
-/// # }
-/// #
-/// # impl num_traits::One for MyFancyNumberType {
-/// #   fn one() -> Self { unimplemented!() }
+/// # impl num_traits::Bounded for MyFancyNumberType {
+/// #   fn min_value() -> Self { unimplemented!() }
+/// #   fn max_value() -> Self { unimplemented!() }
 /// # }
 /// #
 /// # impl core::ops::Mul for MyFancyNumberType {
@@ -202,13 +202,7 @@ pub trait PointExt: Point {
         other: &Self,
         mut f: impl FnMut(Self::Scalar, Self::Scalar) -> bool,
     ) -> bool {
-        // TODO: Maybe do this by proper iteration
-        for i in 0..Self::DIMENSIONS {
-            if !f(self.nth(i), other.nth(i)) {
-                return false;
-            }
-        }
-        true
+        (0..Self::DIMENSIONS).all(|i| f(self.nth(i), other.nth(i)))
     }
 
     /// Returns the dot product of `self` and `rhs`.
@@ -225,12 +219,7 @@ pub trait PointExt: Point {
     ///
     /// After applying the closure to every component of the Point, fold() returns the accumulator.
     fn fold<T>(&self, start_value: T, mut f: impl FnMut(T, Self::Scalar) -> T) -> T {
-        let mut accumulated = start_value;
-        // TODO: Maybe do this by proper iteration
-        for i in 0..Self::DIMENSIONS {
-            accumulated = f(accumulated, self.nth(i));
-        }
-        accumulated
+        (0..Self::DIMENSIONS).fold(start_value, |accumulated, i| f(accumulated, self.nth(i)))
     }
 
     /// Returns a Point with every component set to `value`.

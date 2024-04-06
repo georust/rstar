@@ -5,6 +5,7 @@ use crate::params::{InsertionStrategy, RTreeParams};
 use crate::point::{Point, PointExt};
 use crate::rtree::RTree;
 
+#[cfg(not(test))]
 use alloc::vec::Vec;
 use num_traits::{Bounded, Zero};
 

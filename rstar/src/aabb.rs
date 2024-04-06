@@ -1,6 +1,6 @@
 use crate::point::{max_inline, Point, PointExt};
 use crate::{Envelope, RTreeObject};
-use num_traits::{Bounded, One, Zero};
+use num_traits::{One, Zero};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -220,11 +220,11 @@ where
 }
 
 fn new_empty<P: Point>() -> AABB<P> {
-    let max = P::Scalar::max_value();
-    let min = P::Scalar::min_value();
+    let one = P::Scalar::one();
+    let zero = P::Scalar::zero();
     AABB {
-        lower: P::from_value(max),
-        upper: P::from_value(min),
+        lower: P::from_value(one),
+        upper: P::from_value(zero),
     }
 }
 

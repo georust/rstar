@@ -4,6 +4,7 @@ use crate::RTreeNode;
 use crate::RTreeNode::*;
 use crate::RTreeObject;
 
+#[cfg(not(test))]
 use alloc::vec::Vec;
 use core::mem::take;
 

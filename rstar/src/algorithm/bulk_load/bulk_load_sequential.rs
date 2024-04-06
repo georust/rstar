@@ -4,6 +4,7 @@ use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::point::Point;
 
+#[cfg(not(test))]
 use alloc::{vec, vec::Vec};
 
 #[allow(unused_imports)] // Import is required when building without std
