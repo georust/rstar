@@ -10,6 +10,7 @@ use crate::node::ParentNode;
 use crate::object::{PointDistance, RTreeObject};
 use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
 use crate::Point;
+use core::ops::ControlFlow;
 
 #[cfg(not(test))]
 use alloc::vec::Vec;
@@ -540,6 +541,25 @@ where
         self.locate_all_at_point_mut(point).next()
     }
 
+    /// Variant of [`locate_at_point`][Self::locate_at_point] using internal iteration.
+    pub fn locate_at_point_int(&self, point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
+        match self.locate_all_at_point_int(point, ControlFlow::Break) {
+            ControlFlow::Break(node) => Some(node),
+            ControlFlow::Continue(()) => None,
+        }
+    }
+
+    /// Mutable variant of [`locate_at_point_int`][Self::locate_at_point_int].
+    pub fn locate_at_point_int_mut(
+        &mut self,
+        point: &<T::Envelope as Envelope>::Point,
+    ) -> Option<&mut T> {
+        match self.locate_all_at_point_int_mut(point, ControlFlow::Break) {
+            ControlFlow::Break(node) => Some(node),
+            ControlFlow::Continue(()) => None,
+        }
+    }
+
     /// Locate all elements containing a given point.
     ///
     /// Method [PointDistance::contains_point] is used
@@ -565,12 +585,44 @@ where
         LocateAllAtPoint::new(&self.root, SelectAtPointFunction::new(point.clone()))
     }
 
-    /// Mutable variant of [locate_all_at_point](#method.locate_all_at_point).
+    /// Mutable variant of [`locate_all_at_point`][Self::locate_all_at_point].
     pub fn locate_all_at_point_mut(
         &mut self,
         point: &<T::Envelope as Envelope>::Point,
     ) -> LocateAllAtPointMut<T> {
         LocateAllAtPointMut::new(&mut self.root, SelectAtPointFunction::new(point.clone()))
+    }
+
+    /// Variant of [`locate_all_at_point`][Self::locate_all_at_point] using internal iteration.
+    pub fn locate_all_at_point_int<'a, V, B>(
+        &'a self,
+        point: &<T::Envelope as Envelope>::Point,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a T) -> ControlFlow<B>,
+    {
+        select_nodes(
+            &self.root,
+            &SelectAtPointFunction::new(point.clone()),
+            &mut visitor,
+        )
+    }
+
+    /// Mutable variant of [`locate_all_at_point_int`][Self::locate_all_at_point_int].
+    pub fn locate_all_at_point_int_mut<'a, V, B>(
+        &'a mut self,
+        point: &<T::Envelope as Envelope>::Point,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a mut T) -> ControlFlow<B>,
+    {
+        select_nodes_mut(
+            &mut self.root,
+            &SelectAtPointFunction::new(point.clone()),
+            &mut visitor,
+        )
     }
 
     /// Removes an element containing a given point.

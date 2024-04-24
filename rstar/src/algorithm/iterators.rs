@@ -1,6 +1,7 @@
 use crate::algorithm::selection_functions::*;
 use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
+use core::ops::ControlFlow;
 
 #[cfg(doc)]
 use crate::RTree;
@@ -91,6 +92,52 @@ where
     }
 }
 
+/// Internal iteration variant of [`SelectionIterator`]
+pub fn select_nodes<'a, T, Func, V, B>(
+    root: &'a ParentNode<T>,
+    func: &Func,
+    visitor: &mut V,
+) -> ControlFlow<B>
+where
+    T: RTreeObject,
+    Func: SelectionFunction<T>,
+    V: FnMut(&'a T) -> ControlFlow<B>,
+{
+    fn inner<'a, T, Func, V, B>(
+        parent: &'a ParentNode<T>,
+        func: &Func,
+        visitor: &mut V,
+    ) -> ControlFlow<B>
+    where
+        T: RTreeObject,
+        Func: SelectionFunction<T>,
+        V: FnMut(&'a T) -> ControlFlow<B>,
+    {
+        for node in parent.children.iter() {
+            match node {
+                RTreeNode::Leaf(ref t) => {
+                    if func.should_unpack_leaf(t) {
+                        visitor(t)?;
+                    }
+                }
+                RTreeNode::Parent(ref data) => {
+                    if func.should_unpack_parent(&data.envelope()) {
+                        inner(data, func, visitor)?;
+                    }
+                }
+            }
+        }
+
+        ControlFlow::Continue(())
+    }
+
+    if func.should_unpack_parent(&root.envelope()) {
+        inner(root, func, visitor)?;
+    }
+
+    ControlFlow::Continue(())
+}
+
 /// Iterator type returned by `RTree::locate_*_mut` methods.
 pub struct SelectionIteratorMut<'a, T, Func>
 where
@@ -144,6 +191,52 @@ where
         }
         None
     }
+}
+
+/// Internal iteration variant of [`SelectionIteratorMut`]
+pub fn select_nodes_mut<'a, T, Func, V, B>(
+    root: &'a mut ParentNode<T>,
+    func: &Func,
+    visitor: &mut V,
+) -> ControlFlow<B>
+where
+    T: RTreeObject,
+    Func: SelectionFunction<T>,
+    V: FnMut(&'a mut T) -> ControlFlow<B>,
+{
+    fn inner<'a, T, Func, V, B>(
+        parent: &'a mut ParentNode<T>,
+        func: &Func,
+        visitor: &mut V,
+    ) -> ControlFlow<B>
+    where
+        T: RTreeObject,
+        Func: SelectionFunction<T>,
+        V: FnMut(&'a mut T) -> ControlFlow<B>,
+    {
+        for node in parent.children.iter_mut() {
+            match node {
+                RTreeNode::Leaf(ref mut t) => {
+                    if func.should_unpack_leaf(t) {
+                        visitor(t)?;
+                    }
+                }
+                RTreeNode::Parent(ref mut data) => {
+                    if func.should_unpack_parent(&data.envelope()) {
+                        inner(data, func, visitor)?;
+                    }
+                }
+            }
+        }
+
+        ControlFlow::Continue(())
+    }
+
+    if func.should_unpack_parent(&root.envelope()) {
+        inner(root, func, visitor)?;
+    }
+
+    ControlFlow::Continue(())
 }
 
 #[cfg(test)]
