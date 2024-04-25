@@ -332,6 +332,38 @@ where
         )
     }
 
+    /// Variant of [`locate_in_envelope`][Self::locate_in_envelope] using internal iteration.
+    pub fn locate_in_envelope_int<'a, V, B>(
+        &'a self,
+        envelope: &T::Envelope,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a T) -> ControlFlow<B>,
+    {
+        select_nodes(
+            self.root(),
+            &SelectInEnvelopeFunction::new(envelope.clone()),
+            &mut visitor,
+        )
+    }
+
+    /// Mutable variant of [`locate_in_envelope_mut`][Self::locate_in_envelope_mut].
+    pub fn locate_in_envelope_int_mut<'a, V, B>(
+        &'a mut self,
+        envelope: &T::Envelope,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a mut T) -> ControlFlow<B>,
+    {
+        select_nodes_mut(
+            self.root_mut(),
+            &SelectInEnvelopeFunction::new(envelope.clone()),
+            &mut visitor,
+        )
+    }
+
     /// Returns a draining iterator over all elements contained in the tree.
     ///
     /// The order in which the elements are returned is not specified.
@@ -405,6 +437,38 @@ where
         LocateInEnvelopeIntersectingMut::new(
             &mut self.root,
             SelectInEnvelopeFuncIntersecting::new(envelope.clone()),
+        )
+    }
+
+    /// Variant of [`locate_in_envelope_intersecting`][Self::locate_in_envelope_intersecting] using internal iteration.
+    pub fn locate_in_envelope_intersecting_int<'a, V, B>(
+        &'a self,
+        envelope: &T::Envelope,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a T) -> ControlFlow<B>,
+    {
+        select_nodes(
+            self.root(),
+            &SelectInEnvelopeFuncIntersecting::new(envelope.clone()),
+            &mut visitor,
+        )
+    }
+
+    /// Mutable variant of [`locate_in_envelope_intersecting_int`][Self::locate_in_envelope_intersecting_int].
+    pub fn locate_in_envelope_intersecting_int_mut<'a, V, B>(
+        &'a mut self,
+        envelope: &T::Envelope,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a mut T) -> ControlFlow<B>,
+    {
+        select_nodes_mut(
+            self.root_mut(),
+            &SelectInEnvelopeFuncIntersecting::new(envelope.clone()),
+            &mut visitor,
         )
     }
 

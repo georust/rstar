@@ -103,10 +103,14 @@ where
     Func: SelectionFunction<T>,
     V: FnMut(&'a T) -> ControlFlow<B>,
 {
+    struct Args<'a, Func, V> {
+        func: &'a Func,
+        visitor: &'a mut V,
+    }
+
     fn inner<'a, T, Func, V, B>(
         parent: &'a ParentNode<T>,
-        func: &Func,
-        visitor: &mut V,
+        args: &mut Args<'_, Func, V>,
     ) -> ControlFlow<B>
     where
         T: RTreeObject,
@@ -116,13 +120,13 @@ where
         for node in parent.children.iter() {
             match node {
                 RTreeNode::Leaf(ref t) => {
-                    if func.should_unpack_leaf(t) {
-                        visitor(t)?;
+                    if args.func.should_unpack_leaf(t) {
+                        (args.visitor)(t)?;
                     }
                 }
                 RTreeNode::Parent(ref data) => {
-                    if func.should_unpack_parent(&data.envelope()) {
-                        inner(data, func, visitor)?;
+                    if args.func.should_unpack_parent(&data.envelope()) {
+                        inner(data, args)?;
                     }
                 }
             }
@@ -132,7 +136,7 @@ where
     }
 
     if func.should_unpack_parent(&root.envelope()) {
-        inner(root, func, visitor)?;
+        inner(root, &mut Args { func, visitor })?;
     }
 
     ControlFlow::Continue(())
@@ -204,10 +208,14 @@ where
     Func: SelectionFunction<T>,
     V: FnMut(&'a mut T) -> ControlFlow<B>,
 {
+    struct Args<'a, Func, V> {
+        func: &'a Func,
+        visitor: &'a mut V,
+    }
+
     fn inner<'a, T, Func, V, B>(
         parent: &'a mut ParentNode<T>,
-        func: &Func,
-        visitor: &mut V,
+        args: &mut Args<'_, Func, V>,
     ) -> ControlFlow<B>
     where
         T: RTreeObject,
@@ -217,13 +225,13 @@ where
         for node in parent.children.iter_mut() {
             match node {
                 RTreeNode::Leaf(ref mut t) => {
-                    if func.should_unpack_leaf(t) {
-                        visitor(t)?;
+                    if args.func.should_unpack_leaf(t) {
+                        (args.visitor)(t)?;
                     }
                 }
                 RTreeNode::Parent(ref mut data) => {
-                    if func.should_unpack_parent(&data.envelope()) {
-                        inner(data, func, visitor)?;
+                    if args.func.should_unpack_parent(&data.envelope()) {
+                        inner(data, args)?;
                     }
                 }
             }
@@ -233,7 +241,7 @@ where
     }
 
     if func.should_unpack_parent(&root.envelope()) {
-        inner(root, func, visitor)?;
+        inner(root, &mut Args { func, visitor })?;
     }
 
     ControlFlow::Continue(())
