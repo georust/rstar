@@ -25,7 +25,7 @@ where
         return ParentNode::new_parent(elements);
     }
     let number_of_clusters_on_axis =
-        calculate_number_of_clusters_on_axis::<T, Params>(elements.len());
+        calculate_number_of_clusters_on_axis::<T, Params>(elements.len()).max(2);
 
     let iterator = PartitioningTask::<_, Params> {
         number_of_clusters_on_axis,

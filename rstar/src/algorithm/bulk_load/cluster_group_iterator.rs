@@ -55,9 +55,9 @@ where
 {
     let max_size = Params::MAX_SIZE as f32;
     // The depth of the resulting tree, assuming all leaf nodes will be filled up to MAX_SIZE
-    let depth = (number_of_elements as f32).log(max_size).ceil() as usize;
+    let depth = (number_of_elements as f32).log(max_size).ceil() as i32;
     // The number of elements each subtree will hold
-    let n_subtree = max_size.powi(depth as i32 - 1);
+    let n_subtree = max_size.powi(depth - 1);
     // How many clusters will this node contain
     let number_of_clusters = (number_of_elements as f32 / n_subtree).ceil();
 
@@ -87,7 +87,7 @@ mod test {
             assert_eq!(slab.len(), slab_size);
         }
         let mut total_size = 0;
-        let mut max_element_for_last_slab = i32::min_value();
+        let mut max_element_for_last_slab = i32::MIN;
         for slab in &slabs {
             total_size += slab.len();
             let current_max = slab.iter().max_by_key(|point| point[0]).unwrap();

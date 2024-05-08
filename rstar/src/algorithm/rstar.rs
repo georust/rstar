@@ -156,13 +156,13 @@ where
     T: RTreeObject,
 {
     let all_leaves = match node.children.first() {
-        Some(RTreeNode::Leaf(_)) => return usize::max_value(),
+        Some(RTreeNode::Leaf(_)) => return usize::MAX,
         Some(RTreeNode::Parent(ref data)) => data
             .children
             .first()
             .map(RTreeNode::is_leaf)
             .unwrap_or(true),
-        _ => return usize::max_value(),
+        None => return usize::MAX,
     };
 
     let zero: <<T::Envelope as Envelope>::Point as Point>::Scalar = Zero::zero();
