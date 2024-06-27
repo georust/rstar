@@ -1,6 +1,6 @@
 use crate::point::{max_inline, Point, PointExt};
 use crate::{Envelope, RTreeObject};
-use num_traits::{One, Zero};
+use num_traits::{Bounded, One, Zero};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -70,16 +70,16 @@ where
         I: IntoIterator<Item = &'a P> + 'a,
         P: 'a,
     {
-        i.into_iter()
-            .fold(Self::new_empty(), |aabb, p| aabb.add_point(p))
-    }
-
-    /// Returns the AABB that contains `self` and another point.
-    fn add_point(&self, point: &P) -> Self {
-        AABB {
-            lower: self.lower.min_point(point),
-            upper: self.upper.max_point(point),
-        }
+        i.into_iter().fold(
+            Self {
+                lower: P::from_value(P::Scalar::max_value()),
+                upper: P::from_value(P::Scalar::min_value()),
+            },
+            |aabb, p| Self {
+                lower: aabb.lower.min_point(p),
+                upper: aabb.upper.max_point(p),
+            },
+        )
     }
 
     /// Returns the point within this AABB closest to a given point.
@@ -245,5 +245,11 @@ mod test {
         let p = [0.6950876013070484, 0.220750082121574, 0.8186032137709887];
         let corner = [a[0], b[1], a[2]];
         assert_eq!(aabb.min_max_dist_2(&p), corner.distance_2(&p));
+    }
+
+    #[test]
+    fn test_from_points_issue_170_regression() {
+        let aabb = AABB::from_points(&[(3., 3., 3.), (4., 4., 4.)]);
+        assert_eq!(aabb, AABB::from_corners((3., 3., 3.), (4., 4., 4.)));
     }
 }

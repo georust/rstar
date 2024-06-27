@@ -115,7 +115,7 @@ where
 /// # Type Parameters
 /// * `T`: The type of objects stored in the r-tree.
 /// * `Params`: Compile time parameters that change the r-tree's internal layout. Refer to the
-/// [RTreeParams] trait for more information.
+///   [RTreeParams] trait for more information.
 ///
 /// # Defining methods generic over r-trees
 /// If a library defines a method that should be generic over the r-tree type signature, make
