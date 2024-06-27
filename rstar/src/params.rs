@@ -1,5 +1,5 @@
 use crate::algorithm::rstar::RStarInsertionStrategy;
-use crate::{Envelope, Point, RTree, RTreeObject};
+use crate::{RTree, RTreeObject};
 
 /// Defines static parameters for an r-tree.
 ///
@@ -106,11 +106,5 @@ pub fn verify_parameters<T: RTreeObject, P: RTreeParams>() {
         P::REINSERTION_COUNT < max_reinsertion_count,
         "REINSERTION_COUNT too large. Must be smaller than {:?}",
         max_reinsertion_count
-    );
-
-    let dimension = <T::Envelope as Envelope>::Point::DIMENSIONS;
-    assert!(
-        dimension > 1,
-        "Point dimension too small - must be at least 2"
     );
 }
