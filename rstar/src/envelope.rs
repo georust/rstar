@@ -37,8 +37,8 @@ pub trait Envelope: Clone + PartialEq + ::core::fmt::Debug {
     ///
     /// # Notes
     /// - While euclidean distance will be the correct choice for most use cases, any distance metric
-    /// fulfilling the [usual axioms](https://en.wikipedia.org/wiki/Metric_space)
-    /// can be used when implementing this method
+    ///   fulfilling the [usual axioms](https://en.wikipedia.org/wiki/Metric_space)
+    ///   can be used when implementing this method
     /// - Implementers **must** ensure that the distance metric used matches that of [crate::PointDistance::distance_2]
     fn distance_2(&self, point: &Self::Point) -> <Self::Point as Point>::Scalar;
 
