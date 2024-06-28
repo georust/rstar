@@ -409,7 +409,7 @@ mod tests {
 
     macro_rules! test_tuple_configuration {
         ($($index:expr),*) => {
-            let a = ($($index),*);
+            let a = ($($index),*,);
             $(assert_eq!(a.nth($index), $index));*
         }
     }
@@ -425,6 +425,7 @@ mod tests {
         assert_eq!(long_int.nth(8), 8);
 
         // Generate the code to test every nth function for every Tuple length
+        test_tuple_configuration!(0);
         test_tuple_configuration!(0, 1);
         test_tuple_configuration!(0, 1, 2);
         test_tuple_configuration!(0, 1, 2, 3);
