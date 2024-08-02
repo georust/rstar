@@ -1,3 +1,5 @@
+use std::error;
+
 use crate::algorithm::rstar::RStarInsertionStrategy;
 use crate::{Envelope, Point, RTree, RTreeObject};
 
@@ -81,7 +83,7 @@ impl RTreeParams for DefaultParams {
 /// This trait is not meant to be implemented by the user.
 pub trait InsertionStrategy {
     #[doc(hidden)]
-    fn insert<T, Params>(tree: &mut RTree<T, Params>, t: T)
+    fn insert<T, Params>(tree: &mut RTree<T, Params>, t: T) -> Result<(), Box<dyn error::Error>>
     where
         Params: RTreeParams,
         T: RTreeObject;

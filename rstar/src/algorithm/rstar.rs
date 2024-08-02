@@ -1,3 +1,5 @@
+use std::error;
+
 use crate::envelope::Envelope;
 use crate::node::{envelope_for_children, ParentNode, RTreeNode};
 use crate::object::RTreeObject;
@@ -29,7 +31,7 @@ where
 }
 
 impl InsertionStrategy for RStarInsertionStrategy {
-    fn insert<T, Params>(tree: &mut RTree<T, Params>, t: T)
+    fn insert<T, Params>(tree: &mut RTree<T, Params>, t: T) -> Result<(), Box<dyn error::Error>>
     where
         Params: RTreeParams,
         T: RTreeObject,
@@ -45,15 +47,16 @@ impl InsertionStrategy for RStarInsertionStrategy {
         let mut target_height = 0;
         let mut insertion_stack = Vec::new();
         match first {
-            InsertionResult::Split(node) => insertion_stack.push(PerformSplit(node)),
-            InsertionResult::Reinsert(nodes_to_reinsert, real_target_height) => {
+            Ok(InsertionResult::Split(node)) => insertion_stack.push(PerformSplit(node)),
+            Ok(InsertionResult::Reinsert(nodes_to_reinsert, real_target_height)) => {
                 insertion_stack.extend(nodes_to_reinsert.into_iter().map(PerformReinsert));
                 target_height = real_target_height;
             }
-            InsertionResult::Complete => {}
+            Ok(InsertionResult::Complete) => {}
+            _ => (),
         };
 
-        while let Some(next) = insertion_stack.pop() {
+        Ok(while let Some(next) = insertion_stack.pop() {
             match next {
                 PerformSplit(node) => {
                     // The root node was split, create a new root and increase height
@@ -71,13 +74,13 @@ impl InsertionStrategy for RStarInsertionStrategy {
                     match forced_insertion::<T, Params>(root, node_to_reinsert, target_height) {
                         InsertionResult::Split(node) => insertion_stack.push(PerformSplit(node)),
                         InsertionResult::Reinsert(_, _) => {
-                            panic!("Unexpected reinsert. This is a bug in rstar.")
+                            Err("Unexpected reinsert. This is a bug in rstar.")?
                         }
                         InsertionResult::Complete => {}
                     }
                 }
             }
-        }
+        })
     }
 }
 
@@ -117,7 +120,7 @@ fn recursive_insert<T, Params>(
     node: &mut ParentNode<T>,
     t: RTreeNode<T>,
     current_height: usize,
-) -> InsertionResult<T>
+) -> Result<InsertionResult<T>, Box<dyn error::Error>>
 where
     T: RTreeObject,
     Params: RTreeParams,
@@ -128,24 +131,24 @@ where
     if node.children.len() < expand_index {
         // Force insertion into this node
         node.children.push(t);
-        return resolve_overflow::<_, Params>(node, current_height);
+        return Ok(resolve_overflow::<_, Params>(node, current_height));
     }
 
     let expand = if let RTreeNode::Parent(ref mut follow) = node.children[expand_index] {
         recursive_insert::<_, Params>(follow, t, current_height + 1)
     } else {
-        panic!("This is a bug in rstar.")
+        return Err("Something has gone badly wrong while attempting to insert a value".into());
     };
 
     match expand {
-        InsertionResult::Split(child) => {
+        Ok(InsertionResult::Split(child)) => {
             node.envelope.merge(&child.envelope());
             node.children.push(child);
-            resolve_overflow::<_, Params>(node, current_height)
+            Ok(resolve_overflow::<_, Params>(node, current_height))
         }
-        InsertionResult::Reinsert(a, b) => {
+        Ok(InsertionResult::Reinsert(a, b)) => {
             node.envelope = envelope_for_children(&node.children);
-            InsertionResult::Reinsert(a, b)
+            Ok(InsertionResult::Reinsert(a, b))
         }
         other => other,
     }
