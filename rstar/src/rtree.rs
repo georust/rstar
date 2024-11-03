@@ -95,6 +95,18 @@ where
 /// A naive sequential algorithm would take `O(n)` time. However, r-trees incur higher
 /// build up times: inserting an element into an r-tree costs `O(log(n))` time.
 ///
+/// Most of the selection methods, meaning those with names beginning with `locate_`,
+/// return iterators which are driven externally and can therefore be combined into
+/// more complex pipelines using the combinators defined on the [`Iterator`] trait.
+///
+/// This flexiblity does come at the cost of temporary heap allocations required
+/// to keep track of the iteration state. Alternative methods using internal iteration
+/// are provided to avoid this overhead, their names ending in `_int` or `_int_mut`.
+///
+/// They use a callback-based interface to pass the selected objects on to the caller
+/// thereby being able to use the stack to keep track of the state required for
+/// traversing the tree.
+///
 /// # Bulk loading
 /// In many scenarios, insertion is only carried out once for many points. In this case,
 /// [RTree::bulk_load] will be considerably faster. Its total run time
