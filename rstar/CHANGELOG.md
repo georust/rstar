@@ -1,4 +1,4 @@
-# Unreleased
+# 0.12.1
 
 ## Added
 - Provide selection methods based on internal iteration ([PR](https://github.com/georust/rstar/pull/164))

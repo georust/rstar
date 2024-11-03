@@ -1,6 +1,6 @@
 [package]
 name = "rstar"
-version = "0.12.0"
+version = "0.12.1"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>", "The Georust Developers <mods@georust.org>"]
 description = "An R*-tree spatial index"
 documentation = "https://docs.rs/rstar/"
