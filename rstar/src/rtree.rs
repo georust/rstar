@@ -436,7 +436,7 @@ where
     pub fn intersection_candidates_with_other_tree<'a, U>(
         &'a self,
         other: &'a RTree<U>,
-    ) -> IntersectionIterator<T, U>
+    ) -> IntersectionIterator<'a, T, U>
     where
         U: RTreeObject<Envelope = T::Envelope>,
     {
