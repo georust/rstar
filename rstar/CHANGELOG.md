@@ -1,9 +1,14 @@
 # Unreleased
 
+## Added
+- Provide selection methods based on internal iteration ([PR](https://github.com/georust/rstar/pull/164))
+- Add ObjectRef combinator to build tree referencing objects elsewhere ([PR](https://github.com/georust/rstar/pull/178))
+
 ## Changed
 - Switched to unstable sort for envelopes and node reinsertion ([PR](https://github.com/georust/rstar/pull/160))
 - Use a more tame value for `AABB::new_empty` to avoid overflow panics applying selections on empty trees ([PR](https://github.com/georust/rstar/pull/162))
 - Avoid infinite recursion due to numerical instability when computing the number of clusters ([PR](https://github.com/georust/rstar/pull/166))
+
 
 # 0.12.0
 
