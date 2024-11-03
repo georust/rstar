@@ -123,6 +123,24 @@ fn locate_unsuccessful(c: &mut Criterion) {
     });
 }
 
+fn locate_successful_internal(c: &mut Criterion) {
+    let points: Vec<_> = create_random_points(100_000, SEED_1);
+    let query_point = points[500];
+    let tree = RTree::<_, Params>::bulk_load_with_params(points);
+    c.bench_function("locate_at_point_int (successful)", move |b| {
+        b.iter(|| tree.locate_at_point_int(&query_point).is_some())
+    });
+}
+
+fn locate_unsuccessful_internal(c: &mut Criterion) {
+    let points: Vec<_> = create_random_points(100_000, SEED_1);
+    let tree = RTree::<_, Params>::bulk_load_with_params(points);
+    let query_point = [0.7, 0.7];
+    c.bench_function("locate_at_point_int (unsuccessful)", move |b| {
+        b.iter(|| tree.locate_at_point(&query_point).is_none())
+    });
+}
+
 criterion_group!(
     benches,
     bulk_load_baseline,
@@ -131,7 +149,9 @@ criterion_group!(
     bulk_load_complex_geom_cached,
     tree_creation_quality,
     locate_successful,
-    locate_unsuccessful
+    locate_unsuccessful,
+    locate_successful_internal,
+    locate_unsuccessful_internal,
 );
 criterion_main!(benches);
 

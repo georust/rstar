@@ -10,6 +10,7 @@ use crate::node::ParentNode;
 use crate::object::{PointDistance, RTreeObject};
 use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
 use crate::Point;
+use core::ops::ControlFlow;
 
 #[cfg(not(test))]
 use alloc::vec::Vec;
@@ -93,6 +94,18 @@ where
 /// `O(log(n))`, where `n` refers to the number of elements contained in the r-tree.
 /// A naive sequential algorithm would take `O(n)` time. However, r-trees incur higher
 /// build up times: inserting an element into an r-tree costs `O(log(n))` time.
+///
+/// Most of the selection methods, meaning those with names beginning with `locate_`,
+/// return iterators which are driven externally and can therefore be combined into
+/// more complex pipelines using the combinators defined on the [`Iterator`] trait.
+///
+/// This flexiblity does come at the cost of temporary heap allocations required
+/// to keep track of the iteration state. Alternative methods using internal iteration
+/// are provided to avoid this overhead, their names ending in `_int` or `_int_mut`.
+///
+/// They use a callback-based interface to pass the selected objects on to the caller
+/// thereby being able to use the stack to keep track of the state required for
+/// traversing the tree.
 ///
 /// # Bulk loading
 /// In many scenarios, insertion is only carried out once for many points. In this case,
@@ -331,6 +344,38 @@ where
         )
     }
 
+    /// Variant of [`locate_in_envelope`][Self::locate_in_envelope] using internal iteration.
+    pub fn locate_in_envelope_int<'a, V, B>(
+        &'a self,
+        envelope: &T::Envelope,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a T) -> ControlFlow<B>,
+    {
+        select_nodes(
+            self.root(),
+            &SelectInEnvelopeFunction::new(envelope.clone()),
+            &mut visitor,
+        )
+    }
+
+    /// Mutable variant of [`locate_in_envelope_mut`][Self::locate_in_envelope_mut].
+    pub fn locate_in_envelope_int_mut<'a, V, B>(
+        &'a mut self,
+        envelope: &T::Envelope,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a mut T) -> ControlFlow<B>,
+    {
+        select_nodes_mut(
+            self.root_mut(),
+            &SelectInEnvelopeFunction::new(envelope.clone()),
+            &mut visitor,
+        )
+    }
+
     /// Returns a draining iterator over all elements contained in the tree.
     ///
     /// The order in which the elements are returned is not specified.
@@ -404,6 +449,38 @@ where
         LocateInEnvelopeIntersectingMut::new(
             &mut self.root,
             SelectInEnvelopeFuncIntersecting::new(envelope.clone()),
+        )
+    }
+
+    /// Variant of [`locate_in_envelope_intersecting`][Self::locate_in_envelope_intersecting] using internal iteration.
+    pub fn locate_in_envelope_intersecting_int<'a, V, B>(
+        &'a self,
+        envelope: &T::Envelope,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a T) -> ControlFlow<B>,
+    {
+        select_nodes(
+            self.root(),
+            &SelectInEnvelopeFuncIntersecting::new(envelope.clone()),
+            &mut visitor,
+        )
+    }
+
+    /// Mutable variant of [`locate_in_envelope_intersecting_int`][Self::locate_in_envelope_intersecting_int].
+    pub fn locate_in_envelope_intersecting_int_mut<'a, V, B>(
+        &'a mut self,
+        envelope: &T::Envelope,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a mut T) -> ControlFlow<B>,
+    {
+        select_nodes_mut(
+            self.root_mut(),
+            &SelectInEnvelopeFuncIntersecting::new(envelope.clone()),
+            &mut visitor,
         )
     }
 
@@ -540,6 +617,25 @@ where
         self.locate_all_at_point_mut(point).next()
     }
 
+    /// Variant of [`locate_at_point`][Self::locate_at_point] using internal iteration.
+    pub fn locate_at_point_int(&self, point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
+        match self.locate_all_at_point_int(point, ControlFlow::Break) {
+            ControlFlow::Break(node) => Some(node),
+            ControlFlow::Continue(()) => None,
+        }
+    }
+
+    /// Mutable variant of [`locate_at_point_int`][Self::locate_at_point_int].
+    pub fn locate_at_point_int_mut(
+        &mut self,
+        point: &<T::Envelope as Envelope>::Point,
+    ) -> Option<&mut T> {
+        match self.locate_all_at_point_int_mut(point, ControlFlow::Break) {
+            ControlFlow::Break(node) => Some(node),
+            ControlFlow::Continue(()) => None,
+        }
+    }
+
     /// Locate all elements containing a given point.
     ///
     /// Method [PointDistance::contains_point] is used
@@ -565,12 +661,44 @@ where
         LocateAllAtPoint::new(&self.root, SelectAtPointFunction::new(point.clone()))
     }
 
-    /// Mutable variant of [locate_all_at_point](#method.locate_all_at_point).
+    /// Mutable variant of [`locate_all_at_point`][Self::locate_all_at_point].
     pub fn locate_all_at_point_mut(
         &mut self,
         point: &<T::Envelope as Envelope>::Point,
     ) -> LocateAllAtPointMut<T> {
         LocateAllAtPointMut::new(&mut self.root, SelectAtPointFunction::new(point.clone()))
+    }
+
+    /// Variant of [`locate_all_at_point`][Self::locate_all_at_point] using internal iteration.
+    pub fn locate_all_at_point_int<'a, V, B>(
+        &'a self,
+        point: &<T::Envelope as Envelope>::Point,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a T) -> ControlFlow<B>,
+    {
+        select_nodes(
+            &self.root,
+            &SelectAtPointFunction::new(point.clone()),
+            &mut visitor,
+        )
+    }
+
+    /// Mutable variant of [`locate_all_at_point_int`][Self::locate_all_at_point_int].
+    pub fn locate_all_at_point_int_mut<'a, V, B>(
+        &'a mut self,
+        point: &<T::Envelope as Envelope>::Point,
+        mut visitor: V,
+    ) -> ControlFlow<B>
+    where
+        V: FnMut(&'a mut T) -> ControlFlow<B>,
+    {
+        select_nodes_mut(
+            &mut self.root,
+            &SelectAtPointFunction::new(point.clone()),
+            &mut visitor,
+        )
     }
 
     /// Removes an element containing a given point.
