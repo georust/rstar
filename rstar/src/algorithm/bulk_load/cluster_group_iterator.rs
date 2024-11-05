@@ -1,6 +1,5 @@
 use crate::{Envelope, Point, RTreeObject, RTreeParams};
 
-#[cfg(not(test))]
 use alloc::vec::Vec;
 
 #[allow(unused_imports)] // Import is required when building without std

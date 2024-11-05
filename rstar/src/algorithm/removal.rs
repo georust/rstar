@@ -6,7 +6,6 @@ use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::{Envelope, RTree};
 
-#[cfg(not(test))]
 use alloc::{vec, vec::Vec};
 
 #[allow(unused_imports)] // Import is required when building without std
@@ -253,7 +252,7 @@ mod test {
     use crate::point::PointExt;
     use crate::primitives::Line;
     use crate::test_utilities::{create_random_points, create_random_rectangles, SEED_1, SEED_2};
-    use crate::AABB;
+    use crate::{RTree, AABB};
 
     use super::*;
 

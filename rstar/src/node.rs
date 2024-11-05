@@ -2,7 +2,6 @@ use crate::envelope::Envelope;
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 
-#[cfg(not(test))]
 use alloc::vec::Vec;
 
 #[cfg(feature = "serde")]

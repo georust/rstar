@@ -220,11 +220,11 @@ where
 }
 
 fn new_empty<P: Point>() -> AABB<P> {
-    let one = P::Scalar::one();
-    let zero = P::Scalar::zero();
+    let max = P::Scalar::max_value();
+    let min = P::Scalar::min_value();
     AABB {
-        lower: P::from_value(one),
-        upper: P::from_value(zero),
+        lower: P::from_value(max),
+        upper: P::from_value(min),
     }
 }
 

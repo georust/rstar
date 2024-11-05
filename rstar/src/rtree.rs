@@ -1,9 +1,11 @@
 use crate::algorithm::bulk_load;
+use crate::algorithm::intersection_iterator::IntersectionIterator;
 use crate::algorithm::iterators::*;
 use crate::algorithm::nearest_neighbor;
 use crate::algorithm::nearest_neighbor::NearestNeighborDistance2Iterator;
 use crate::algorithm::nearest_neighbor::NearestNeighborIterator;
 use crate::algorithm::removal;
+use crate::algorithm::removal::DrainIterator;
 use crate::algorithm::selection_functions::*;
 use crate::envelope::Envelope;
 use crate::node::ParentNode;
@@ -12,7 +14,6 @@ use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreePa
 use crate::Point;
 use core::ops::ControlFlow;
 
-#[cfg(not(test))]
 use alloc::vec::Vec;
 
 #[cfg(feature = "serde")]

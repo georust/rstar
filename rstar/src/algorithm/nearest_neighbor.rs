@@ -2,9 +2,7 @@ use crate::node::{ParentNode, RTreeNode};
 use crate::point::{min_inline, Point};
 use crate::{Envelope, PointDistance, RTreeObject};
 
-use alloc::collections::BinaryHeap;
-#[cfg(not(test))]
-use alloc::{vec, vec::Vec};
+use alloc::{collections::BinaryHeap, vec, vec::Vec};
 use core::mem::replace;
 use heapless::binary_heap as static_heap;
 use num_traits::Bounded;

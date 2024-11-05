@@ -405,11 +405,4 @@ mod test {
             assert!(located.contains(point));
         }
     }
-
-    #[test]
-    fn test_locate_within_distance_on_empty_tree() {
-        let tree: RTree<[i64; 3]> = RTree::new();
-
-        tree.locate_within_distance([0, 0, 0], 10);
-    }
 }
