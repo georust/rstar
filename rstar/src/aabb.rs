@@ -97,6 +97,11 @@ where
             self.min_point(point).sub(point).length_2()
         }
     }
+
+    fn is_empty(&self) -> bool {
+        self.lower
+            .all_component_wise(&self.upper, |min, max| min > max)
+    }
 }
 
 impl<P> Envelope for AABB<P>
@@ -110,33 +115,55 @@ where
     }
 
     fn contains_point(&self, point: &P) -> bool {
+        if self.is_empty() {
+            return false;
+        }
         self.lower.all_component_wise(point, |x, y| x <= y)
             && self.upper.all_component_wise(point, |x, y| x >= y)
     }
 
     fn contains_envelope(&self, other: &Self) -> bool {
+        if self.is_empty() {
+            return false;
+        }
         self.lower.all_component_wise(&other.lower, |l, r| l <= r)
             && self.upper.all_component_wise(&other.upper, |l, r| l >= r)
     }
 
     fn merge(&mut self, other: &Self) {
-        self.lower = self.lower.min_point(&other.lower);
-        self.upper = self.upper.max_point(&other.upper);
+        if self.is_empty() {
+            *self = other.clone();
+            return;
+        } else {
+            self.lower = self.lower.min_point(&other.lower);
+            self.upper = self.upper.max_point(&other.upper);
+        }
     }
 
     fn merged(&self, other: &Self) -> Self {
-        AABB {
-            lower: self.lower.min_point(&other.lower),
-            upper: self.upper.max_point(&other.upper),
+        if self.is_empty() {
+            other.clone()
+        } else {
+            AABB {
+                lower: self.lower.min_point(&other.lower),
+                upper: self.upper.max_point(&other.upper),
+            }
         }
     }
 
     fn intersects(&self, other: &Self) -> bool {
+        if self.is_empty() {
+            return false;
+        }
         self.lower.all_component_wise(&other.upper, |l, r| l <= r)
             && self.upper.all_component_wise(&other.lower, |l, r| l >= r)
     }
 
     fn area(&self) -> P::Scalar {
+        if self.is_empty() {
+            return Zero::zero();
+        }
+
         let zero = P::Scalar::zero();
         let one = P::Scalar::one();
         let diag = self.upper.sub(&self.lower);
@@ -144,10 +171,18 @@ where
     }
 
     fn distance_2(&self, point: &P) -> P::Scalar {
+        if self.is_empty() {
+            // REVIEW?
+            return P::Scalar::max_value();
+        }
         self.distance_2(point)
     }
 
     fn min_max_dist_2(&self, point: &P) -> <P as Point>::Scalar {
+        if self.is_empty() {
+            // REVIEW?
+            return P::Scalar::max_value();
+        }
         let l = self.lower.sub(point);
         let u = self.upper.sub(point);
         let mut max_diff = (Zero::zero(), Zero::zero(), 0); // diff, min, index
@@ -175,12 +210,19 @@ where
     }
 
     fn center(&self) -> Self::Point {
+        if self.is_empty() {
+            // REVIEW - what to do here?
+            todo!()
+        }
         let one = <Self::Point as Point>::Scalar::one();
         let two = one + one;
         self.lower.component_wise(&self.upper, |x, y| (x + y) / two)
     }
 
     fn intersection_area(&self, other: &Self) -> <Self::Point as Point>::Scalar {
+        if self.is_empty() || other.is_empty() {
+            return Zero::zero();
+        }
         AABB {
             lower: self.lower.max_point(&other.lower),
             upper: self.upper.min_point(&other.upper),
@@ -189,12 +231,16 @@ where
     }
 
     fn perimeter_value(&self) -> P::Scalar {
+        if self.is_empty() {
+            return Zero::zero();
+        }
         let diag = self.upper.sub(&self.lower);
         let zero = P::Scalar::zero();
         max_inline(diag.fold(zero, |acc, value| acc + value), zero)
     }
 
     fn sort_envelopes<T: RTreeObject<Envelope = Self>>(axis: usize, envelopes: &mut [T]) {
+        // REVIEW: what to do with empty envelopes?
         envelopes.sort_unstable_by(|l, r| {
             l.envelope()
                 .lower
@@ -209,6 +255,7 @@ where
         envelopes: &mut [T],
         selection_size: usize,
     ) {
+        // REVIEW: what to do with empty envelopes?
         envelopes.select_nth_unstable_by(selection_size, |l, r| {
             l.envelope()
                 .lower
@@ -272,5 +319,28 @@ mod test {
         let other = AABB::from_corners([-0.5, -0.5], [-0.5, -0.5]);
         let subject = empty.merged(&other);
         assert_eq!(other, subject);
+    }
+
+    #[test]
+    fn test_empty() {
+        let empty = AABB::<[f32; 2]>::new_empty();
+        assert!(empty.is_empty());
+        assert!(!empty.contains_point(&[0.0, 0.0]));
+        assert!(!empty.contains_point(&[-0.5, -0.5]));
+        assert!(!empty.contains_point(&[1.0, 1.0]));
+
+        {
+            let other = AABB::from_corners([1.0, 1.0], [1.0, 1.0]);
+            let subject = empty.merged(&other);
+            assert!(subject.contains_point(&[1.0, 1.0]));
+            assert!(!subject.contains_point(&[0.0, 0.0]));
+        }
+
+        {
+            let other = AABB::from_corners([-0.5, -0.5], [-0.5, -0.5]);
+            let subject = empty.merged(&other);
+            assert!(subject.contains_point(&[-0.5, -0.5]));
+            assert!(!subject.contains_point(&[0.0, 0.0]));
+        }
     }
 }
