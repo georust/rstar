@@ -252,4 +252,25 @@ mod test {
         let aabb = AABB::from_points(&[(3., 3., 3.), (4., 4., 4.)]);
         assert_eq!(aabb, AABB::from_corners((3., 3., 3.), (4., 4., 4.)));
     }
+
+    #[test]
+    fn empty_rect() {
+        let empty = AABB::<[f32; 2]>::new_empty();
+
+        let other = AABB::from_corners([1.0, 1.0], [1.0, 1.0]);
+        let subject = empty.merged(&other);
+        assert_eq!(other, subject);
+
+        let other = AABB::from_corners([0.0, 0.0], [0.0, 0.0]);
+        let subject = empty.merged(&other);
+        assert_eq!(other, subject);
+
+        let other = AABB::from_corners([0.5, 0.5], [0.5, 0.5]);
+        let subject = empty.merged(&other);
+        assert_eq!(other, subject);
+
+        let other = AABB::from_corners([-0.5, -0.5], [-0.5, -0.5]);
+        let subject = empty.merged(&other);
+        assert_eq!(other, subject);
+    }
 }
