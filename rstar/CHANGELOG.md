@@ -1,9 +1,9 @@
-# Unreleased
+# 0.12.2
 
 ## Changed
 - Reverted the change to `AABB::new_empty` while still avoiding overflow panics applying selections on empty trees ([PR](https://github.com/georust/rstar/pull/184)
 
-# 0.12.1
+# 0.12.1 **YANKED**
 
 ## Added
 - Provide selection methods based on internal iteration ([PR](https://github.com/georust/rstar/pull/164))
