@@ -103,6 +103,7 @@ where
     }
 
     #[cfg(test)]
+    #[allow(missing_docs)]
     pub fn sanity_check<Params>(&self, check_max_size: bool) -> Option<usize>
     where
         Params: RTreeParams,

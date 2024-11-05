@@ -106,7 +106,12 @@ where
     type Point = P;
 
     fn new_empty() -> Self {
-        new_empty()
+        let max = P::Scalar::max_value();
+        let min = P::Scalar::min_value();
+        Self {
+            lower: P::from_value(max),
+            upper: P::from_value(min),
+        }
     }
 
     fn contains_point(&self, point: &P) -> bool {
@@ -219,20 +224,32 @@ where
     }
 }
 
-fn new_empty<P: Point>() -> AABB<P> {
-    let one = P::Scalar::one();
-    let zero = P::Scalar::zero();
-    AABB {
-        lower: P::from_value(one),
-        upper: P::from_value(zero),
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::AABB;
     use crate::envelope::Envelope;
     use crate::object::PointDistance;
+
+    #[test]
+    fn empty_rect() {
+        let empty = AABB::<[f32; 2]>::new_empty();
+
+        let other = AABB::from_corners([1.0, 1.0], [1.0, 1.0]);
+        let subject = empty.merged(&other);
+        assert_eq!(other, subject);
+
+        let other = AABB::from_corners([0.0, 0.0], [0.0, 0.0]);
+        let subject = empty.merged(&other);
+        assert_eq!(other, subject);
+
+        let other = AABB::from_corners([0.5, 0.5], [0.5, 0.5]);
+        let subject = empty.merged(&other);
+        assert_eq!(other, subject);
+
+        let other = AABB::from_corners([-0.5, -0.5], [-0.5, -0.5]);
+        let subject = empty.merged(&other);
+        assert_eq!(other, subject);
+    }
 
     /// Test that min_max_dist_2 is identical to distance_2 for the equivalent
     /// min max corner of the AABB. This is necessary to prevent optimizations

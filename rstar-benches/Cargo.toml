@@ -1,5 +1,6 @@
 [package]
 name = "rstar-benches"
+edition = "2015"
 version = "0.1.1"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>", "The Georust Developers <mods@georust.org>"]
 

@@ -53,11 +53,12 @@ where
     Func: SelectionFunction<T>,
 {
     pub(crate) fn new(root: &'a ParentNode<T>, func: Func) -> Self {
-        let current_nodes = if func.should_unpack_parent(&root.envelope()) {
-            root.children.iter().collect()
-        } else {
-            SmallVec::new()
-        };
+        let current_nodes =
+            if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
+                root.children.iter().collect()
+            } else {
+                SmallVec::new()
+            };
 
         SelectionIterator {
             func,
@@ -135,7 +136,7 @@ where
         ControlFlow::Continue(())
     }
 
-    if func.should_unpack_parent(&root.envelope()) {
+    if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
         inner(root, &mut Args { func, visitor })?;
     }
 
@@ -158,11 +159,12 @@ where
     Func: SelectionFunction<T>,
 {
     pub(crate) fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
-        let current_nodes = if func.should_unpack_parent(&root.envelope()) {
-            root.children.iter_mut().collect()
-        } else {
-            SmallVec::new()
-        };
+        let current_nodes =
+            if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
+                root.children.iter_mut().collect()
+            } else {
+                SmallVec::new()
+            };
 
         SelectionIteratorMut {
             func,
@@ -240,7 +242,7 @@ where
         ControlFlow::Continue(())
     }
 
-    if func.should_unpack_parent(&root.envelope()) {
+    if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
         inner(root, &mut Args { func, visitor })?;
     }
 
@@ -408,8 +410,10 @@ mod test {
 
     #[test]
     fn test_locate_within_distance_on_empty_tree() {
-        let tree: RTree<[i64; 3]> = RTree::new();
+        let tree: RTree<[f64; 3]> = RTree::new();
+        tree.locate_within_distance([0.0, 0.0, 0.0], 10.0);
 
+        let tree: RTree<[i64; 3]> = RTree::new();
         tree.locate_within_distance([0, 0, 0], 10);
     }
 }

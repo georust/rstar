@@ -14,20 +14,16 @@ use num_traits::{Bounded, Num, Signed, Zero};
 /// # Example
 /// ```
 /// # extern crate num_traits;
-/// use num_traits::{Num, One, Signed, Zero};
+/// use num_traits::{Bounded, Num, Signed};
 ///
 /// #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 /// struct MyFancyNumberType(f32);
 ///
-/// impl Zero for MyFancyNumberType {
+/// impl num_traits::Bounded for MyFancyNumberType {
 ///   // ... details hidden ...
-/// # fn zero() -> Self { MyFancyNumberType(Zero::zero()) }
-/// # fn is_zero(&self) -> bool { unimplemented!() }
-/// }
-///
-/// impl One for MyFancyNumberType {
-///   // ... details hidden ...
-/// # fn one() -> Self { MyFancyNumberType(One::one()) }
+/// # fn min_value() -> Self { Self(Bounded::min_value()) }
+/// #
+/// # fn max_value() -> Self { Self(Bounded::max_value()) }
 /// }
 ///
 /// impl Signed for MyFancyNumberType {
@@ -58,9 +54,13 @@ use num_traits::{Bounded, Num, Signed, Zero};
 /// rtree.insert([MyFancyNumberType(0.0), MyFancyNumberType(0.0)]);
 /// # }
 ///
-/// # impl num_traits::Bounded for MyFancyNumberType {
-/// #   fn min_value() -> Self { unimplemented!() }
-/// #   fn max_value() -> Self { unimplemented!() }
+/// # impl num_traits::Zero for MyFancyNumberType {
+/// #   fn zero() -> Self { unimplemented!() }
+/// #   fn is_zero(&self) -> bool { unimplemented!() }
+/// # }
+/// #
+/// # impl num_traits::One for MyFancyNumberType {
+/// #   fn one() -> Self { unimplemented!() }
 /// # }
 /// #
 /// # impl core::ops::Mul for MyFancyNumberType {
