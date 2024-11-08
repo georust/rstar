@@ -1,3 +1,8 @@
+# Unreleased
+
+## Added
+- Added missing re-exports of nearest neighbor iterators so they can be named in downstream crates. ([PR](https://github.com/georust/rstar/pull/186))
+
 # 0.12.2
 
 ## Changed

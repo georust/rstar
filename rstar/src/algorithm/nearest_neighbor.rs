@@ -2,6 +2,9 @@ use crate::node::{ParentNode, RTreeNode};
 use crate::point::{min_inline, Point};
 use crate::{Envelope, PointDistance, RTreeObject};
 
+#[cfg(doc)]
+use crate::RTree;
+
 use alloc::collections::BinaryHeap;
 #[cfg(not(test))]
 use alloc::{vec, vec::Vec};
@@ -51,7 +54,10 @@ impl<'a, T> NearestNeighborDistance2Iterator<'a, T>
 where
     T: PointDistance,
 {
-    pub fn new(root: &'a ParentNode<T>, query_point: <T::Envelope as Envelope>::Point) -> Self {
+    pub(crate) fn new(
+        root: &'a ParentNode<T>,
+        query_point: <T::Envelope as Envelope>::Point,
+    ) -> Self {
         let mut result = NearestNeighborDistance2Iterator {
             nodes: SmallHeap::new(),
             query_point,
@@ -106,6 +112,7 @@ where
     }
 }
 
+/// Iterator returned by [`RTree::nearest_neighbor_iter_with_distance_2`].
 pub struct NearestNeighborDistance2Iterator<'a, T>
 where
     T: PointDistance + 'a,
@@ -118,7 +125,10 @@ impl<'a, T> NearestNeighborIterator<'a, T>
 where
     T: PointDistance,
 {
-    pub fn new(root: &'a ParentNode<T>, query_point: <T::Envelope as Envelope>::Point) -> Self {
+    pub(crate) fn new(
+        root: &'a ParentNode<T>,
+        query_point: <T::Envelope as Envelope>::Point,
+    ) -> Self {
         NearestNeighborIterator {
             iter: NearestNeighborDistance2Iterator::new(root, query_point),
         }
@@ -136,6 +146,7 @@ where
     }
 }
 
+/// Iterator returned by [`RTree::nearest_neighbor_iter`].
 pub struct NearestNeighborIterator<'a, T>
 where
     T: PointDistance + 'a,
