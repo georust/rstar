@@ -9,6 +9,7 @@ use crate::RTree;
 use smallvec::SmallVec;
 
 pub use super::intersection_iterator::IntersectionIterator;
+pub use super::nearest_neighbor::{NearestNeighborDistance2Iterator, NearestNeighborIterator};
 pub use super::removal::{DrainIterator, IntoIter};
 
 /// Iterator returned by [`RTree::locate_all_at_point`].
