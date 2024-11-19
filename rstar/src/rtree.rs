@@ -1,3 +1,5 @@
+use std::error;
+
 use crate::algorithm::bulk_load;
 use crate::algorithm::iterators::*;
 use crate::algorithm::nearest_neighbor;
@@ -958,9 +960,10 @@ where
     /// This method runs in `O(log(n))`.
     /// The [r-tree documentation](RTree) contains more information about
     /// r-tree performance.
-    pub fn insert(&mut self, t: T) {
-        Params::DefaultInsertionStrategy::insert(self, t);
+    pub fn insert(&mut self, t: T) -> Result<(), Box<dyn error::Error>> {
+        Params::DefaultInsertionStrategy::insert(self, t)?;
         self.size += 1;
+        Ok(())
     }
 }
 
@@ -1047,7 +1050,7 @@ mod test {
     #[test]
     fn test_insert_single() {
         let mut tree: RTree<_> = RTree::new();
-        tree.insert([0.02f32, 0.4f32]);
+        tree.insert([0.02f32, 0.4f32]).unwrap();
         assert_eq!(tree.size(), 1);
         assert!(tree.contains(&[0.02, 0.4]));
         assert!(!tree.contains(&[0.3, 0.2]));
@@ -1059,7 +1062,7 @@ mod test {
         let points = create_random_points(NUM_POINTS, SEED_1);
         let mut tree = RTree::new();
         for p in &points {
-            tree.insert(*p);
+            tree.insert(*p).unwrap();
             tree.root.sanity_check::<DefaultParams>(true);
         }
         assert_eq!(tree.size(), NUM_POINTS);
@@ -1160,7 +1163,7 @@ mod test {
         for node in nodes {
             // Bulk loading will create nodes larger than Params::MAX_SIZE,
             // which is intentional and not harmful.
-            tree.insert(node);
+            tree.insert(node).unwrap();
             tree.root().sanity_check::<DefaultParams>(false);
         }
     }

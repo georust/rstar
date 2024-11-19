@@ -47,7 +47,7 @@ fn bulk_load_comparison(c: &mut Criterion) {
         b.iter(move || {
             let mut rtree = rstar::RTree::new();
             for point in &points {
-                rtree.insert(*point);
+                rtree.insert(*point).unwrap();
             }
         });
     });
@@ -84,7 +84,7 @@ fn tree_creation_quality(c: &mut Criterion) {
     let tree_bulk_loaded = RTree::<_, Params>::bulk_load_with_params(points.clone());
     let mut tree_sequential = RTree::new();
     for point in &points {
-        tree_sequential.insert(*point);
+        tree_sequential.insert(*point).unwrap();
     }
 
     let query_points = create_random_points(100, SEED_2);
