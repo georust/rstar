@@ -71,7 +71,7 @@ where
             ref mut nodes,
             ref query_point,
         } = self;
-        nodes.extend(children.iter().map(|child| {
+        nodes.extend(children.iter().map(|child: &RTreeNode<T>| {
             let distance = match child {
                 RTreeNode::Parent(ref data) => data.envelope.distance_2(query_point),
                 RTreeNode::Leaf(ref t) => t.distance_2(query_point),
@@ -331,7 +331,7 @@ mod test {
     #[test]
     fn test_nearest_neighbor_empty() {
         let tree: RTree<[f32; 2]> = RTree::new();
-        assert!(tree.nearest_neighbor(&[0.0, 213.0]).is_none());
+        assert!(tree.nearest_neighbor([0.0, 213.0]).is_none());
     }
 
     #[test]
@@ -340,7 +340,7 @@ mod test {
         let tree = RTree::bulk_load(points.clone());
 
         let sample_points = create_random_points(100, SEED_2);
-        for sample_point in &sample_points {
+        for sample_point in sample_points {
             let mut nearest = None;
             let mut closest_dist = f64::INFINITY;
             for point in &points {
@@ -387,10 +387,10 @@ mod test {
         let tree = RTree::bulk_load(points.clone());
 
         let sample_points = create_random_points(50, SEED_2);
-        for sample_point in &sample_points {
+        for sample_point in sample_points {
             points.sort_by(|r, l| {
-                r.distance_2(sample_point)
-                    .partial_cmp(&l.distance_2(sample_point))
+                r.distance_2(&sample_point)
+                    .partial_cmp(&l.distance_2(&sample_point))
                     .unwrap()
             });
             let collected: Vec<_> = tree.nearest_neighbor_iter(sample_point).cloned().collect();
@@ -404,10 +404,10 @@ mod test {
         let tree = RTree::bulk_load(points);
 
         let sample_points = create_random_points(50, SEED_1);
-        for sample_point in &sample_points {
+        for sample_point in sample_points {
             let mut last_distance = 0.0;
             for (point, distance) in tree.nearest_neighbor_iter_with_distance_2(sample_point) {
-                assert_eq!(point.distance_2(sample_point), distance);
+                assert_eq!(point.distance_2(&sample_point), distance);
                 assert!(last_distance < distance);
                 last_distance = distance;
             }

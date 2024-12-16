@@ -264,14 +264,14 @@ mod test {
         let later_insertions = create_random_points(SIZE, SEED_2);
         let mut tree = RTree::bulk_load(points.clone());
         for (point_to_remove, point_to_add) in points.iter().zip(later_insertions.iter()) {
-            assert!(tree.remove_at_point(point_to_remove).is_some());
+            assert!(tree.remove_at_point(*point_to_remove).is_some());
             tree.insert(*point_to_add);
         }
         assert_eq!(tree.size(), SIZE);
         assert!(points.iter().all(|p| !tree.contains(p)));
         assert!(later_insertions.iter().all(|p| tree.contains(p)));
         for point in &later_insertions {
-            assert!(tree.remove_at_point(point).is_some());
+            assert!(tree.remove_at_point(*point).is_some());
         }
         assert_eq!(tree.size(), 0);
     }
@@ -308,10 +308,10 @@ mod test {
     fn test_remove_at_point() {
         let points = create_random_points(1000, SEED_1);
         let mut tree = RTree::bulk_load(points.clone());
-        for point in &points {
+        for point in points {
             let size_before_removal = tree.size();
             assert!(tree.remove_at_point(point).is_some());
-            assert!(tree.remove_at_point(&[1000.0, 1000.0]).is_none());
+            assert!(tree.remove_at_point([1000.0, 1000.0]).is_none());
             assert_eq!(size_before_removal - 1, tree.size());
         }
     }

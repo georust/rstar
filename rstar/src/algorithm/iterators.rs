@@ -287,10 +287,10 @@ mod test {
 
         let query_points = create_random_points(20, SEED_1);
 
-        for p in &query_points {
+        for p in query_points {
             let contained_sequential: Vec<_> = rectangles
                 .iter()
-                .filter(|rectangle| rectangle.envelope().contains_point(p))
+                .filter(|rectangle| rectangle.envelope().contains_point(&p))
                 .cloned()
                 .collect();
 
@@ -317,7 +317,7 @@ mod test {
             .collect();
         let len = contained_in_envelope.len();
         assert!(10 < len && len < 90, "unexpected point distribution");
-        let located: Vec<_> = tree.locate_in_envelope(&envelope).cloned().collect();
+        let located: Vec<_> = tree.locate_in_envelope(envelope).cloned().collect();
         assert_eq!(len, located.len());
         for point in &contained_in_envelope {
             assert!(located.contains(point));
