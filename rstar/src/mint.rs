@@ -27,7 +27,7 @@
 //!
 //! rtree.insert(mint_point2);
 //!
-//! assert_eq!(rtree.nearest_neighbor(&mint_point1), Some(&mint_point2));
+//! assert_eq!(rtree.nearest_neighbor(mint_point1), Some(&mint_point2));
 //! ```
 
 use crate::{Point, RTreeNum};

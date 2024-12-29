@@ -71,9 +71,9 @@ where
 /// tree.insert([0.2, 0.1]);
 /// tree.insert([0.3, 0.0]);
 ///
-/// assert_eq!(tree.nearest_neighbor(&[0.4, -0.1]), Some(&[0.3, 0.0]));
+/// assert_eq!(tree.nearest_neighbor([0.4, -0.1]), Some(&[0.3, 0.0]));
 /// tree.remove(&[0.3, 0.0]);
-/// assert_eq!(tree.nearest_neighbor(&[0.4, 0.3]), Some(&[0.2, 0.1]));
+/// assert_eq!(tree.nearest_neighbor([0.4, 0.3]), Some(&[0.2, 0.1]));
 ///
 /// assert_eq!(tree.size(), 2);
 /// // &RTree implements IntoIterator!
@@ -327,27 +327,24 @@ where
     /// ]);
     /// let half_unit_square = AABB::from_corners([0.0, 0.0], [0.5, 1.0]);
     /// let unit_square = AABB::from_corners([0.0, 0.0], [1.0, 1.0]);
-    /// let elements_in_half_unit_square = tree.locate_in_envelope(&half_unit_square);
-    /// let elements_in_unit_square = tree.locate_in_envelope(&unit_square);
+    /// let elements_in_half_unit_square = tree.locate_in_envelope(half_unit_square);
+    /// let elements_in_unit_square = tree.locate_in_envelope(unit_square);
     /// assert_eq!(elements_in_half_unit_square.count(), 2);
     /// assert_eq!(elements_in_unit_square.count(), 3);
     /// ```
-    pub fn locate_in_envelope(&self, envelope: &T::Envelope) -> LocateInEnvelope<T> {
-        LocateInEnvelope::new(&self.root, SelectInEnvelopeFunction::new(envelope.clone()))
+    pub fn locate_in_envelope(&self, envelope: T::Envelope) -> LocateInEnvelope<T> {
+        LocateInEnvelope::new(&self.root, SelectInEnvelopeFunction::new(envelope))
     }
 
     /// Mutable variant of [locate_in_envelope](#method.locate_in_envelope).
-    pub fn locate_in_envelope_mut(&mut self, envelope: &T::Envelope) -> LocateInEnvelopeMut<T> {
-        LocateInEnvelopeMut::new(
-            &mut self.root,
-            SelectInEnvelopeFunction::new(envelope.clone()),
-        )
+    pub fn locate_in_envelope_mut(&mut self, envelope: T::Envelope) -> LocateInEnvelopeMut<T> {
+        LocateInEnvelopeMut::new(&mut self.root, SelectInEnvelopeFunction::new(envelope))
     }
 
     /// Variant of [`locate_in_envelope`][Self::locate_in_envelope] using internal iteration.
     pub fn locate_in_envelope_int<'a, V, B>(
         &'a self,
-        envelope: &T::Envelope,
+        envelope: T::Envelope,
         mut visitor: V,
     ) -> ControlFlow<B>
     where
@@ -355,7 +352,7 @@ where
     {
         select_nodes(
             self.root(),
-            &SelectInEnvelopeFunction::new(envelope.clone()),
+            &SelectInEnvelopeFunction::new(envelope),
             &mut visitor,
         )
     }
@@ -363,7 +360,7 @@ where
     /// Mutable variant of [`locate_in_envelope_mut`][Self::locate_in_envelope_mut].
     pub fn locate_in_envelope_int_mut<'a, V, B>(
         &'a mut self,
-        envelope: &T::Envelope,
+        envelope: T::Envelope,
         mut visitor: V,
     ) -> ControlFlow<B>
     where
@@ -371,7 +368,7 @@ where
     {
         select_nodes_mut(
             self.root_mut(),
-            &SelectInEnvelopeFunction::new(envelope.clone()),
+            &SelectInEnvelopeFunction::new(envelope),
             &mut visitor,
         )
     }
@@ -419,43 +416,43 @@ where
     ///   middle_piece.into(),
     /// ]);
     ///
-    /// let elements_intersecting_left_piece = tree.locate_in_envelope_intersecting(&left_piece);
+    /// let elements_intersecting_left_piece = tree.locate_in_envelope_intersecting(left_piece);
     /// // The left piece should not intersect the right piece!
     /// assert_eq!(elements_intersecting_left_piece.count(), 2);
-    /// let elements_intersecting_middle = tree.locate_in_envelope_intersecting(&middle_piece);
+    /// let elements_intersecting_middle = tree.locate_in_envelope_intersecting(middle_piece);
     /// // Only the middle piece intersects all pieces within the tree
     /// assert_eq!(elements_intersecting_middle.count(), 3);
     ///
     /// let large_piece = AABB::from_corners([-100., -100.], [100., 100.]);
-    /// let elements_intersecting_large_piece = tree.locate_in_envelope_intersecting(&large_piece);
+    /// let elements_intersecting_large_piece = tree.locate_in_envelope_intersecting(large_piece);
     /// // Any element that is fully contained should also be returned:
     /// assert_eq!(elements_intersecting_large_piece.count(), 3);
     /// ```
     pub fn locate_in_envelope_intersecting(
         &self,
-        envelope: &T::Envelope,
+        envelope: T::Envelope,
     ) -> LocateInEnvelopeIntersecting<T> {
         LocateInEnvelopeIntersecting::new(
             &self.root,
-            SelectInEnvelopeFuncIntersecting::new(envelope.clone()),
+            SelectInEnvelopeFuncIntersecting::new(envelope),
         )
     }
 
     /// Mutable variant of [locate_in_envelope_intersecting](#method.locate_in_envelope_intersecting)
     pub fn locate_in_envelope_intersecting_mut(
         &mut self,
-        envelope: &T::Envelope,
+        envelope: T::Envelope,
     ) -> LocateInEnvelopeIntersectingMut<T> {
         LocateInEnvelopeIntersectingMut::new(
             &mut self.root,
-            SelectInEnvelopeFuncIntersecting::new(envelope.clone()),
+            SelectInEnvelopeFuncIntersecting::new(envelope),
         )
     }
 
     /// Variant of [`locate_in_envelope_intersecting`][Self::locate_in_envelope_intersecting] using internal iteration.
     pub fn locate_in_envelope_intersecting_int<'a, V, B>(
         &'a self,
-        envelope: &T::Envelope,
+        envelope: T::Envelope,
         mut visitor: V,
     ) -> ControlFlow<B>
     where
@@ -463,7 +460,7 @@ where
     {
         select_nodes(
             self.root(),
-            &SelectInEnvelopeFuncIntersecting::new(envelope.clone()),
+            &SelectInEnvelopeFuncIntersecting::new(envelope),
             &mut visitor,
         )
     }
@@ -471,7 +468,7 @@ where
     /// Mutable variant of [`locate_in_envelope_intersecting_int`][Self::locate_in_envelope_intersecting_int].
     pub fn locate_in_envelope_intersecting_int_mut<'a, V, B>(
         &'a mut self,
-        envelope: &T::Envelope,
+        envelope: T::Envelope,
         mut visitor: V,
     ) -> ControlFlow<B>
     where
@@ -479,7 +476,7 @@ where
     {
         select_nodes_mut(
             self.root_mut(),
-            &SelectInEnvelopeFuncIntersecting::new(envelope.clone()),
+            &SelectInEnvelopeFuncIntersecting::new(envelope),
             &mut visitor,
         )
     }
@@ -605,20 +602,20 @@ where
     /// is used to determine if a tree element contains the given point.
     ///
     /// If multiple elements contain the given point, any of them is returned.
-    pub fn locate_at_point(&self, point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
+    pub fn locate_at_point(&self, point: <T::Envelope as Envelope>::Point) -> Option<&T> {
         self.locate_all_at_point(point).next()
     }
 
     /// Mutable variant of [RTree::locate_at_point].
     pub fn locate_at_point_mut(
         &mut self,
-        point: &<T::Envelope as Envelope>::Point,
+        point: <T::Envelope as Envelope>::Point,
     ) -> Option<&mut T> {
         self.locate_all_at_point_mut(point).next()
     }
 
     /// Variant of [`locate_at_point`][Self::locate_at_point] using internal iteration.
-    pub fn locate_at_point_int(&self, point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
+    pub fn locate_at_point_int(&self, point: <T::Envelope as Envelope>::Point) -> Option<&T> {
         match self.locate_all_at_point_int(point, ControlFlow::Break) {
             ControlFlow::Break(node) => Some(node),
             ControlFlow::Continue(()) => None,
@@ -628,7 +625,7 @@ where
     /// Mutable variant of [`locate_at_point_int`][Self::locate_at_point_int].
     pub fn locate_at_point_int_mut(
         &mut self,
-        point: &<T::Envelope as Envelope>::Point,
+        point: <T::Envelope as Envelope>::Point,
     ) -> Option<&mut T> {
         match self.locate_all_at_point_int_mut(point, ControlFlow::Break) {
             ControlFlow::Break(node) => Some(node),
@@ -650,45 +647,41 @@ where
     ///   Rectangle::from_corners([1.0, 1.0], [3.0, 3.0])
     /// ]);
     ///
-    /// assert_eq!(tree.locate_all_at_point(&[1.5, 1.5]).count(), 2);
-    /// assert_eq!(tree.locate_all_at_point(&[0.0, 0.0]).count(), 1);
-    /// assert_eq!(tree.locate_all_at_point(&[-1., 0.0]).count(), 0);
+    /// assert_eq!(tree.locate_all_at_point([1.5, 1.5]).count(), 2);
+    /// assert_eq!(tree.locate_all_at_point([0.0, 0.0]).count(), 1);
+    /// assert_eq!(tree.locate_all_at_point([-1., 0.0]).count(), 0);
     /// ```
     pub fn locate_all_at_point(
         &self,
-        point: &<T::Envelope as Envelope>::Point,
+        point: <T::Envelope as Envelope>::Point,
     ) -> LocateAllAtPoint<T> {
-        LocateAllAtPoint::new(&self.root, SelectAtPointFunction::new(point.clone()))
+        LocateAllAtPoint::new(&self.root, SelectAtPointFunction::new(point))
     }
 
     /// Mutable variant of [`locate_all_at_point`][Self::locate_all_at_point].
     pub fn locate_all_at_point_mut(
         &mut self,
-        point: &<T::Envelope as Envelope>::Point,
+        point: <T::Envelope as Envelope>::Point,
     ) -> LocateAllAtPointMut<T> {
-        LocateAllAtPointMut::new(&mut self.root, SelectAtPointFunction::new(point.clone()))
+        LocateAllAtPointMut::new(&mut self.root, SelectAtPointFunction::new(point))
     }
 
     /// Variant of [`locate_all_at_point`][Self::locate_all_at_point] using internal iteration.
     pub fn locate_all_at_point_int<'a, V, B>(
         &'a self,
-        point: &<T::Envelope as Envelope>::Point,
+        point: <T::Envelope as Envelope>::Point,
         mut visitor: V,
     ) -> ControlFlow<B>
     where
         V: FnMut(&'a T) -> ControlFlow<B>,
     {
-        select_nodes(
-            &self.root,
-            &SelectAtPointFunction::new(point.clone()),
-            &mut visitor,
-        )
+        select_nodes(&self.root, &SelectAtPointFunction::new(point), &mut visitor)
     }
 
     /// Mutable variant of [`locate_all_at_point_int`][Self::locate_all_at_point_int].
     pub fn locate_all_at_point_int_mut<'a, V, B>(
         &'a mut self,
-        point: &<T::Envelope as Envelope>::Point,
+        point: <T::Envelope as Envelope>::Point,
         mut visitor: V,
     ) -> ControlFlow<B>
     where
@@ -696,7 +689,7 @@ where
     {
         select_nodes_mut(
             &mut self.root,
-            &SelectAtPointFunction::new(point.clone()),
+            &SelectAtPointFunction::new(point),
             &mut visitor,
         )
     }
@@ -716,12 +709,12 @@ where
     ///   Rectangle::from_corners([1.0, 1.0], [3.0, 3.0])
     /// ]);
     ///
-    /// assert!(tree.remove_at_point(&[1.5, 1.5]).is_some());
-    /// assert!(tree.remove_at_point(&[1.5, 1.5]).is_some());
-    /// assert!(tree.remove_at_point(&[1.5, 1.5]).is_none());
+    /// assert!(tree.remove_at_point([1.5, 1.5]).is_some());
+    /// assert!(tree.remove_at_point([1.5, 1.5]).is_some());
+    /// assert!(tree.remove_at_point([1.5, 1.5]).is_none());
     ///```
-    pub fn remove_at_point(&mut self, point: &<T::Envelope as Envelope>::Point) -> Option<T> {
-        let removal_function = SelectAtPointFunction::new(point.clone());
+    pub fn remove_at_point(&mut self, point: <T::Envelope as Envelope>::Point) -> Option<T> {
+        let removal_function = SelectAtPointFunction::new(point);
         self.remove_with_selection_function(removal_function)
     }
 }
@@ -747,7 +740,7 @@ where
     /// assert!(tree.contains(&[0.0, 2.0]));
     /// ```
     pub fn contains(&self, t: &T) -> bool {
-        self.locate_in_envelope(&t.envelope()).any(|e| e == t)
+        self.locate_in_envelope(t.envelope()).any(|e| e == t)
     }
 
     /// Removes and returns an element of the r-tree equal (`==`) to a given element.
@@ -793,10 +786,10 @@ where
     ///   [0.0, 0.0],
     ///   [0.0, 1.0],
     /// ]);
-    /// assert_eq!(tree.nearest_neighbor(&[-1., 0.0]), Some(&[0.0, 0.0]));
-    /// assert_eq!(tree.nearest_neighbor(&[0.0, 2.0]), Some(&[0.0, 1.0]));
+    /// assert_eq!(tree.nearest_neighbor([-1., 0.0]), Some(&[0.0, 0.0]));
+    /// assert_eq!(tree.nearest_neighbor([0.0, 2.0]), Some(&[0.0, 1.0]));
     /// ```
-    pub fn nearest_neighbor(&self, query_point: &<T::Envelope as Envelope>::Point) -> Option<&T> {
+    pub fn nearest_neighbor(&self, query_point: <T::Envelope as Envelope>::Point) -> Option<&T> {
         if self.size > 0 {
             // The single-nearest-neighbor retrieval may in rare cases return None due to
             // rounding issues. The iterator will still work, though.
@@ -883,14 +876,14 @@ where
     ///   [0.0, 1.0],
     /// ]);
     ///
-    /// let nearest_neighbors = tree.nearest_neighbor_iter(&[0.5, 0.0]).collect::<Vec<_>>();
+    /// let nearest_neighbors = tree.nearest_neighbor_iter([0.5, 0.0]).collect::<Vec<_>>();
     /// assert_eq!(nearest_neighbors, vec![&[0.0, 0.0], &[0.0, 1.0]]);
     /// ```
     pub fn nearest_neighbor_iter(
         &self,
-        query_point: &<T::Envelope as Envelope>::Point,
+        query_point: <T::Envelope as Envelope>::Point,
     ) -> NearestNeighborIterator<T> {
-        nearest_neighbor::NearestNeighborIterator::new(&self.root, query_point.clone())
+        nearest_neighbor::NearestNeighborIterator::new(&self.root, query_point)
     }
 
     /// Returns `(element, distance^2)` tuples of the tree sorted by their distance to a given point.
@@ -900,9 +893,9 @@ where
     #[deprecated(note = "Please use nearest_neighbor_iter_with_distance_2 instead")]
     pub fn nearest_neighbor_iter_with_distance(
         &self,
-        query_point: &<T::Envelope as Envelope>::Point,
+        query_point: <T::Envelope as Envelope>::Point,
     ) -> NearestNeighborDistance2Iterator<T> {
-        nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, query_point.clone())
+        nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, query_point)
     }
 
     /// Returns `(element, distance^2)` tuples of the tree sorted by their distance to a given point.
@@ -911,9 +904,9 @@ where
     /// [PointDistance::distance_2].
     pub fn nearest_neighbor_iter_with_distance_2(
         &self,
-        query_point: &<T::Envelope as Envelope>::Point,
+        query_point: <T::Envelope as Envelope>::Point,
     ) -> NearestNeighborDistance2Iterator<T> {
-        nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, query_point.clone())
+        nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, query_point)
     }
 
     /// Removes the nearest neighbor for a given point and returns it.
@@ -928,13 +921,13 @@ where
     ///   [0.0, 0.0],
     ///   [0.0, 1.0],
     /// ]);
-    /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), Some([0.0, 0.0]));
-    /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), Some([0.0, 1.0]));
-    /// assert_eq!(tree.pop_nearest_neighbor(&[0.0, 0.0]), None);
+    /// assert_eq!(tree.pop_nearest_neighbor([0.0, 0.0]), Some([0.0, 0.0]));
+    /// assert_eq!(tree.pop_nearest_neighbor([0.0, 0.0]), Some([0.0, 1.0]));
+    /// assert_eq!(tree.pop_nearest_neighbor([0.0, 0.0]), None);
     /// ```
     pub fn pop_nearest_neighbor(
         &mut self,
-        query_point: &<T::Envelope as Envelope>::Point,
+        query_point: <T::Envelope as Envelope>::Point,
     ) -> Option<T> {
         if let Some(neighbor) = self.nearest_neighbor(query_point) {
             let removal_function = SelectByAddressFunction::new(neighbor.envelope(), neighbor);

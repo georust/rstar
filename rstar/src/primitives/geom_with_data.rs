@@ -25,7 +25,7 @@ use crate::{object::RTreeObject, point::Point};
 /// let my_location = [0.0, 0.0];
 ///
 /// // Now find the closest restaurant!
-/// let place = restaurants.nearest_neighbor(&my_location).unwrap();
+/// let place = restaurants.nearest_neighbor(my_location).unwrap();
 /// println!("Let's go to {}", place.data);
 /// println!("It's really close, only {} miles", place.distance_2(&my_location));
 /// ```
@@ -129,7 +129,7 @@ mod test {
         ));
         let my_location = [0.0, 0.0];
         // Now find the closest line
-        let place = lines.nearest_neighbor(&my_location).unwrap();
+        let place = lines.nearest_neighbor(my_location).unwrap();
 
         assert_eq!(place.data, "Line A");
     }

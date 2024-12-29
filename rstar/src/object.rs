@@ -63,15 +63,15 @@ use crate::point::{Point, PointExt};
 ///
 /// // Now we are ready to ask some questions!
 /// let envelope = AABB::from_point([0.5, 0.5]);
-/// let likely_sarah_croft = tree.locate_in_envelope(&envelope).next();
+/// let likely_sarah_croft = tree.locate_in_envelope(envelope).next();
 /// println!("Found {:?} lurking around at (0.5, 0.5)!", likely_sarah_croft.unwrap().name);
 /// # assert!(likely_sarah_croft.is_some());
 ///
 /// let unit_square = AABB::from_corners([-1.0, -1.0], [1., 1.]);
-/// for player in tree.locate_in_envelope(&unit_square) {
+/// for player in tree.locate_in_envelope(unit_square) {
 ///    println!("And here is {:?} spelunking in the unit square.", player.name);
 /// }
-/// # assert_eq!(tree.locate_in_envelope(&unit_square).count(), 2);
+/// # assert_eq!(tree.locate_in_envelope(unit_square).count(), 2);
 /// ```
 pub trait RTreeObject {
     /// The object's envelope type. Usually, [AABB] will be the right choice.

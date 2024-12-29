@@ -120,7 +120,7 @@ mod test {
         ));
         let my_location = [0.0, 0.0];
         // Now find the closest line
-        let place = lines.nearest_neighbor(&my_location).unwrap();
+        let place = lines.nearest_neighbor(my_location).unwrap();
 
         assert_eq!(place.data, "Line A");
     }
