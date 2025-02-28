@@ -13,6 +13,11 @@ pub trait Envelope: Clone + PartialEq + ::core::fmt::Debug {
     /// Creates a new, empty envelope that does not encompass any child.
     fn new_empty() -> Self;
 
+    /// Returns true if there are no points in the Envelope
+    fn is_empty(&self) -> bool {
+        self == &Self::new_empty()
+    }
+
     /// Returns true if a point is contained within this envelope.
     fn contains_point(&self, point: &Self::Point) -> bool;
 

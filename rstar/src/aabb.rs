@@ -114,6 +114,10 @@ where
         }
     }
 
+    fn is_empty(&self) -> bool {
+        self.lower.nth(0) > self.upper.nth(0)
+    }
+
     fn contains_point(&self, point: &P) -> bool {
         self.lower.all_component_wise(point, |x, y| x <= y)
             && self.upper.all_component_wise(point, |x, y| x >= y)
@@ -268,5 +272,14 @@ mod test {
     fn test_from_points_issue_170_regression() {
         let aabb = AABB::from_points(&[(3., 3., 3.), (4., 4., 4.)]);
         assert_eq!(aabb, AABB::from_corners((3., 3., 3.), (4., 4., 4.)));
+    }
+
+    #[test]
+    fn test_is_empty() {
+        let empty = AABB::<[f32; 2]>::new_empty();
+        assert!(empty.is_empty());
+
+        let not_empty = AABB::from_corners([1.0, 1.0], [1.0, 1.0]);
+        assert!(!not_empty.is_empty());
     }
 }
