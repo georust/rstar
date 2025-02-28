@@ -2,6 +2,7 @@
 
 ## Added
 - Added missing re-exports of nearest neighbor iterators so they can be named in downstream crates. ([PR](https://github.com/georust/rstar/pull/186))
+- Added `Envelope::is_empty`. ([PR](https://github.com/georust/rstar/pull/190))
 
 ## Changed
 - Made `RStar` methods take `Point` and `Envelope` as owned values where it makes sense ([PR](https://github.com/georust/rstar/pull/189))
