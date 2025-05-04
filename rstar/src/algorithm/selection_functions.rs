@@ -156,7 +156,7 @@ where
     }
 }
 
-impl<'a, T> SelectionFunction<T> for SelectEqualsFunction<'a, T>
+impl<T> SelectionFunction<T> for SelectEqualsFunction<'_, T>
 where
     T: RTreeObject + PartialEq,
 {

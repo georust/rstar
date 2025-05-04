@@ -20,7 +20,7 @@ where
     distance: <<T::Envelope as Envelope>::Point as Point>::Scalar,
 }
 
-impl<'a, T> PartialEq for RTreeNodeDistanceWrapper<'a, T>
+impl<T> PartialEq for RTreeNodeDistanceWrapper<'_, T>
 where
     T: PointDistance,
 {
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<'a, T> PartialOrd for RTreeNodeDistanceWrapper<'a, T>
+impl<T> PartialOrd for RTreeNodeDistanceWrapper<'_, T>
 where
     T: PointDistance,
 {
@@ -38,9 +38,9 @@ where
     }
 }
 
-impl<'a, T> Eq for RTreeNodeDistanceWrapper<'a, T> where T: PointDistance {}
+impl<T> Eq for RTreeNodeDistanceWrapper<'_, T> where T: PointDistance {}
 
-impl<'a, T> Ord for RTreeNodeDistanceWrapper<'a, T>
+impl<T> Ord for RTreeNodeDistanceWrapper<'_, T>
 where
     T: PointDistance,
 {

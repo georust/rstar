@@ -179,7 +179,7 @@ where
     rtree: &'a RTree<T, Params>,
 }
 
-impl<'a, T, Params> ::core::fmt::Debug for DebugHelper<'a, T, Params>
+impl<T, Params> ::core::fmt::Debug for DebugHelper<'_, T, Params>
 where
     T: RTreeObject + ::core::fmt::Debug,
     Params: RTreeParams,

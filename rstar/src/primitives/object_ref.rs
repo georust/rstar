@@ -16,7 +16,7 @@ pub struct ObjectRef<'a, T: RTreeObject> {
     inner: &'a T,
 }
 
-impl<'a, T: RTreeObject> RTreeObject for ObjectRef<'a, T> {
+impl<T: RTreeObject> RTreeObject for ObjectRef<'_, T> {
     type Envelope = T::Envelope;
 
     fn envelope(&self) -> Self::Envelope {
@@ -24,7 +24,7 @@ impl<'a, T: RTreeObject> RTreeObject for ObjectRef<'a, T> {
     }
 }
 
-impl<'a, T: PointDistance> PointDistance for ObjectRef<'a, T> {
+impl<T: PointDistance> PointDistance for ObjectRef<'_, T> {
     fn distance_2(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
@@ -53,7 +53,7 @@ impl<'a, T: RTreeObject> ObjectRef<'a, T> {
     }
 }
 
-impl<'a, T: RTreeObject> Deref for ObjectRef<'a, T> {
+impl<T: RTreeObject> Deref for ObjectRef<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {

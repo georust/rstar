@@ -160,7 +160,7 @@ where
     }
 }
 
-impl<'a, T, R, Params> Iterator for DrainIterator<'a, T, R, Params>
+impl<T, R, Params> Iterator for DrainIterator<'_, T, R, Params>
 where
     T: RTreeObject,
     Params: RTreeParams,
@@ -220,7 +220,7 @@ where
     }
 }
 
-impl<'a, T, R, Params> Drop for DrainIterator<'a, T, R, Params>
+impl<T, R, Params> Drop for DrainIterator<'_, T, R, Params>
 where
     T: RTreeObject,
     Params: RTreeParams,
