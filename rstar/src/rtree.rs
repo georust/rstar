@@ -8,7 +8,7 @@ use crate::envelope::Envelope;
 use crate::node::ParentNode;
 use crate::object::{PointDistance, RTreeObject};
 use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
-use crate::Point;
+
 use crate::{algorithm::bulk_load, Distance};
 use core::ops::ControlFlow;
 
@@ -816,10 +816,11 @@ where
         if self.size > 0 {
             // The single-nearest-neighbor retrieval may in rare cases return None due to
             // rounding issues. The iterator will still work, though.
-            nearest_neighbor::nearest_neighbor_with_distance_2(&self.root, query_point.clone()).or_else(|| -> Option<(&T, <<<T as RTreeObject>::Envelope as Envelope>::Point as Point>::Scalar)> {
-                self.nearest_neighbor_iter_with_distance_2(query_point)
-                    .next()
-            })
+            nearest_neighbor::nearest_neighbor_with_distance_2(&self.root, query_point.clone())
+                .or_else(|| {
+                    self.nearest_neighbor_iter_with_distance_2(query_point)
+                        .next()
+                })
         } else {
             None
         }
