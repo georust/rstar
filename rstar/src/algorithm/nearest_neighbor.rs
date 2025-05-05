@@ -226,10 +226,10 @@ impl<T: Ord> SmallHeap<T> {
     }
 }
 
-pub fn nearest_neighbor<T>(
+pub fn nearest_neighbor_with_distance_2<T>(
     node: &ParentNode<T>,
     query_point: <T::Envelope as Envelope>::Point,
-) -> Option<&T>
+) -> Option<(&T, <<T::Envelope as Envelope>::Point as Point>::Scalar)>
 where
     T: PointDistance,
 {
@@ -283,29 +283,26 @@ where
             }
             RTreeNodeDistanceWrapper {
                 node: RTreeNode::Leaf(ref t),
-                ..
+                distance,
             } => {
-                return Some(t);
+                return Some((t, distance));
             }
         }
     }
     None
 }
 
-pub fn nearest_neighbors<T>(
+#[allow(clippy::type_complexity)]
+pub fn nearest_neighbors_with_distance_2<T>(
     node: &ParentNode<T>,
     query_point: <T::Envelope as Envelope>::Point,
-) -> Vec<&T>
+) -> Option<(Vec<&T>, <<T::Envelope as Envelope>::Point as Point>::Scalar)>
 where
     T: PointDistance,
 {
-    let mut nearest_neighbors = NearestNeighborDistance2Iterator::new(node, query_point.clone());
+    let mut nearest_neighbors = NearestNeighborDistance2Iterator::new(node, query_point);
 
-    let (first, first_distance_2) = match nearest_neighbors.next() {
-        Some(item) => item,
-        // If we have an empty tree, just return an empty vector.
-        None => return Vec::new(),
-    };
+    let (first, first_distance_2) = nearest_neighbors.next()?;
 
     // The result will at least contain the first nearest neighbor.
     let mut result = vec![first];
@@ -319,7 +316,7 @@ where
             .map(|(next, _)| next),
     );
 
-    result
+    Some((result, first_distance_2))
 }
 
 #[cfg(test)]
