@@ -239,7 +239,7 @@ where
     fn extend_heap<'a, T>(
         nodes: &mut SmallHeap<RTreeNodeDistanceWrapper<'a, T>>,
         node: &'a ParentNode<T>,
-        query_point: <T::Envelope as Envelope>::Point,
+        query_point: &<T::Envelope as Envelope>::Point,
         min_max_distance: &mut Distance<T>,
     ) where
         T: PointDistance + 'a,
@@ -247,7 +247,7 @@ where
         for child in &node.children {
             let distance_if_less_or_equal = match child {
                 RTreeNode::Parent(ref data) => {
-                    let distance = data.envelope.distance_2(&query_point);
+                    let distance = data.envelope.distance_2(query_point);
                     if distance <= *min_max_distance {
                         Some(distance)
                     } else {
@@ -255,13 +255,13 @@ where
                     }
                 }
                 RTreeNode::Leaf(ref t) => {
-                    t.distance_2_if_less_or_equal(&query_point, *min_max_distance)
+                    t.distance_2_if_less_or_equal(query_point, *min_max_distance)
                 }
             };
             if let Some(distance) = distance_if_less_or_equal {
                 *min_max_distance = min_inline(
                     *min_max_distance,
-                    child.envelope().min_max_dist_2(&query_point),
+                    child.envelope().min_max_dist_2(query_point),
                 );
                 nodes.push(RTreeNodeDistanceWrapper {
                     node: child,
@@ -274,14 +274,14 @@ where
     // Calculate smallest minmax-distance
     let mut smallest_min_max: Distance<T> = Bounded::max_value();
     let mut nodes = SmallHeap::new();
-    extend_heap(&mut nodes, node, query_point.clone(), &mut smallest_min_max);
+    extend_heap(&mut nodes, node, &query_point, &mut smallest_min_max);
     while let Some(current) = nodes.pop() {
         match current {
             RTreeNodeDistanceWrapper {
                 node: RTreeNode::Parent(ref data),
                 ..
             } => {
-                extend_heap(&mut nodes, data, query_point.clone(), &mut smallest_min_max);
+                extend_heap(&mut nodes, data, &query_point, &mut smallest_min_max);
             }
             RTreeNodeDistanceWrapper {
                 node: RTreeNode::Leaf(ref t),
