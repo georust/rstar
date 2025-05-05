@@ -852,11 +852,9 @@ where
     /// assert!(nearest_two.contains(&&[1.0, 0.0]));
     /// ```
     pub fn nearest_neighbors(&self, query_point: &<T::Envelope as Envelope>::Point) -> Vec<&T> {
-        if let Some((neighbors, _)) = self.nearest_neighbors_with_distance_2(query_point) {
-            neighbors
-        } else {
-            Vec::new()
-        }
+        self.nearest_neighbors_with_distance_2(query_point)
+            .map(|(neighbors, _)| neighbors)
+            .unwrap_or_default()
     }
 
     /// Returns the nearest neighbors for a given point with distance squared.
