@@ -199,7 +199,7 @@ where
                                 *remove_count += 1;
                                 return match node.children.swap_remove(*idx) {
                                     RTreeNode::Leaf(data) => Some(data),
-                                    _ => unreachable!("RemovalIterator bug!"),
+                                    RTreeNode::Parent(_) => unreachable!("RemovalIterator bug!"),
                                 };
                             }
                             *idx += 1;

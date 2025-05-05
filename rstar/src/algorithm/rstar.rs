@@ -148,7 +148,7 @@ where
             node.envelope = envelope_for_children(&node.children);
             InsertionResult::Reinsert(a, b)
         }
-        other => other,
+        InsertionResult::Complete => InsertionResult::Complete,
     }
 }
 
@@ -157,13 +157,8 @@ where
     T: RTreeObject,
 {
     let all_leaves = match node.children.first() {
-        Some(RTreeNode::Leaf(_)) => return usize::MAX,
-        Some(RTreeNode::Parent(ref data)) => data
-            .children
-            .first()
-            .map(RTreeNode::is_leaf)
-            .unwrap_or(true),
-        None => return usize::MAX,
+        Some(RTreeNode::Parent(ref data)) => data.children.first().map_or(true, RTreeNode::is_leaf),
+        None | Some(RTreeNode::Leaf(_)) => return usize::MAX,
     };
 
     let zero: Distance<T> = Zero::zero();
