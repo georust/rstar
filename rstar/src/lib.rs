@@ -62,7 +62,3 @@ pub use crate::point::{Point, RTreeNum};
 pub use crate::rtree::RTree;
 
 pub use crate::algorithm::iterators;
-
-/// Type alias for distance scalar types derived from `PointDistance` objects
-#[allow(type_alias_bounds)]
-type Distance<T: PointDistance> = <<T::Envelope as Envelope>::Point as Point>::Scalar;

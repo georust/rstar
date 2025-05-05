@@ -1,4 +1,3 @@
-use crate::algorithm::iterators::*;
 use crate::algorithm::nearest_neighbor;
 use crate::algorithm::nearest_neighbor::NearestNeighborDistance2Iterator;
 use crate::algorithm::nearest_neighbor::NearestNeighborIterator;
@@ -8,8 +7,9 @@ use crate::envelope::Envelope;
 use crate::node::ParentNode;
 use crate::object::{PointDistance, RTreeObject};
 use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
+use crate::{algorithm::iterators::*, object::Distance};
 
-use crate::{algorithm::bulk_load, Distance};
+use crate::algorithm::bulk_load;
 use core::ops::ControlFlow;
 
 #[cfg(not(test))]

@@ -1,6 +1,6 @@
-use crate::envelope::Envelope;
 use crate::object::PointDistance;
-use crate::{object::RTreeObject, point::Point};
+use crate::object::RTreeObject;
+use crate::{envelope::Envelope, object::Distance};
 
 /// An [RTreeObject] with a geometry and some associated data that can be inserted into an r-tree.
 ///
@@ -46,10 +46,7 @@ impl<R: RTreeObject, T> RTreeObject for GeomWithData<R, T> {
 }
 
 impl<R: PointDistance, T> PointDistance for GeomWithData<R, T> {
-    fn distance_2(
-        &self,
-        point: &<Self::Envelope as Envelope>::Point,
-    ) -> <<Self::Envelope as Envelope>::Point as Point>::Scalar {
+    fn distance_2(&self, point: &<Self::Envelope as Envelope>::Point) -> Distance<Self> {
         self.geom.distance_2(point)
     }
 
@@ -60,8 +57,8 @@ impl<R: PointDistance, T> PointDistance for GeomWithData<R, T> {
     fn distance_2_if_less_or_equal(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
-        max_distance_2: <<Self::Envelope as Envelope>::Point as Point>::Scalar,
-    ) -> Option<<<Self::Envelope as Envelope>::Point as Point>::Scalar> {
+        max_distance_2: Distance<Self>,
+    ) -> Option<Distance<Self>> {
         self.geom.distance_2_if_less_or_equal(point, max_distance_2)
     }
 }

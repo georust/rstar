@@ -1,7 +1,7 @@
 use crate::point::min_inline;
 use crate::{
     node::{ParentNode, RTreeNode},
-    Distance,
+    object::Distance,
 };
 use crate::{Envelope, PointDistance, RTreeObject};
 
