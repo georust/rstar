@@ -806,8 +806,8 @@ where
     ///   [0.0, 0.0],
     ///   [0.0, 1.0],
     /// ]);
-    /// assert_eq!(tree.nearest_neighbor_with_distance_2(&[-1., 0.0]), Some((&[0.0, 0.0], 1.0)));
-    /// assert_eq!(tree.nearest_neighbor_with_distance_2(&[0.0, 2.0]), Some((&[0.0, 1.0], 1.0)));
+    /// assert_eq!(tree.nearest_neighbor_with_distance_2([-1., 0.0]), Some((&[0.0, 0.0], 1.0)));
+    /// assert_eq!(tree.nearest_neighbor_with_distance_2([0.0, 2.0]), Some((&[0.0, 1.0], 1.0)));
     /// ```
     pub fn nearest_neighbor_with_distance_2(
         &self,
