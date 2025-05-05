@@ -1,5 +1,8 @@
-use crate::node::{ParentNode, RTreeNode};
-use crate::point::{min_inline, Point};
+use crate::point::min_inline;
+use crate::{
+    node::{ParentNode, RTreeNode},
+    Distance,
+};
 use crate::{Envelope, PointDistance, RTreeObject};
 
 #[cfg(doc)]
@@ -17,7 +20,7 @@ where
     T: PointDistance + 'a,
 {
     node: &'a RTreeNode<T>,
-    distance: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+    distance: Distance<T>,
 }
 
 impl<T> PartialEq for RTreeNodeDistanceWrapper<'_, T>
@@ -89,7 +92,7 @@ impl<'a, T> Iterator for NearestNeighborDistance2Iterator<'a, T>
 where
     T: PointDistance,
 {
-    type Item = (&'a T, <<T::Envelope as Envelope>::Point as Point>::Scalar);
+    type Item = (&'a T, Distance<T>);
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(current) = self.nodes.pop() {
@@ -229,7 +232,7 @@ impl<T: Ord> SmallHeap<T> {
 pub fn nearest_neighbor_with_distance_2<T>(
     node: &ParentNode<T>,
     query_point: <T::Envelope as Envelope>::Point,
-) -> Option<(&T, <<T::Envelope as Envelope>::Point as Point>::Scalar)>
+) -> Option<(&T, Distance<T>)>
 where
     T: PointDistance,
 {
@@ -237,7 +240,7 @@ where
         nodes: &mut SmallHeap<RTreeNodeDistanceWrapper<'a, T>>,
         node: &'a ParentNode<T>,
         query_point: <T::Envelope as Envelope>::Point,
-        min_max_distance: &mut <<T::Envelope as Envelope>::Point as Point>::Scalar,
+        min_max_distance: &mut Distance<T>,
     ) where
         T: PointDistance + 'a,
     {
@@ -269,8 +272,7 @@ where
     }
 
     // Calculate smallest minmax-distance
-    let mut smallest_min_max: <<T::Envelope as Envelope>::Point as Point>::Scalar =
-        Bounded::max_value();
+    let mut smallest_min_max: Distance<T> = Bounded::max_value();
     let mut nodes = SmallHeap::new();
     extend_heap(&mut nodes, node, query_point.clone(), &mut smallest_min_max);
     while let Some(current) = nodes.pop() {
@@ -292,11 +294,10 @@ where
     None
 }
 
-#[allow(clippy::type_complexity)]
 pub fn nearest_neighbors_with_distance_2<T>(
     node: &ParentNode<T>,
     query_point: <T::Envelope as Envelope>::Point,
-) -> Option<(Vec<&T>, <<T::Envelope as Envelope>::Point as Point>::Scalar)>
+) -> Option<(Vec<&T>, Distance<T>)>
 where
     T: PointDistance,
 {

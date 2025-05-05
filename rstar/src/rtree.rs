@@ -1,4 +1,3 @@
-use crate::algorithm::bulk_load;
 use crate::algorithm::iterators::*;
 use crate::algorithm::nearest_neighbor;
 use crate::algorithm::nearest_neighbor::NearestNeighborDistance2Iterator;
@@ -10,6 +9,7 @@ use crate::node::ParentNode;
 use crate::object::{PointDistance, RTreeObject};
 use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
 use crate::Point;
+use crate::{algorithm::bulk_load, Distance};
 use core::ops::ControlFlow;
 
 #[cfg(not(test))]
@@ -812,7 +812,7 @@ where
     pub fn nearest_neighbor_with_distance_2(
         &self,
         query_point: <T::Envelope as Envelope>::Point,
-    ) -> Option<(&T, <<T::Envelope as Envelope>::Point as Point>::Scalar)> {
+    ) -> Option<(&T, Distance<T>)> {
         if self.size > 0 {
             // The single-nearest-neighbor retrieval may in rare cases return None due to
             // rounding issues. The iterator will still work, though.
@@ -886,11 +886,10 @@ where
     /// assert!(neighbors.contains(&&[0.0, 1.0]));
     /// assert!(neighbors.contains(&&[1.0, 0.0]));
     /// ```
-    #[allow(clippy::type_complexity)]
     pub fn nearest_neighbors_with_distance_2(
         &self,
         query_point: &<T::Envelope as Envelope>::Point,
-    ) -> Option<(Vec<&T>, <<T::Envelope as Envelope>::Point as Point>::Scalar)> {
+    ) -> Option<(Vec<&T>, Distance<T>)> {
         nearest_neighbor::nearest_neighbors_with_distance_2(&self.root, query_point.clone())
     }
 
@@ -905,7 +904,7 @@ where
     pub fn locate_within_distance(
         &self,
         query_point: <T::Envelope as Envelope>::Point,
-        max_squared_radius: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+        max_squared_radius: Distance<T>,
     ) -> LocateWithinDistanceIterator<T> {
         let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
         LocateWithinDistanceIterator::new(self.root(), selection_function)
@@ -918,7 +917,7 @@ where
     pub fn drain_within_distance(
         &mut self,
         query_point: <T::Envelope as Envelope>::Point,
-        max_squared_radius: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+        max_squared_radius: Distance<T>,
     ) -> DrainIterator<T, SelectWithinDistanceFunction<T>, Params> {
         let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
         self.drain_with_selection_function(selection_function)

@@ -1,7 +1,6 @@
-use crate::envelope::Envelope;
 use crate::object::PointDistance;
 use crate::object::RTreeObject;
-use crate::Point;
+use crate::{envelope::Envelope, Distance};
 
 /// Advanced trait to iterate through an r-tree. Usually it should not be required to be implemented.
 ///
@@ -174,7 +173,7 @@ where
     T: RTreeObject + PointDistance,
 {
     circle_origin: <T::Envelope as Envelope>::Point,
-    squared_max_distance: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+    squared_max_distance: Distance<T>,
 }
 
 impl<T> SelectWithinDistanceFunction<T>
@@ -183,7 +182,7 @@ where
 {
     pub fn new(
         circle_origin: <T::Envelope as Envelope>::Point,
-        squared_max_distance: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+        squared_max_distance: Distance<T>,
     ) -> Self {
         SelectWithinDistanceFunction {
             circle_origin,
