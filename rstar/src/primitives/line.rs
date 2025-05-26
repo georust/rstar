@@ -1,8 +1,8 @@
-use crate::aabb::AABB;
 use crate::envelope::Envelope;
 use crate::object::PointDistance;
 use crate::object::RTreeObject;
 use crate::point::{Point, PointExt};
+use crate::{aabb::AABB, object::Distance};
 use num_traits::{One, Zero};
 
 /// A line defined by a start and and end point.
@@ -107,10 +107,7 @@ impl<P> PointDistance for Line<P>
 where
     P: Point,
 {
-    fn distance_2(
-        &self,
-        point: &<Self::Envelope as Envelope>::Point,
-    ) -> <<Self::Envelope as Envelope>::Point as Point>::Scalar {
+    fn distance_2(&self, point: &<Self::Envelope as Envelope>::Point) -> Distance<Self> {
         self.nearest_point(point).sub(point).length_2()
     }
 }

@@ -2,6 +2,10 @@ use crate::aabb::AABB;
 use crate::envelope::Envelope;
 use crate::point::{Point, PointExt};
 
+/// Type alias for distance scalar types derived from `PointDistance` objects
+#[allow(type_alias_bounds)]
+pub(crate) type Distance<T: PointDistance> = <<T::Envelope as Envelope>::Point as Point>::Scalar;
+
 /// An object that can be inserted into an r-tree.
 ///
 /// This trait must be implemented for any object to be inserted into an r-tree.
@@ -152,10 +156,7 @@ pub trait PointDistance: RTreeObject {
     ///   fulfilling the [usual axioms](https://en.wikipedia.org/wiki/Metric_space)
     ///   can be used when implementing this method
     /// - Implementers **must** ensure that the distance metric used matches that of [crate::Envelope::distance_2]
-    fn distance_2(
-        &self,
-        point: &<Self::Envelope as Envelope>::Point,
-    ) -> <<Self::Envelope as Envelope>::Point as Point>::Scalar;
+    fn distance_2(&self, point: &<Self::Envelope as Envelope>::Point) -> Distance<Self>;
 
     /// Returns `true` if a point is contained within this object.
     ///
@@ -182,8 +183,8 @@ pub trait PointDistance: RTreeObject {
     fn distance_2_if_less_or_equal(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
-        max_distance_2: <<Self::Envelope as Envelope>::Point as Point>::Scalar,
-    ) -> Option<<<Self::Envelope as Envelope>::Point as Point>::Scalar> {
+        max_distance_2: Distance<Self>,
+    ) -> Option<Distance<Self>> {
         let envelope_distance = self.envelope().distance_2(point);
         if envelope_distance <= max_distance_2 {
             let distance_2 = self.distance_2(point);
@@ -221,7 +222,7 @@ where
     fn distance_2_if_less_or_equal(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
-        max_distance_2: <<Self::Envelope as Envelope>::Point as Point>::Scalar,
+        max_distance_2: Distance<Self>,
     ) -> Option<P::Scalar> {
         let distance_2 = <Self as PointExt>::distance_2(self, point);
         if distance_2 <= max_distance_2 {

@@ -1,7 +1,7 @@
-use crate::aabb::AABB;
 use crate::envelope::Envelope;
 use crate::object::{PointDistance, RTreeObject};
 use crate::point::{Point, PointExt};
+use crate::{aabb::AABB, object::Distance};
 
 /// An n-dimensional rectangle defined by its two corners.
 ///
@@ -88,10 +88,7 @@ impl<P> PointDistance for Rectangle<P>
 where
     P: Point,
 {
-    fn distance_2(
-        &self,
-        point: &<Self::Envelope as Envelope>::Point,
-    ) -> <<Self::Envelope as Envelope>::Point as Point>::Scalar {
+    fn distance_2(&self, point: &<Self::Envelope as Envelope>::Point) -> Distance<Self> {
         self.nearest_point(point).sub(point).length_2()
     }
 
@@ -102,8 +99,8 @@ where
     fn distance_2_if_less_or_equal(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
-        max_distance_2: <<Self::Envelope as Envelope>::Point as Point>::Scalar,
-    ) -> Option<<<Self::Envelope as Envelope>::Point as Point>::Scalar> {
+        max_distance_2: Distance<Self>,
+    ) -> Option<Distance<Self>> {
         let distance_2 = self.distance_2(point);
         if distance_2 <= max_distance_2 {
             Some(distance_2)

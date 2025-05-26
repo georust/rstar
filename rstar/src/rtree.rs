@@ -1,5 +1,3 @@
-use crate::algorithm::bulk_load;
-use crate::algorithm::iterators::*;
 use crate::algorithm::nearest_neighbor;
 use crate::algorithm::nearest_neighbor::NearestNeighborDistance2Iterator;
 use crate::algorithm::nearest_neighbor::NearestNeighborIterator;
@@ -9,7 +7,9 @@ use crate::envelope::Envelope;
 use crate::node::ParentNode;
 use crate::object::{PointDistance, RTreeObject};
 use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
-use crate::Point;
+use crate::{algorithm::iterators::*, object::Distance};
+
+use crate::algorithm::bulk_load;
 use core::ops::ControlFlow;
 
 #[cfg(not(test))]
@@ -179,7 +179,7 @@ where
     rtree: &'a RTree<T, Params>,
 }
 
-impl<'a, T, Params> ::core::fmt::Debug for DebugHelper<'a, T, Params>
+impl<T, Params> ::core::fmt::Debug for DebugHelper<'_, T, Params>
 where
     T: RTreeObject + ::core::fmt::Debug,
     Params: RTreeParams,
@@ -790,11 +790,37 @@ where
     /// assert_eq!(tree.nearest_neighbor([0.0, 2.0]), Some(&[0.0, 1.0]));
     /// ```
     pub fn nearest_neighbor(&self, query_point: <T::Envelope as Envelope>::Point) -> Option<&T> {
+        self.nearest_neighbor_with_distance_2(query_point)
+            .map(|(neighbor, _)| neighbor)
+    }
+
+    /// Returns the nearest neighbor for a given point with distance squared.
+    ///
+    /// The distance is calculated by calling
+    /// [PointDistance::distance_2]
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// let tree = RTree::bulk_load(vec![
+    ///   [0.0, 0.0],
+    ///   [0.0, 1.0],
+    /// ]);
+    /// assert_eq!(tree.nearest_neighbor_with_distance_2([-1., 0.0]), Some((&[0.0, 0.0], 1.0)));
+    /// assert_eq!(tree.nearest_neighbor_with_distance_2([0.0, 2.0]), Some((&[0.0, 1.0], 1.0)));
+    /// ```
+    pub fn nearest_neighbor_with_distance_2(
+        &self,
+        query_point: <T::Envelope as Envelope>::Point,
+    ) -> Option<(&T, Distance<T>)> {
         if self.size > 0 {
             // The single-nearest-neighbor retrieval may in rare cases return None due to
             // rounding issues. The iterator will still work, though.
-            nearest_neighbor::nearest_neighbor(&self.root, query_point.clone())
-                .or_else(|| self.nearest_neighbor_iter(query_point).next())
+            nearest_neighbor::nearest_neighbor_with_distance_2(&self.root, query_point.clone())
+                .or_else(|| {
+                    self.nearest_neighbor_iter_with_distance_2(query_point)
+                        .next()
+                })
         } else {
             None
         }
@@ -827,7 +853,45 @@ where
     /// assert!(nearest_two.contains(&&[1.0, 0.0]));
     /// ```
     pub fn nearest_neighbors(&self, query_point: &<T::Envelope as Envelope>::Point) -> Vec<&T> {
-        nearest_neighbor::nearest_neighbors(&self.root, query_point.clone())
+        self.nearest_neighbors_with_distance_2(query_point)
+            .map(|(neighbors, _)| neighbors)
+            .unwrap_or_default()
+    }
+
+    /// Returns the nearest neighbors for a given point with distance squared.
+    ///
+    /// The distance is calculated by calling
+    /// [PointDistance::distance_2]
+    ///
+    /// All returned values will have the exact same distance from the given query point.
+    /// Returns an empty `None` if the tree is empty.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// let tree = RTree::bulk_load(vec![
+    ///   [0.0, 0.0],
+    ///   [0.0, 1.0],
+    ///   [1.0, 0.0],
+    /// ]);
+    ///
+    /// // A single nearest neighbor
+    /// assert_eq!(tree.nearest_neighbors_with_distance_2(&[0.01, 0.01]), Some((vec![&[0.0, 0.0]], 0.0002)));
+    ///
+    /// // Two nearest neighbors
+    /// let nearest_two = tree.nearest_neighbors_with_distance_2(&[1.0, 1.0]);
+    /// assert!(nearest_two.is_some());
+    ///
+    /// let (neighbors, dist_2) = nearest_two.unwrap();
+    /// assert_eq!(neighbors.len(), 2);
+    /// assert!(neighbors.contains(&&[0.0, 1.0]));
+    /// assert!(neighbors.contains(&&[1.0, 0.0]));
+    /// ```
+    pub fn nearest_neighbors_with_distance_2(
+        &self,
+        query_point: &<T::Envelope as Envelope>::Point,
+    ) -> Option<(Vec<&T>, Distance<T>)> {
+        nearest_neighbor::nearest_neighbors_with_distance_2(&self.root, query_point.clone())
     }
 
     /// Returns all elements of the tree within a certain distance.
@@ -841,7 +905,7 @@ where
     pub fn locate_within_distance(
         &self,
         query_point: <T::Envelope as Envelope>::Point,
-        max_squared_radius: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+        max_squared_radius: Distance<T>,
     ) -> LocateWithinDistanceIterator<T> {
         let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
         LocateWithinDistanceIterator::new(self.root(), selection_function)
@@ -854,7 +918,7 @@ where
     pub fn drain_within_distance(
         &mut self,
         query_point: <T::Envelope as Envelope>::Point,
-        max_squared_radius: <<T::Envelope as Envelope>::Point as Point>::Scalar,
+        max_squared_radius: Distance<T>,
     ) -> DrainIterator<T, SelectWithinDistanceFunction<T>, Params> {
         let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
         self.drain_with_selection_function(selection_function)
