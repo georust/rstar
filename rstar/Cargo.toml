@@ -31,4 +31,4 @@ rand = "0.7"
 rand_hc = "0.2"
 approx = "0.3"
 serde_json = "1.0"
-nalgebra = { version = "0.32.3", features = ["mint"] }
+nalgebra = { version = "0.33.2", features = ["mint"] }
