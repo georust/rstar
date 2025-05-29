@@ -11,7 +11,7 @@ rand = "0.7"
 # available in rust-1.51 See: https://github.com/dimforge/nalgebra/issues/875
 # kiss3d = "0.31"
 # nalgebra = "0.26"
-kiss3d = "0.34"
+kiss3d = "0.35"
 nalgebra = "0.30"
 
 rstar = { path="../rstar" }
