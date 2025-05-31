@@ -110,7 +110,7 @@ pub fn verify_parameters<T: RTreeObject, P: RTreeParams>() {
 
     let dimension = <T::Envelope as Envelope>::Point::DIMENSIONS;
     assert!(
-        dimension > 1,
-        "Point dimension too small - must be at least 2"
+        dimension > 0,
+        "Point dimension too small - must be at least 1"
     );
 }
