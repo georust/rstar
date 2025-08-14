@@ -107,6 +107,22 @@ where
 /// thereby being able to use the stack to keep track of the state required for
 /// traversing the tree.
 ///
+/// # Tree Traversal
+/// For advanced use cases and debugging, the internal tree structure can be traversed
+/// using the [`root`](RTree::root) method. This provides access to the tree's hierarchical
+/// structure of parent nodes and leaf nodes.
+///
+/// The tree follows a hierarchical structure where:
+/// - The root is always a [`ParentNode`]
+/// - Each [`ParentNode`] contains children that can be either leaf nodes or more parent nodes
+/// - Leaf nodes contain the actual data items inserted into the tree
+///
+/// Common traversal patterns include:
+/// - **Top-down traversal**: Starting from the root and recursively visiting children
+/// - **Bottom-up processing**: Processing leaf nodes first, then aggregating results upward
+///
+/// See the [`root`](RTree::root) method documentation for a complete traversal example.
+///
 /// # Bulk loading
 /// In many scenarios, insertion is only carried out once for many points. In this case,
 /// [RTree::bulk_load] will be considerably faster. Its total run time
@@ -519,9 +535,138 @@ where
 
     /// Returns the tree's root node.
     ///
-    /// Usually, you will not need to call this method. However, for debugging purposes or for
-    /// advanced algorithms, knowledge about the tree's internal structure may be required.
-    /// For these cases, this method serves as an entry point.
+    /// For some algorithms and use cases, knowledge of the tree's internal structure may be required.
+    /// For these cases, this method serves as an entry point, allowing flexible iteration and
+    /// aggregation strategies. The examples below demonstrate two different traversal
+    /// approaches: top-down (pre-order: process parent then children) and bottom-up (post-order:
+    /// process children then parent). Post-order is essential when parent values depend on
+    /// already-computed child values, such as recomputing envelopes from child data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rstar::{RTree, RTreeNode, ParentNode};
+    /// use rstar::primitives::GeomWithData;
+    ///
+    /// type PointWithLabel = GeomWithData<[f32; 2], String>;
+    ///
+    /// // Top-down traversal: Start from root, recurse down to leaves
+    /// fn paths_top_down(tree: &RTree<PointWithLabel>) -> Vec<String> {
+    ///     let mut node_counter = 0;
+    ///     
+    ///     fn traverse(
+    ///         parent: &ParentNode<PointWithLabel>,
+    ///         path: String,
+    ///         paths: &mut Vec<String>,
+    ///         node_counter: &mut usize
+    ///     ) {
+    ///         for child in parent.children() {
+    ///             *node_counter += 1;
+    ///             let child_path = if path.is_empty() {
+    ///                 format!("Node{}", *node_counter)
+    ///             } else {
+    ///                 format!("{} -> Node{}", path, *node_counter)
+    ///             };
+    ///             
+    ///             match child {
+    ///                 RTreeNode::Leaf(item) => {
+    ///                     // Record the complete path to this leaf
+    ///                     paths.push(format!("{} -> Leaf({})", child_path, item.data));
+    ///                 }
+    ///                 RTreeNode::Parent(child_parent) => {
+    ///                     // Continue building the path downward
+    ///                     traverse(child_parent, child_path, paths, node_counter);
+    ///                 }
+    ///             }
+    ///         }
+    ///     }
+    ///     
+    ///     let mut paths = Vec::new();
+    ///     traverse(tree.root(), "Node0".to_string(), &mut paths, &mut node_counter);
+    ///     paths
+    /// }
+    ///
+    /// // Bottom-up traversal: Aggregate child envelopes into parents (post-order)
+    /// // NB: this is a contrived example showing manual envelope aggregation
+    /// fn aggregate_envelopes_bottom_up(tree: &RTree<PointWithLabel>) -> Vec<(String, f32, f32)> {
+    ///     use rstar::{Envelope, AABB, RTreeObject};
+    ///     let mut results = Vec::new();
+    ///     
+    ///     // Returns the envelope computed from this node's children
+    ///     fn visit_bottom_up(
+    ///         node: &RTreeNode<PointWithLabel>,
+    ///         results: &mut Vec<(String, f32, f32)>
+    ///     ) -> AABB<[f32; 2]> {
+    ///         match node {
+    ///             RTreeNode::Leaf(item) => {
+    ///                 // Leaf envelope is just the item's point
+    ///                 let env = item.envelope();
+    ///                 let lower = env.lower();
+    ///                 let upper = env.upper();
+    ///                 results.push((format!("Leaf({})", item.data), lower[0], upper[0]));
+    ///                 env
+    ///             }
+    ///             RTreeNode::Parent(parent) => {
+    ///                 // Compute this parent's envelope as union of children's envelopes
+    ///                 let mut parent_env = AABB::new_empty();
+    ///                 
+    ///                 // Merge all children's envelopes
+    ///                 for child in parent.children() {
+    ///                     let child_env = visit_bottom_up(child, results);
+    ///                     parent_env.merge(&child_env);
+    ///                 }
+    ///                 
+    ///                 let lower = parent_env.lower();
+    ///                 let upper = parent_env.upper();
+    ///                 results.push((String::from("Parent"), lower[0], upper[0]));
+    ///                 
+    ///                 parent_env
+    ///             }
+    ///         }
+    ///     }
+    ///     
+    ///     // Start traversal from root wrapped as RTreeNode
+    ///     let root_node = RTreeNode::Parent(tree.root().clone());
+    ///     visit_bottom_up(&root_node, &mut results);
+    ///     
+    ///     results
+    /// }
+    ///
+    /// // Create a tree with 8 points
+    /// let mut tree = RTree::new();
+    /// for i in 0..8 {
+    ///     let point = [i as f32, 0.0];
+    ///     let label = format!("L{}", i);
+    ///     tree.insert(PointWithLabel::new(point, label));
+    /// }
+    ///
+    /// let paths_down = paths_top_down(&tree);
+    /// let envelopes = aggregate_envelopes_bottom_up(&tree);
+    ///
+    /// // Top-down traversal visits all 8 leaves
+    /// assert_eq!(paths_down.len(), 8);
+    ///
+    /// // Verify all leaves are present in top-down traversal
+    /// for i in 0..8 {
+    ///     let leaf_pattern = format!("Leaf(L{})", i);
+    ///     assert!(paths_down.iter().any(|p| p.contains(&leaf_pattern)));
+    /// }
+    ///
+    /// // Top-down paths start from root
+    /// assert!(paths_down[0].starts_with("Node0"));
+    ///
+    /// // Bottom-up traversal processes leaves first, then parents
+    /// // Verify all 8 leaves are present with their x-coordinates
+    /// let leaves: Vec<_> = envelopes.iter()
+    ///     .filter(|(name, _, _)| name.starts_with("Leaf"))
+    ///     .collect();
+    /// assert_eq!(leaves.len(), 8);
+    ///
+    /// // The last element is the root parent with envelope containing all points
+    /// let (_, min_x, max_x) = envelopes.last().unwrap();
+    /// assert_eq!(*min_x, 0.0); // Root envelope spans from 0.0 (leftmost point)
+    /// assert_eq!(*max_x, 7.0); // to 7.0 (rightmost point)
+    /// ```
     pub fn root(&self) -> &ParentNode<T> {
         &self.root
     }
