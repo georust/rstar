@@ -180,7 +180,7 @@ where
         // No inclusion found, subtree depends on overlap and area increase
         let mut min = (zero, zero, zero);
 
-        for (index, child1) in node.children.iter().enumerate() {
+        for (index1, child1) in node.children.iter().enumerate() {
             let envelope = child1.envelope();
             let mut new_envelope = envelope.clone();
             new_envelope.merge(&insertion_envelope);
@@ -188,8 +188,8 @@ where
                 // Calculate minimal overlap increase
                 let mut overlap = zero;
                 let mut new_overlap = zero;
-                for child2 in &node.children {
-                    if child1 as *const _ != child2 as *const _ {
+                for (index2, child2) in node.children.iter().enumerate() {
+                    if index2 != index1 {
                         let child_envelope = child2.envelope();
                         let temp1 = envelope.intersection_area(&child_envelope);
                         overlap = overlap + temp1;
@@ -206,9 +206,9 @@ where
             let area = new_envelope.area();
             let area_increase = area - envelope.area();
             let new_min = (overlap_increase, area_increase, area);
-            if new_min < min || index == 0 {
+            if new_min < min || index1 == 0 {
                 min = new_min;
-                min_index = index;
+                min_index = index1;
             }
         }
     }
