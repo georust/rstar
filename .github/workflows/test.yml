@@ -3,7 +3,6 @@ name: Run tests
 on:
   push:
     branches:
-      - master
       - main
       - staging
       - trying
@@ -33,18 +32,21 @@ jobs:
           # giving us about 6 months of coverage.
           #
           # Minimum supported rust version (MSRV)
-          - "georust/geo-ci:rust-1.63"
+          - "ghcr.io/georust/geo-ci:rust-1.63"
           # Two most recent releases - we omit older ones for expedient CI
-          - "georust/geo-ci:proj-9.2.1-rust-1.71"
-          - "georust/geo-ci:proj-9.2.1-rust-1.72"
+          - "ghcr.io/georust/geo-ci:proj-9.6.0-rust-1.83"
+          - "ghcr.io/georust/geo-ci:proj-9.6.0-rust-1.84"
     container:
       image: ${{ matrix.container_image }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - run: cargo install --version 1.6.0 cargo-all-features
-      - run: cargo build-all-features
-      - run: cargo test-all-features
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.container_image }}
+      - run: cargo build
+      - run: cargo test --workspace
       - run: cargo build -p rstar-benches
 
   check:
@@ -57,6 +59,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
       - name: Check formatting using Rustfmt
         run: cargo fmt --check
       - name: Lint using Clippy
@@ -74,6 +78,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{env.NO_STD_TARGET}}
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: no-std-${{env.NO_STD_TARGET}}
       - name: Run cargo build for ${{env.NO_STD_TARGET}}
         run: cargo build --package rstar --target ${{env.NO_STD_TARGET}}
 
