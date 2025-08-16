@@ -17,7 +17,6 @@ use serde::{Deserialize, Serialize};
         deserialize = "T: Deserialize<'de>, T::Envelope: Deserialize<'de>"
     ))
 )]
-
 /// An internal tree node.
 ///
 /// For most applications, using this type should not be required.
