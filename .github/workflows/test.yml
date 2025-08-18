@@ -41,7 +41,7 @@ jobs:
       image: ${{ matrix.container_image }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - run: cargo install --version 1.6.0 cargo-all-features
       - run: cargo build-all-features
       - run: cargo test-all-features
@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -69,7 +69,7 @@ jobs:
       NO_STD_TARGET: aarch64-unknown-none
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
