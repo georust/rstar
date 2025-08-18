@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate criterion;
-extern crate geo;
 extern crate geo_types;
 extern crate rand;
 extern crate rand_hc;
@@ -8,7 +7,7 @@ extern crate rstar;
 
 use std::f64::consts::PI;
 
-use geo::{Coord, LineString, MapCoords, Polygon};
+use geo_types::{LineString, Polygon};
 use rand::{Rng, SeedableRng};
 use rand_hc::Hc128Rng;
 
@@ -92,14 +91,14 @@ fn tree_creation_quality(c: &mut Criterion) {
     c.bench_function("bulk load quality", move |b| {
         b.iter(|| {
             for query_point in &query_points {
-                tree_bulk_loaded.nearest_neighbor(query_point).unwrap();
+                tree_bulk_loaded.nearest_neighbor(*query_point).unwrap();
             }
         })
     })
     .bench_function("sequential load quality", move |b| {
         b.iter(|| {
             for query_point in &query_points_cloned_1 {
-                tree_sequential.nearest_neighbor(query_point).unwrap();
+                tree_sequential.nearest_neighbor(*query_point).unwrap();
             }
         });
     });
@@ -110,7 +109,7 @@ fn locate_successful(c: &mut Criterion) {
     let query_point = points[500];
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     c.bench_function("locate_at_point (successful)", move |b| {
-        b.iter(|| tree.locate_at_point(&query_point).is_some())
+        b.iter(|| tree.locate_at_point(query_point).is_some())
     });
 }
 
@@ -119,7 +118,7 @@ fn locate_unsuccessful(c: &mut Criterion) {
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     let query_point = [0.7, 0.7];
     c.bench_function("locate_at_point (unsuccessful)", move |b| {
-        b.iter(|| tree.locate_at_point(&query_point).is_none())
+        b.iter(|| tree.locate_at_point(query_point).is_none())
     });
 }
 
@@ -128,7 +127,7 @@ fn locate_successful_internal(c: &mut Criterion) {
     let query_point = points[500];
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     c.bench_function("locate_at_point_int (successful)", move |b| {
-        b.iter(|| tree.locate_at_point_int(&query_point).is_some())
+        b.iter(|| tree.locate_at_point_int(query_point).is_some())
     });
 }
 
@@ -137,7 +136,7 @@ fn locate_unsuccessful_internal(c: &mut Criterion) {
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     let query_point = [0.7, 0.7];
     c.bench_function("locate_at_point_int (unsuccessful)", move |b| {
-        b.iter(|| tree.locate_at_point(&query_point).is_none())
+        b.iter(|| tree.locate_at_point(query_point).is_none())
     });
 }
 
@@ -167,14 +166,18 @@ fn create_random_polygons(
 ) -> impl Iterator<Item = Polygon<f64>> {
     let mut rng = Hc128Rng::from_seed(*seed);
     let base_polygon = circular_polygon(size);
-
     (0..num_points).map(move |_| {
         let [scale_x, scale_y]: [f64; 2] = rng.gen();
         let [shift_x, shift_y]: [f64; 2] = rng.gen();
-        base_polygon.clone().map_coords(|c| Coord {
-            x: (shift_x + c.x) * scale_x,
-            y: (shift_y + c.y) * scale_y,
-        })
+
+        let mut shifted_polygon = base_polygon.clone();
+        shifted_polygon.exterior_mut(|exterior| {
+            for coord in exterior {
+                coord.x = (shift_x + coord.x) * scale_x;
+                coord.y = (shift_y + coord.y) * scale_y;
+            }
+        });
+        shifted_polygon
     })
 }
 
