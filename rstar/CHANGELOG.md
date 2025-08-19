@@ -3,10 +3,12 @@
 ## Added
 - Added missing re-exports of nearest neighbor iterators so they can be named in downstream crates. ([PR](https://github.com/georust/rstar/pull/186))
 - Added nearest neighbor search with distance squared: `nearest_neighbor_with_distance_2` and `nearest_neighbors_with_distance_2` methods ([PR](https://github.com/georust/rstar/pull/191)).
+- Added `root` doc examples and traversal docs
 
 ## Changed
 - Made `RStar` methods take `Point` and `Envelope` as owned values where it makes sense ([PR](https://github.com/georust/rstar/pull/189))
 - Fix Clippy warning (surfaced in Rust 1.89) related to lifetime elision
+
 
 # 0.12.2
 
