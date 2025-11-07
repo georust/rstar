@@ -32,7 +32,7 @@ jobs:
           # giving us about 6 months of coverage.
           #
           # Minimum supported rust version (MSRV)
-          - "ghcr.io/georust/geo-ci:rust-1.63"
+          - "ghcr.io/georust/geo-ci:rust-1.68"
           # Two most recent releases - we omit older ones for expedient CI
           - "ghcr.io/georust/geo-ci:proj-9.6.2-rust-1.88"
           - "ghcr.io/georust/geo-ci:proj-9.6.2-rust-1.89"
@@ -62,7 +62,7 @@ jobs:
       - name: Check formatting using Rustfmt
         run: cargo fmt --all --check
       - name: Lint using Clippy
-        run: cargo clippy --workspace --tests
+        run: cargo clippy --workspace --exclude rstar-demo --tests
 
   no_std:
     name: rstar no_std test

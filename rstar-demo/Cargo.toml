@@ -2,8 +2,8 @@
 name = "rstar-demo"
 version = "0.1.0"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>"]
-edition = "2018"
-rust-version = "1.63"
+edition = "2021"
+rust-version = "1.68"
 
 [dependencies]
 rand = "0.7"
@@ -12,7 +12,7 @@ rand = "0.7"
 # available in rust-1.51 See: https://github.com/dimforge/nalgebra/issues/875
 # kiss3d = "0.31"
 # nalgebra = "0.26"
-kiss3d = "0.34"
+kiss3d = "0.37.1"
 nalgebra = "0.30"
 
 rstar = { path="../rstar" }
