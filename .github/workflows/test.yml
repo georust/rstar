@@ -6,7 +6,6 @@ on:
       - master
       - main
       - staging
-      - trying
       - release/**
   pull_request:
   merge_group:
@@ -33,34 +32,37 @@ jobs:
           # giving us about 6 months of coverage.
           #
           # Minimum supported rust version (MSRV)
-          - "georust/geo-ci:rust-1.63"
+          - "ghcr.io/georust/geo-ci:rust-1.63"
           # Two most recent releases - we omit older ones for expedient CI
-          - "georust/geo-ci:proj-9.2.1-rust-1.71"
-          - "georust/geo-ci:proj-9.2.1-rust-1.72"
+          - "ghcr.io/georust/geo-ci:proj-9.6.2-rust-1.88"
+          - "ghcr.io/georust/geo-ci:proj-9.6.2-rust-1.89"
     container:
       image: ${{ matrix.container_image }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-      - run: cargo install --version 1.6.0 cargo-all-features
-      - run: cargo build-all-features
-      - run: cargo test-all-features
-      - run: cargo build -p rstar-benches
+        uses: actions/checkout@v5
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.container_image }}
+      - run: cargo test --package rstar
 
   check:
     name: rstar Rustfmt and Clippy check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
       - name: Check formatting using Rustfmt
-        run: cargo fmt --check
+        run: cargo fmt --all --check
       - name: Lint using Clippy
-        run: cargo clippy --tests
+        run: cargo clippy --workspace --tests
 
   no_std:
     name: rstar no_std test
@@ -74,6 +76,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{env.NO_STD_TARGET}}
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: no-std-${{env.NO_STD_TARGET}}
       - name: Run cargo build for ${{env.NO_STD_TARGET}}
         run: cargo build --package rstar --target ${{env.NO_STD_TARGET}}
 
