@@ -6,7 +6,7 @@ edition = "2021"
 rust-version = "1.68"
 
 [dependencies]
-rand = "0.7"
+rand = "0.9"
 # using a slightly older version of kiss3d/nalgebra 
 # Since these version require the new feature resolver and min-const-generics only
 # available in rust-1.51 See: https://github.com/dimforge/nalgebra/issues/875
