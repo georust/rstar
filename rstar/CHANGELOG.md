@@ -8,6 +8,7 @@
 ## Changed
 - Made `RStar` methods take `Point` and `Envelope` as owned values where it makes sense ([PR](https://github.com/georust/rstar/pull/189))
 - Fix Clippy warning (surfaced in Rust 1.89) related to lifetime elision
+- MSRV is now 1.68 (2023-03-09)
 
 
 # 0.12.2
