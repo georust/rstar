@@ -27,6 +27,7 @@
 - Switched to unstable sort for envelopes and node reinsertion ([PR](https://github.com/georust/rstar/pull/160))
 - Use a more tame value for `AABB::new_empty` to avoid overflow panics applying selections on empty trees ([PR](https://github.com/georust/rstar/pull/162))
 - Avoid infinite recursion due to numerical instability when computing the number of clusters ([PR](https://github.com/georust/rstar/pull/166))
+- Allow 1D `RTree`s to be created ([PR](https://github.com/georust/rstar/pull/169))
 
 
 # 0.12.0
