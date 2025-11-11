@@ -1,3 +1,6 @@
+use alloc::rc::Rc;
+use alloc::sync::Arc;
+
 use crate::aabb::AABB;
 use crate::envelope::Envelope;
 use crate::point::{Point, PointExt};
@@ -230,5 +233,63 @@ where
         } else {
             None
         }
+    }
+}
+
+impl<T> RTreeObject for Arc<T>
+where
+    T: RTreeObject + ?Sized,
+{
+    type Envelope = T::Envelope;
+    fn envelope(&self) -> Self::Envelope {
+        (**self).envelope()
+    }
+}
+
+impl<T> PointDistance for Arc<T>
+where
+    T: PointDistance + ?Sized,
+{
+    fn distance_2(&self, point: &<Self::Envelope as Envelope>::Point) -> Distance<Self> {
+        (**self).distance_2(point)
+    }
+    fn contains_point(&self, point: &<Self::Envelope as Envelope>::Point) -> bool {
+        (**self).contains_point(point)
+    }
+    fn distance_2_if_less_or_equal(
+        &self,
+        point: &<Self::Envelope as Envelope>::Point,
+        max_distance_2: Distance<Self>,
+    ) -> Option<Distance<Self>> {
+        (**self).distance_2_if_less_or_equal(point, max_distance_2)
+    }
+}
+
+impl<T> RTreeObject for Rc<T>
+where
+    T: RTreeObject + ?Sized,
+{
+    type Envelope = T::Envelope;
+    fn envelope(&self) -> Self::Envelope {
+        (**self).envelope()
+    }
+}
+
+impl<T> PointDistance for Rc<T>
+where
+    T: PointDistance + ?Sized,
+{
+    fn distance_2(&self, point: &<Self::Envelope as Envelope>::Point) -> Distance<Self> {
+        (**self).distance_2(point)
+    }
+    fn contains_point(&self, point: &<Self::Envelope as Envelope>::Point) -> bool {
+        (**self).contains_point(point)
+    }
+    fn distance_2_if_less_or_equal(
+        &self,
+        point: &<Self::Envelope as Envelope>::Point,
+        max_distance_2: Distance<Self>,
+    ) -> Option<Distance<Self>> {
+        (**self).distance_2_if_less_or_equal(point, max_distance_2)
     }
 }
