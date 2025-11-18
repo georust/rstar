@@ -90,7 +90,7 @@ pub trait InsertionStrategy {
 pub fn verify_parameters<T: RTreeObject, P: RTreeParams>() {
     assert!(
         P::MAX_SIZE >= 4,
-        "MAX_SIZE too small. Must be larger than 4."
+        "MAX_SIZE too small. Must be at least 4."
     );
 
     assert!(P::MIN_SIZE > 0, "MIN_SIZE must be at least 1",);
