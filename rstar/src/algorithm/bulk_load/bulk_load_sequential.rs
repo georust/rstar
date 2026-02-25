@@ -152,13 +152,11 @@ mod test {
 
     /// Verify that bulk-loaded tree nodes don't retain excessive Vec capacity.
     ///
-    /// The OMT partitioning uses `Vec::split_off` which leaves the original Vec
-    /// with its full capacity despite holding fewer elements. Without shrinking,
-    /// this cascades through the recursive partitioning: each first-slab inherits
-    /// its parent's over-sized allocation, and Rust's in-place collect optimization
-    /// (triggered when `size_of::<T>() == size_of::<RTreeNode<T>>()`) preserves
-    /// that allocation in the final tree nodes. For large inputs this can waste
-    /// many gigabytes of memory.
+    /// Without shrinking over-sized allocations during partitioning, Rust's
+    /// in-place collect optimization (triggered when
+    /// `size_of::<T>() == size_of::<RTreeNode<T>>()`) can preserve them in
+    /// the final tree nodes. For large inputs this can waste many gigabytes
+    /// of memory.
     #[test]
     fn test_bulk_load_no_excess_capacity() {
         use crate::node::RTreeNode;

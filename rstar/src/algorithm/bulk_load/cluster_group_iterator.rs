@@ -34,17 +34,24 @@ impl<T: RTreeObject> Iterator for ClusterGroupIterator<T> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.remaining.len() {
             0 => None,
-            len if len <= self.slab_size => ::core::mem::take(&mut self.remaining).into(),
-            _ => {
+            len if len <= self.slab_size => {
+                let mut last = ::core::mem::take(&mut self.remaining);
+                // self.remaining retains its full original capacity across iterations
+                // (drain doesn't shrink), so the final slab needs shrinking.
+                last.shrink_to_fit();
+                last.into()
+            }
+            len => {
                 let slab_axis = self.cluster_dimension;
-                T::Envelope::partition_envelopes(slab_axis, &mut self.remaining, self.slab_size);
-                let off_split = self.remaining.split_off(self.slab_size);
-                let mut slab = ::core::mem::replace(&mut self.remaining, off_split);
-                // split_off leaves the original Vec with its full capacity despite now
-                // holding only slab_size elements. Shrink to avoid cascading over-capacity
-                // through the recursive bulk-load partitioning.
-                slab.shrink_to_fit();
-                slab.into()
+                let partition_point = len - self.slab_size;
+                // Partition so that the slab elements end up at the tail.
+                T::Envelope::partition_envelopes(slab_axis, &mut self.remaining, partition_point);
+                // Drain from the end into a new Vec with exact capacity.
+                // self.remaining keeps its allocation for reuse on the next iteration.
+                self.remaining
+                    .drain(partition_point..)
+                    .collect::<Vec<_>>()
+                    .into()
             }
         }
     }
@@ -92,18 +99,18 @@ mod test {
             assert_eq!(slab.len(), slab_size);
         }
         let mut total_size = 0;
-        let mut max_element_for_last_slab = i32::MIN;
+        let mut min_element_for_last_slab = i32::MAX;
         for slab in &slabs {
             total_size += slab.len();
-            let current_max = slab.iter().max_by_key(|point| point[0]).unwrap();
-            assert!(current_max[0] > max_element_for_last_slab);
-            max_element_for_last_slab = current_max[0];
+            let current_min = slab.iter().min_by_key(|point| point[0]).unwrap();
+            assert!(current_min[0] < min_element_for_last_slab);
+            min_element_for_last_slab = current_min[0];
         }
         assert_eq!(total_size, SIZE);
     }
 
-    /// Verify that slabs produced by ClusterGroupIterator don't retain the
-    /// parent Vec's excess capacity after split_off.
+    /// Verify that slabs produced by ClusterGroupIterator don't retain
+    /// excessive capacity from the parent Vec.
     #[test]
     fn test_cluster_group_iterator_no_excess_capacity() {
         const SIZE: usize = 10_000;
