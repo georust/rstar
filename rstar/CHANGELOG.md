@@ -8,6 +8,7 @@
 
 ## Fixed
 - Fix excessive memory retention in `bulk_load` from `Vec::split_off` over-capacity
+- Fix transcription error in implementation of OMT bulk loading leading to nodes which are too large.
 
 ## Changed
 - Made `RStar` methods take `Point` and `Envelope` as owned values where it makes sense ([PR](https://github.com/georust/rstar/pull/189))

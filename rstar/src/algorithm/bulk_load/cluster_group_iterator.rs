@@ -75,7 +75,7 @@ where
 
     let max_dimension = <T::Envelope as Envelope>::Point::DIMENSIONS as f32;
     // Try to split all clusters among all dimensions as evenly as possible by taking the nth root.
-    number_of_clusters.powf(1. / max_dimension).ceil() as usize
+    number_of_clusters.powf(1. / max_dimension).floor() as usize
 }
 
 fn div_up(dividend: usize, divisor: usize) -> usize {
