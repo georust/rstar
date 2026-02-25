@@ -177,10 +177,7 @@ mod test {
         while let Some(node) = stack.pop() {
             let len = node.children.len();
             let cap = node.children.capacity();
-            assert!(
-                len > 0,
-                "empty internal node should not exist"
-            );
+            assert!(len > 0, "empty internal node should not exist");
             let ratio = cap as f64 / len as f64;
             assert!(
                 ratio <= max_allowed_ratio,
