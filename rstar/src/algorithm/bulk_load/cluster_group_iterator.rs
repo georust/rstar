@@ -39,7 +39,12 @@ impl<T: RTreeObject> Iterator for ClusterGroupIterator<T> {
                 let slab_axis = self.cluster_dimension;
                 T::Envelope::partition_envelopes(slab_axis, &mut self.remaining, self.slab_size);
                 let off_split = self.remaining.split_off(self.slab_size);
-                ::core::mem::replace(&mut self.remaining, off_split).into()
+                let mut slab = ::core::mem::replace(&mut self.remaining, off_split);
+                // split_off leaves the original Vec with its full capacity despite now
+                // holding only slab_size elements. Shrink to avoid cascading over-capacity
+                // through the recursive bulk-load partitioning.
+                slab.shrink_to_fit();
+                slab.into()
             }
         }
     }
@@ -95,5 +100,26 @@ mod test {
             max_element_for_last_slab = current_max[0];
         }
         assert_eq!(total_size, SIZE);
+    }
+
+    /// Verify that slabs produced by ClusterGroupIterator don't retain the
+    /// parent Vec's excess capacity after split_off.
+    #[test]
+    fn test_cluster_group_iterator_no_excess_capacity() {
+        const SIZE: usize = 10_000;
+        const NUMBER_OF_CLUSTERS_ON_AXIS: usize = 5;
+        let elements: Vec<_> = (0..SIZE as i32).map(|i| [-i, -i]).collect();
+        let slabs: Vec<_> =
+            ClusterGroupIterator::new(elements, NUMBER_OF_CLUSTERS_ON_AXIS, 0).collect();
+
+        for (i, slab) in slabs.iter().enumerate() {
+            let ratio = slab.capacity() as f64 / slab.len() as f64;
+            assert!(
+                ratio <= 2.0,
+                "slab {i} has excessive capacity: len={}, cap={}, ratio={ratio:.1}x",
+                slab.len(),
+                slab.capacity(),
+            );
+        }
     }
 }
