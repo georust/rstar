@@ -5,6 +5,7 @@
 - Added nearest neighbor search with distance squared: `nearest_neighbor_with_distance_2` and `nearest_neighbors_with_distance_2` methods ([PR](https://github.com/georust/rstar/pull/191)).
 - Added `root` doc examples and traversal docs
 - Implemented `RTreeObject` for `Arc<T>` and `Rc<T>`
+- Added `Envelope::is_empty`. ([PR](https://github.com/georust/rstar/pull/190))
 - New `AABB::from_center` utility constructor
 
 ## Fixed
