@@ -64,14 +64,12 @@ where
         }
     }
 
-    /// Creates a new AABB from a center and a diameter.
-    pub fn from_center(center: P, diameter: P::Scalar) -> Self {
-        let one = P::Scalar::one();
-        let two = one + one;
-        let radius = P::from_value(diameter / two);
+    /// Creates a new AABB from a center and a distance.
+    pub fn from_center(center: P, distance: P::Scalar) -> Self {
+        let distance = P::from_value(distance);
 
-        let p1 = center.add(&radius);
-        let p2 = center.sub(&radius);
+        let p1 = center.add(&distance);
+        let p2 = center.sub(&distance);
 
         Self::from_corners(p1, p2)
     }
