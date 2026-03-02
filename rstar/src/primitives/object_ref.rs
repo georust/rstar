@@ -1,6 +1,6 @@
-use crate::envelope::Envelope;
 use crate::object::PointDistance;
-use crate::{object::RTreeObject, point::Point};
+use crate::object::RTreeObject;
+use crate::{envelope::Envelope, object::Distance};
 use core::ops::Deref;
 
 /// An [RTreeObject] that is a possibly short-lived reference to another object.
@@ -16,7 +16,7 @@ pub struct ObjectRef<'a, T: RTreeObject> {
     inner: &'a T,
 }
 
-impl<'a, T: RTreeObject> RTreeObject for ObjectRef<'a, T> {
+impl<T: RTreeObject> RTreeObject for ObjectRef<'_, T> {
     type Envelope = T::Envelope;
 
     fn envelope(&self) -> Self::Envelope {
@@ -24,11 +24,8 @@ impl<'a, T: RTreeObject> RTreeObject for ObjectRef<'a, T> {
     }
 }
 
-impl<'a, T: PointDistance> PointDistance for ObjectRef<'a, T> {
-    fn distance_2(
-        &self,
-        point: &<Self::Envelope as Envelope>::Point,
-    ) -> <<Self::Envelope as Envelope>::Point as Point>::Scalar {
+impl<T: PointDistance> PointDistance for ObjectRef<'_, T> {
+    fn distance_2(&self, point: &<Self::Envelope as Envelope>::Point) -> Distance<Self> {
         self.inner.distance_2(point)
     }
 
@@ -39,8 +36,8 @@ impl<'a, T: PointDistance> PointDistance for ObjectRef<'a, T> {
     fn distance_2_if_less_or_equal(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
-        max_distance_2: <<Self::Envelope as Envelope>::Point as Point>::Scalar,
-    ) -> Option<<<Self::Envelope as Envelope>::Point as Point>::Scalar> {
+        max_distance_2: Distance<Self>,
+    ) -> Option<Distance<Self>> {
         self.inner
             .distance_2_if_less_or_equal(point, max_distance_2)
     }
@@ -53,7 +50,7 @@ impl<'a, T: RTreeObject> ObjectRef<'a, T> {
     }
 }
 
-impl<'a, T: RTreeObject> Deref for ObjectRef<'a, T> {
+impl<T: RTreeObject> Deref for ObjectRef<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {

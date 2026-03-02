@@ -160,7 +160,7 @@ where
     }
 }
 
-impl<'a, T, R, Params> Iterator for DrainIterator<'a, T, R, Params>
+impl<T, R, Params> Iterator for DrainIterator<'_, T, R, Params>
 where
     T: RTreeObject,
     Params: RTreeParams,
@@ -199,7 +199,7 @@ where
                                 *remove_count += 1;
                                 return match node.children.swap_remove(*idx) {
                                     RTreeNode::Leaf(data) => Some(data),
-                                    _ => unreachable!("RemovalIterator bug!"),
+                                    RTreeNode::Parent(_) => unreachable!("RemovalIterator bug!"),
                                 };
                             }
                             *idx += 1;
@@ -220,7 +220,7 @@ where
     }
 }
 
-impl<'a, T, R, Params> Drop for DrainIterator<'a, T, R, Params>
+impl<T, R, Params> Drop for DrainIterator<'_, T, R, Params>
 where
     T: RTreeObject,
     Params: RTreeParams,

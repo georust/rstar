@@ -12,7 +12,7 @@ use num_traits::Float;
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
-fn bulk_load_recursive<T, Params>(elements: Vec<T>) -> ParentNode<T>
+fn bulk_load_recursive<T, Params>(mut elements: Vec<T>) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
@@ -20,7 +20,10 @@ where
 {
     let m = Params::MAX_SIZE;
     if elements.len() <= m {
-        // Reached leaf level
+        // Reached leaf level. Shrink excess capacity so the in-place collect
+        // (which reuses the allocation when size_of::<T> == size_of::<RTreeNode<T>>)
+        // doesn't preserve a massively over-sized buffer in the final tree node.
+        elements.shrink_to_fit();
         let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
         return ParentNode::new_parent(elements);
     }
@@ -145,5 +148,48 @@ mod test {
         let set2: HashSet<_> = points.iter().collect();
         assert_eq!(set1, set2);
         assert_eq!(tree.size(), points.len());
+    }
+
+    /// Verify that bulk-loaded tree nodes don't retain excessive Vec capacity.
+    ///
+    /// Without shrinking over-sized allocations during partitioning, Rust's
+    /// in-place collect optimization (triggered when
+    /// `size_of::<T>() == size_of::<RTreeNode<T>>()`) can preserve them in
+    /// the final tree nodes. For large inputs this can waste many gigabytes
+    /// of memory.
+    #[test]
+    fn test_bulk_load_no_excess_capacity() {
+        use crate::node::RTreeNode;
+
+        const N: usize = 10_000;
+        let points: Vec<[i32; 2]> = (0..N as i32).map(|i| [i, i * 3]).collect();
+        let tree = RTree::bulk_load(points);
+        assert_eq!(tree.size(), N);
+
+        // Walk all internal nodes and check that children Vecs are not
+        // drastically over-allocated. Allow 2x as headroom for normal
+        // allocator rounding.
+        let max_allowed_ratio = 2.0_f64;
+        let mut checked = 0usize;
+        let mut stack: Vec<&crate::node::ParentNode<[i32; 2]>> = vec![tree.root()];
+        while let Some(node) = stack.pop() {
+            let len = node.children.len();
+            let cap = node.children.capacity();
+            assert!(len > 0, "empty internal node should not exist");
+            let ratio = cap as f64 / len as f64;
+            assert!(
+                ratio <= max_allowed_ratio,
+                "node children Vec has excessive capacity: len={len}, cap={cap}, ratio={ratio:.1}x \
+                 (max {max_allowed_ratio}x). This indicates split_off over-capacity is leaking \
+                 into the tree."
+            );
+            checked += 1;
+            for child in &node.children {
+                if let RTreeNode::Parent(ref p) = child {
+                    stack.push(p);
+                }
+            }
+        }
+        assert!(checked > 1, "expected multiple internal nodes for N={N}");
     }
 }

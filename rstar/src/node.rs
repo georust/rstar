@@ -17,7 +17,6 @@ use serde::{Deserialize, Serialize};
         deserialize = "T: Deserialize<'de>, T::Envelope: Deserialize<'de>"
     ))
 )]
-
 /// An internal tree node.
 ///
 /// For most applications, using this type should not be required.
@@ -104,7 +103,7 @@ where
 
     #[cfg(test)]
     #[allow(missing_docs)]
-    pub fn sanity_check<Params>(&self, check_max_size: bool) -> Option<usize>
+    pub(crate) fn sanity_check<Params>(&self, check_max_size: bool) -> Option<usize>
     where
         Params: RTreeParams,
     {

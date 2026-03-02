@@ -1,6 +1,6 @@
-use crate::envelope::Envelope;
 use crate::object::PointDistance;
-use crate::{object::RTreeObject, point::Point};
+use crate::object::RTreeObject;
+use crate::{envelope::Envelope, object::Distance};
 use core::ops::Deref;
 
 /// An [RTreeObject] with an inner geometry whose envelope is cached to improve efficiency.
@@ -30,10 +30,7 @@ where
 }
 
 impl<T: PointDistance> PointDistance for CachedEnvelope<T> {
-    fn distance_2(
-        &self,
-        point: &<Self::Envelope as Envelope>::Point,
-    ) -> <<Self::Envelope as Envelope>::Point as Point>::Scalar {
+    fn distance_2(&self, point: &<Self::Envelope as Envelope>::Point) -> Distance<Self> {
         self.inner.distance_2(point)
     }
 
@@ -44,8 +41,8 @@ impl<T: PointDistance> PointDistance for CachedEnvelope<T> {
     fn distance_2_if_less_or_equal(
         &self,
         point: &<Self::Envelope as Envelope>::Point,
-        max_distance_2: <<Self::Envelope as Envelope>::Point as Point>::Scalar,
-    ) -> Option<<<Self::Envelope as Envelope>::Point as Point>::Scalar> {
+        max_distance_2: Distance<Self>,
+    ) -> Option<Distance<Self>> {
         self.inner
             .distance_2_if_less_or_equal(point, max_distance_2)
     }

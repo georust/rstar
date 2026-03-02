@@ -1,5 +1,3 @@
-use crate::algorithm::bulk_load;
-use crate::algorithm::iterators::*;
 use crate::algorithm::nearest_neighbor;
 use crate::algorithm::nearest_neighbor::NearestNeighborDistance2Iterator;
 use crate::algorithm::nearest_neighbor::NearestNeighborIterator;
@@ -9,7 +7,9 @@ use crate::envelope::Envelope;
 use crate::node::ParentNode;
 use crate::object::{PointDistance, RTreeObject};
 use crate::params::{verify_parameters, DefaultParams, InsertionStrategy, RTreeParams};
-use crate::Point;
+use crate::{algorithm::iterators::*, object::Distance};
+
+use crate::algorithm::bulk_load;
 use core::ops::ControlFlow;
 
 #[cfg(not(test))]
@@ -107,6 +107,22 @@ where
 /// thereby being able to use the stack to keep track of the state required for
 /// traversing the tree.
 ///
+/// # Tree Traversal
+/// For advanced use cases and debugging, the internal tree structure can be traversed
+/// using the [`root`](RTree::root) method. This provides access to the tree's hierarchical
+/// structure of parent nodes and leaf nodes.
+///
+/// The tree follows a hierarchical structure where:
+/// - The root is always a [`ParentNode`]
+/// - Each [`ParentNode`] contains children that can be either leaf nodes or more parent nodes
+/// - Leaf nodes contain the actual data items inserted into the tree
+///
+/// Common traversal patterns include:
+/// - **Top-down traversal**: Starting from the root and recursively visiting children
+/// - **Bottom-up processing**: Processing leaf nodes first, then aggregating results upward
+///
+/// See the [`root`](RTree::root) method documentation for a complete traversal example.
+///
 /// # Bulk loading
 /// In many scenarios, insertion is only carried out once for many points. In this case,
 /// [RTree::bulk_load] will be considerably faster. Its total run time
@@ -179,7 +195,7 @@ where
     rtree: &'a RTree<T, Params>,
 }
 
-impl<'a, T, Params> ::core::fmt::Debug for DebugHelper<'a, T, Params>
+impl<T, Params> ::core::fmt::Debug for DebugHelper<'_, T, Params>
 where
     T: RTreeObject + ::core::fmt::Debug,
     Params: RTreeParams,
@@ -294,7 +310,7 @@ where
     ///     println!("This tree contains point {:?}", point);
     /// }
     /// ```
-    pub fn iter(&self) -> RTreeIterator<T> {
+    pub fn iter(&self) -> RTreeIterator<'_, T> {
         RTreeIterator::new(&self.root, SelectAllFunc)
     }
 
@@ -308,7 +324,7 @@ where
     /// If the position or location of an inserted object need to change, you will need to [RTree::remove]
     /// and reinsert it.
     ///
-    pub fn iter_mut(&mut self) -> RTreeIteratorMut<T> {
+    pub fn iter_mut(&mut self) -> RTreeIteratorMut<'_, T> {
         RTreeIteratorMut::new(&mut self.root, SelectAllFunc)
     }
 
@@ -332,12 +348,12 @@ where
     /// assert_eq!(elements_in_half_unit_square.count(), 2);
     /// assert_eq!(elements_in_unit_square.count(), 3);
     /// ```
-    pub fn locate_in_envelope(&self, envelope: T::Envelope) -> LocateInEnvelope<T> {
+    pub fn locate_in_envelope(&self, envelope: T::Envelope) -> LocateInEnvelope<'_, T> {
         LocateInEnvelope::new(&self.root, SelectInEnvelopeFunction::new(envelope))
     }
 
     /// Mutable variant of [locate_in_envelope](#method.locate_in_envelope).
-    pub fn locate_in_envelope_mut(&mut self, envelope: T::Envelope) -> LocateInEnvelopeMut<T> {
+    pub fn locate_in_envelope_mut(&mut self, envelope: T::Envelope) -> LocateInEnvelopeMut<'_, T> {
         LocateInEnvelopeMut::new(&mut self.root, SelectInEnvelopeFunction::new(envelope))
     }
 
@@ -380,7 +396,7 @@ where
     /// See
     /// [drain_with_selection_function](#method.drain_with_selection_function)
     /// for more information.
-    pub fn drain(&mut self) -> DrainIterator<T, SelectAllFunc, Params> {
+    pub fn drain(&mut self) -> DrainIterator<'_, T, SelectAllFunc, Params> {
         self.drain_with_selection_function(SelectAllFunc)
     }
 
@@ -388,7 +404,7 @@ where
     pub fn drain_in_envelope(
         &mut self,
         envelope: T::Envelope,
-    ) -> DrainIterator<T, SelectInEnvelopeFunction<T>, Params> {
+    ) -> DrainIterator<'_, T, SelectInEnvelopeFunction<T>, Params> {
         let sel = SelectInEnvelopeFunction::new(envelope);
         self.drain_with_selection_function(sel)
     }
@@ -431,7 +447,7 @@ where
     pub fn locate_in_envelope_intersecting(
         &self,
         envelope: T::Envelope,
-    ) -> LocateInEnvelopeIntersecting<T> {
+    ) -> LocateInEnvelopeIntersecting<'_, T> {
         LocateInEnvelopeIntersecting::new(
             &self.root,
             SelectInEnvelopeFuncIntersecting::new(envelope),
@@ -442,7 +458,7 @@ where
     pub fn locate_in_envelope_intersecting_mut(
         &mut self,
         envelope: T::Envelope,
-    ) -> LocateInEnvelopeIntersectingMut<T> {
+    ) -> LocateInEnvelopeIntersectingMut<'_, T> {
         LocateInEnvelopeIntersectingMut::new(
             &mut self.root,
             SelectInEnvelopeFuncIntersecting::new(envelope),
@@ -491,7 +507,7 @@ where
     pub fn locate_with_selection_function<S: SelectionFunction<T>>(
         &self,
         selection_function: S,
-    ) -> SelectionIterator<T, S> {
+    ) -> SelectionIterator<'_, T, S> {
         SelectionIterator::new(&self.root, selection_function)
     }
 
@@ -499,7 +515,7 @@ where
     pub fn locate_with_selection_function_mut<S: SelectionFunction<T>>(
         &mut self,
         selection_function: S,
-    ) -> SelectionIteratorMut<T, S> {
+    ) -> SelectionIteratorMut<'_, T, S> {
         SelectionIteratorMut::new(&mut self.root, selection_function)
     }
 
@@ -519,9 +535,138 @@ where
 
     /// Returns the tree's root node.
     ///
-    /// Usually, you will not need to call this method. However, for debugging purposes or for
-    /// advanced algorithms, knowledge about the tree's internal structure may be required.
-    /// For these cases, this method serves as an entry point.
+    /// For some algorithms and use cases, knowledge of the tree's internal structure may be required.
+    /// For these cases, this method serves as an entry point, allowing flexible iteration and
+    /// aggregation strategies. The examples below demonstrate two different traversal
+    /// approaches: top-down (pre-order: process parent then children) and bottom-up (post-order:
+    /// process children then parent). Post-order is essential when parent values depend on
+    /// already-computed child values, such as recomputing envelopes from child data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rstar::{RTree, RTreeNode, ParentNode};
+    /// use rstar::primitives::GeomWithData;
+    ///
+    /// type PointWithLabel = GeomWithData<[f32; 2], String>;
+    ///
+    /// // Top-down traversal: Start from root, recurse down to leaves
+    /// fn paths_top_down(tree: &RTree<PointWithLabel>) -> Vec<String> {
+    ///     let mut node_counter = 0;
+    ///     
+    ///     fn traverse(
+    ///         parent: &ParentNode<PointWithLabel>,
+    ///         path: String,
+    ///         paths: &mut Vec<String>,
+    ///         node_counter: &mut usize
+    ///     ) {
+    ///         for child in parent.children() {
+    ///             *node_counter += 1;
+    ///             let child_path = if path.is_empty() {
+    ///                 format!("Node{}", *node_counter)
+    ///             } else {
+    ///                 format!("{} -> Node{}", path, *node_counter)
+    ///             };
+    ///             
+    ///             match child {
+    ///                 RTreeNode::Leaf(item) => {
+    ///                     // Record the complete path to this leaf
+    ///                     paths.push(format!("{} -> Leaf({})", child_path, item.data));
+    ///                 }
+    ///                 RTreeNode::Parent(child_parent) => {
+    ///                     // Continue building the path downward
+    ///                     traverse(child_parent, child_path, paths, node_counter);
+    ///                 }
+    ///             }
+    ///         }
+    ///     }
+    ///     
+    ///     let mut paths = Vec::new();
+    ///     traverse(tree.root(), "Node0".to_string(), &mut paths, &mut node_counter);
+    ///     paths
+    /// }
+    ///
+    /// // Bottom-up traversal: Aggregate child envelopes into parents (post-order)
+    /// // NB: this is a contrived example showing manual envelope aggregation
+    /// fn aggregate_envelopes_bottom_up(tree: &RTree<PointWithLabel>) -> Vec<(String, f32, f32)> {
+    ///     use rstar::{Envelope, AABB, RTreeObject};
+    ///     let mut results = Vec::new();
+    ///     
+    ///     // Returns the envelope computed from this node's children
+    ///     fn visit_bottom_up(
+    ///         node: &RTreeNode<PointWithLabel>,
+    ///         results: &mut Vec<(String, f32, f32)>
+    ///     ) -> AABB<[f32; 2]> {
+    ///         match node {
+    ///             RTreeNode::Leaf(item) => {
+    ///                 // Leaf envelope is just the item's point
+    ///                 let env = item.envelope();
+    ///                 let lower = env.lower();
+    ///                 let upper = env.upper();
+    ///                 results.push((format!("Leaf({})", item.data), lower[0], upper[0]));
+    ///                 env
+    ///             }
+    ///             RTreeNode::Parent(parent) => {
+    ///                 // Compute this parent's envelope as union of children's envelopes
+    ///                 let mut parent_env = AABB::new_empty();
+    ///                 
+    ///                 // Merge all children's envelopes
+    ///                 for child in parent.children() {
+    ///                     let child_env = visit_bottom_up(child, results);
+    ///                     parent_env.merge(&child_env);
+    ///                 }
+    ///                 
+    ///                 let lower = parent_env.lower();
+    ///                 let upper = parent_env.upper();
+    ///                 results.push((String::from("Parent"), lower[0], upper[0]));
+    ///                 
+    ///                 parent_env
+    ///             }
+    ///         }
+    ///     }
+    ///     
+    ///     // Start traversal from root wrapped as RTreeNode
+    ///     let root_node = RTreeNode::Parent(tree.root().clone());
+    ///     visit_bottom_up(&root_node, &mut results);
+    ///     
+    ///     results
+    /// }
+    ///
+    /// // Create a tree with 8 points
+    /// let mut tree = RTree::new();
+    /// for i in 0..8 {
+    ///     let point = [i as f32, 0.0];
+    ///     let label = format!("L{}", i);
+    ///     tree.insert(PointWithLabel::new(point, label));
+    /// }
+    ///
+    /// let paths_down = paths_top_down(&tree);
+    /// let envelopes = aggregate_envelopes_bottom_up(&tree);
+    ///
+    /// // Top-down traversal visits all 8 leaves
+    /// assert_eq!(paths_down.len(), 8);
+    ///
+    /// // Verify all leaves are present in top-down traversal
+    /// for i in 0..8 {
+    ///     let leaf_pattern = format!("Leaf(L{})", i);
+    ///     assert!(paths_down.iter().any(|p| p.contains(&leaf_pattern)));
+    /// }
+    ///
+    /// // Top-down paths start from root
+    /// assert!(paths_down[0].starts_with("Node0"));
+    ///
+    /// // Bottom-up traversal processes leaves first, then parents
+    /// // Verify all 8 leaves are present with their x-coordinates
+    /// let leaves: Vec<_> = envelopes.iter()
+    ///     .filter(|(name, _, _)| name.starts_with("Leaf"))
+    ///     .collect();
+    /// assert_eq!(leaves.len(), 8);
+    ///
+    /// // The last element is the root parent with envelope containing all points
+    /// let (_, min_x, max_x) = envelopes.last().unwrap();
+    /// assert_eq!(*min_x, 0.0); // Root envelope spans from 0.0 (leftmost point)
+    /// assert_eq!(*max_x, 7.0); // to 7.0 (rightmost point)
+    /// ```
     pub fn root(&self) -> &ParentNode<T> {
         &self.root
     }
@@ -572,7 +717,10 @@ where
     /// iteration would stop the removal. However, the returned iterator
     /// must be properly dropped. Leaking this iterator leads to a leak
     /// amplification, where all the elements in the tree are leaked.
-    pub fn drain_with_selection_function<F>(&mut self, function: F) -> DrainIterator<T, F, Params>
+    pub fn drain_with_selection_function<F>(
+        &mut self,
+        function: F,
+    ) -> DrainIterator<'_, T, F, Params>
     where
         F: SelectionFunction<T>,
     {
@@ -585,7 +733,7 @@ where
     pub fn drain_in_envelope_intersecting(
         &mut self,
         envelope: T::Envelope,
-    ) -> DrainIterator<T, SelectInEnvelopeFuncIntersecting<T>, Params> {
+    ) -> DrainIterator<'_, T, SelectInEnvelopeFuncIntersecting<T>, Params> {
         let selection_function = SelectInEnvelopeFuncIntersecting::new(envelope);
         self.drain_with_selection_function(selection_function)
     }
@@ -654,7 +802,7 @@ where
     pub fn locate_all_at_point(
         &self,
         point: <T::Envelope as Envelope>::Point,
-    ) -> LocateAllAtPoint<T> {
+    ) -> LocateAllAtPoint<'_, T> {
         LocateAllAtPoint::new(&self.root, SelectAtPointFunction::new(point))
     }
 
@@ -662,7 +810,7 @@ where
     pub fn locate_all_at_point_mut(
         &mut self,
         point: <T::Envelope as Envelope>::Point,
-    ) -> LocateAllAtPointMut<T> {
+    ) -> LocateAllAtPointMut<'_, T> {
         LocateAllAtPointMut::new(&mut self.root, SelectAtPointFunction::new(point))
     }
 
@@ -790,11 +938,37 @@ where
     /// assert_eq!(tree.nearest_neighbor([0.0, 2.0]), Some(&[0.0, 1.0]));
     /// ```
     pub fn nearest_neighbor(&self, query_point: <T::Envelope as Envelope>::Point) -> Option<&T> {
+        self.nearest_neighbor_with_distance_2(query_point)
+            .map(|(neighbor, _)| neighbor)
+    }
+
+    /// Returns the nearest neighbor for a given point with distance squared.
+    ///
+    /// The distance is calculated by calling
+    /// [PointDistance::distance_2]
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// let tree = RTree::bulk_load(vec![
+    ///   [0.0, 0.0],
+    ///   [0.0, 1.0],
+    /// ]);
+    /// assert_eq!(tree.nearest_neighbor_with_distance_2([-1., 0.0]), Some((&[0.0, 0.0], 1.0)));
+    /// assert_eq!(tree.nearest_neighbor_with_distance_2([0.0, 2.0]), Some((&[0.0, 1.0], 1.0)));
+    /// ```
+    pub fn nearest_neighbor_with_distance_2(
+        &self,
+        query_point: <T::Envelope as Envelope>::Point,
+    ) -> Option<(&T, Distance<T>)> {
         if self.size > 0 {
             // The single-nearest-neighbor retrieval may in rare cases return None due to
             // rounding issues. The iterator will still work, though.
-            nearest_neighbor::nearest_neighbor(&self.root, query_point.clone())
-                .or_else(|| self.nearest_neighbor_iter(query_point).next())
+            nearest_neighbor::nearest_neighbor_with_distance_2(&self.root, query_point.clone())
+                .or_else(|| {
+                    self.nearest_neighbor_iter_with_distance_2(query_point)
+                        .next()
+                })
         } else {
             None
         }
@@ -827,7 +1001,45 @@ where
     /// assert!(nearest_two.contains(&&[1.0, 0.0]));
     /// ```
     pub fn nearest_neighbors(&self, query_point: &<T::Envelope as Envelope>::Point) -> Vec<&T> {
-        nearest_neighbor::nearest_neighbors(&self.root, query_point.clone())
+        self.nearest_neighbors_with_distance_2(query_point)
+            .map(|(neighbors, _)| neighbors)
+            .unwrap_or_default()
+    }
+
+    /// Returns the nearest neighbors for a given point with distance squared.
+    ///
+    /// The distance is calculated by calling
+    /// [PointDistance::distance_2]
+    ///
+    /// All returned values will have the exact same distance from the given query point.
+    /// Returns an empty `None` if the tree is empty.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// let tree = RTree::bulk_load(vec![
+    ///   [0.0, 0.0],
+    ///   [0.0, 1.0],
+    ///   [1.0, 0.0],
+    /// ]);
+    ///
+    /// // A single nearest neighbor
+    /// assert_eq!(tree.nearest_neighbors_with_distance_2(&[0.01, 0.01]), Some((vec![&[0.0, 0.0]], 0.0002)));
+    ///
+    /// // Two nearest neighbors
+    /// let nearest_two = tree.nearest_neighbors_with_distance_2(&[1.0, 1.0]);
+    /// assert!(nearest_two.is_some());
+    ///
+    /// let (neighbors, dist_2) = nearest_two.unwrap();
+    /// assert_eq!(neighbors.len(), 2);
+    /// assert!(neighbors.contains(&&[0.0, 1.0]));
+    /// assert!(neighbors.contains(&&[1.0, 0.0]));
+    /// ```
+    pub fn nearest_neighbors_with_distance_2(
+        &self,
+        query_point: &<T::Envelope as Envelope>::Point,
+    ) -> Option<(Vec<&T>, Distance<T>)> {
+        nearest_neighbor::nearest_neighbors_with_distance_2(&self.root, query_point.clone())
     }
 
     /// Returns all elements of the tree within a certain distance.
@@ -841,8 +1053,8 @@ where
     pub fn locate_within_distance(
         &self,
         query_point: <T::Envelope as Envelope>::Point,
-        max_squared_radius: <<T::Envelope as Envelope>::Point as Point>::Scalar,
-    ) -> LocateWithinDistanceIterator<T> {
+        max_squared_radius: Distance<T>,
+    ) -> LocateWithinDistanceIterator<'_, T> {
         let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
         LocateWithinDistanceIterator::new(self.root(), selection_function)
     }
@@ -854,8 +1066,8 @@ where
     pub fn drain_within_distance(
         &mut self,
         query_point: <T::Envelope as Envelope>::Point,
-        max_squared_radius: <<T::Envelope as Envelope>::Point as Point>::Scalar,
-    ) -> DrainIterator<T, SelectWithinDistanceFunction<T>, Params> {
+        max_squared_radius: Distance<T>,
+    ) -> DrainIterator<'_, T, SelectWithinDistanceFunction<T>, Params> {
         let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
         self.drain_with_selection_function(selection_function)
     }
@@ -882,7 +1094,7 @@ where
     pub fn nearest_neighbor_iter(
         &self,
         query_point: <T::Envelope as Envelope>::Point,
-    ) -> NearestNeighborIterator<T> {
+    ) -> NearestNeighborIterator<'_, T> {
         nearest_neighbor::NearestNeighborIterator::new(&self.root, query_point)
     }
 
@@ -894,7 +1106,7 @@ where
     pub fn nearest_neighbor_iter_with_distance(
         &self,
         query_point: <T::Envelope as Envelope>::Point,
-    ) -> NearestNeighborDistance2Iterator<T> {
+    ) -> NearestNeighborDistance2Iterator<'_, T> {
         nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, query_point)
     }
 
@@ -905,7 +1117,7 @@ where
     pub fn nearest_neighbor_iter_with_distance_2(
         &self,
         query_point: <T::Envelope as Envelope>::Point,
-    ) -> NearestNeighborDistance2Iterator<T> {
+    ) -> NearestNeighborDistance2Iterator<'_, T> {
         nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, query_point)
     }
 
