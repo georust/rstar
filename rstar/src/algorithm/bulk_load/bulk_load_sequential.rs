@@ -123,6 +123,7 @@ mod test {
     #[test]
     fn test_bulk_load_with_different_sizes() {
         for size in (0..100).map(|i| i * 7) {
+            test_bulk_load_with_size_and_dimension::<[i32; 1]>(size);
             test_bulk_load_with_size_and_dimension::<[i32; 2]>(size);
             test_bulk_load_with_size_and_dimension::<[i32; 3]>(size);
             test_bulk_load_with_size_and_dimension::<[i32; 4]>(size);
