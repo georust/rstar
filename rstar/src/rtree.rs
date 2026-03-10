@@ -1215,6 +1215,8 @@ mod test {
     use crate::params::RTreeParams;
     use crate::test_utilities::{create_random_points, SEED_1};
     use crate::DefaultParams;
+    use crate::primitives::Rectangle;
+    use crate::aabb::AABB;
 
     struct TestParams;
     impl RTreeParams for TestParams {
@@ -1368,5 +1370,24 @@ mod test {
             tree.insert(node);
             tree.root().sanity_check::<DefaultParams>(false);
         }
+    }
+
+    #[test]
+    fn test_rtree_1d() {
+        let boxes: Vec<Rectangle<[f64; 1]>> = vec![
+            Rectangle::from_corners([0.0], [1.0]),
+            Rectangle::from_corners([0.0], [2.0]),
+            Rectangle::from_corners([1.0], [3.0]),
+            Rectangle::from_corners([2.0], [4.0]),
+            Rectangle::from_corners([3.0], [5.0]),
+            Rectangle::from_corners([4.0], [6.0]),
+            Rectangle::from_corners([5.0], [7.0]),
+        ];
+        let tree = RTree::bulk_load(boxes);
+        assert_eq!(tree.size(), 7);
+        assert_eq!(tree.locate_in_envelope_intersecting(AABB::from_corners([0.5], [1.5])).count(), 3);
+        assert_eq!(tree.locate_in_envelope_intersecting(AABB::from_corners([3.5], [4.5])).count(), 3);
+        assert_eq!(tree.locate_all_at_point([1.5]).count(), 2);
+        assert_eq!(tree.nearest_neighbor([1.5]), Some(&Rectangle::from_corners([0.0], [2.0])));
     }
 }
