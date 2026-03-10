@@ -7,6 +7,7 @@
 - Implemented `RTreeObject` for `Arc<T>` and `Rc<T>`
 - Added `Envelope::is_empty`. ([PR](https://github.com/georust/rstar/pull/190))
 - New `AABB::from_center` utility constructor
+- Allow construction of 1D Rtrees.
 
 ## Fixed
 - Fix excessive memory retention in `bulk_load` from `Vec::split_off` over-capacity
