@@ -66,8 +66,8 @@ where
 
     /// Returns the AABB from already known lower/upper bounds.
     pub fn from_bounds(lower: P, upper: P) -> Self {
-        debug_assert!(lower.min_point(&upper) == lower);
-        debug_assert!(lower.max_point(&upper) == upper);
+        debug_assert_eq!(lower.min_point(&upper), lower);
+        debug_assert_eq!(lower.max_point(&upper), upper);
         Self { lower, upper }
     }
 
