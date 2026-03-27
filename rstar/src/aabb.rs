@@ -58,10 +58,17 @@ where
 
     /// Creates a new AABB encompassing two points.
     pub fn from_corners(p1: P, p2: P) -> Self {
-        AABB {
+        Self {
             lower: p1.min_point(&p2),
             upper: p1.max_point(&p2),
         }
+    }
+
+    /// Returns the AABB from already known lower/upper bounds.
+    pub fn from_bounds(lower: P, upper: P) -> Self {
+        debug_assert_eq!(lower.min_point(&upper), lower);
+        debug_assert_eq!(lower.max_point(&upper), upper);
+        Self { lower, upper }
     }
 
     /// Creates a new AABB from a center and a diameter.
