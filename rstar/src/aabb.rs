@@ -109,6 +109,13 @@ where
             self.min_point(point).sub(point).length_2()
         }
     }
+
+    /// Returns the AABB from already known lower/upper bounds.
+    pub fn from_bounds(lower: P, upper: P) -> Self {
+        debug_assert!(lower.min_point(&upper) == lower);
+        debug_assert!(lower.max_point(&upper) == upper);
+        AABB { lower, upper }
+    }
 }
 
 impl<P> Envelope for AABB<P>
