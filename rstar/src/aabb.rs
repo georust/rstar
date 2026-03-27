@@ -64,6 +64,13 @@ where
         }
     }
 
+    /// Returns the AABB from already known lower/upper bounds.
+    pub fn from_bounds(lower: P, upper: P) -> Self {
+        debug_assert!(lower.min_point(&upper) == lower);
+        debug_assert!(lower.max_point(&upper) == upper);
+        AABB { lower, upper }
+    }
+
     /// Creates a new AABB from a center and a diameter.
     pub fn from_center(center: P, diameter: P::Scalar) -> Self {
         let one = P::Scalar::one();
@@ -108,13 +115,6 @@ where
         } else {
             self.min_point(point).sub(point).length_2()
         }
-    }
-
-    /// Returns the AABB from already known lower/upper bounds.
-    pub fn from_bounds(lower: P, upper: P) -> Self {
-        debug_assert!(lower.min_point(&upper) == lower);
-        debug_assert!(lower.max_point(&upper) == upper);
-        AABB { lower, upper }
     }
 }
 
