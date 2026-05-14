@@ -91,7 +91,7 @@ pub fn verify_parameters<T: RTreeObject, P: RTreeParams>() {
     assert!(P::MAX_SIZE >= 4, "MAX_SIZE too small. Must be at least 4.");
 
     assert!(P::MIN_SIZE > 0, "MIN_SIZE must be at least 1",);
-    let max_min_size = (P::MAX_SIZE + 1) / 2;
+    let max_min_size = P::MAX_SIZE.div_ceil(2);
     assert!(
         P::MIN_SIZE <= max_min_size,
         "MIN_SIZE too large. Must be less or equal to {:?}",
