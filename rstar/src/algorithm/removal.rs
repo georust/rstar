@@ -171,10 +171,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         'attempt_loop: loop {
             // Get reference to top node or return None.
-            let (node, idx, remove_count) = match self.node_stack.last_mut() {
-                Some(node) => (&mut node.0, &mut node.1, &mut node.2),
-                None => return None,
-            };
+            let (node, idx, remove_count) = self.node_stack.last_mut()?;
 
             // Try to find a selected item to return.
             if *idx > 0 || self.removal_function.should_unpack_parent(&node.envelope) {

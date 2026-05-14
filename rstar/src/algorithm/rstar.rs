@@ -156,7 +156,7 @@ where
     T: RTreeObject,
 {
     let all_leaves = match node.children.first() {
-        Some(RTreeNode::Parent(ref data)) => data.children.first().map_or(true, RTreeNode::is_leaf),
+        Some(RTreeNode::Parent(ref data)) => data.children.first().is_none_or(RTreeNode::is_leaf),
         None | Some(RTreeNode::Leaf(_)) => return usize::MAX,
     };
 

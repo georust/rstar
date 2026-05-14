@@ -18,37 +18,22 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  rstar:
-    name: rstar
+  test:
+    name: Unit tests
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
-    defaults:
-      run:
-        working-directory: rstar
-    strategy:
-      matrix:
-        container_image:
-          # We aim to support rust-stable plus (at least) the prior 3 releases,
-          # giving us about 6 months of coverage.
-          #
-          # Minimum supported rust version (MSRV)
-          - "ghcr.io/georust/geo-ci:rust-1.68"
-          # Two most recent releases - we omit older ones for expedient CI
-          - "ghcr.io/georust/geo-ci:proj-9.6.2-rust-1.88"
-          - "ghcr.io/georust/geo-ci:proj-9.6.2-rust-1.89"
-    container:
-      image: ${{ matrix.container_image }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.container_image }}
+          key: test
       - run: cargo test --package rstar
 
   check:
-    name: rstar Rustfmt and Clippy check
+    name: Rustfmt and Clippy check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -64,8 +49,23 @@ jobs:
       - name: Lint using Clippy
         run: cargo clippy --workspace --exclude rstar-demo --tests
 
+  msrv:
+    name: MSRV build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Install MSRV toolchain
+        uses: dtolnay/rust-toolchain@1.85.0
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: msrv
+      - name: Run cargo build for MSRV
+        run: cargo build --package rstar
+
   no_std:
-    name: rstar no_std test
+    name: no_std build
     runs-on: ubuntu-latest
     env:
       NO_STD_TARGET: aarch64-unknown-none
@@ -85,8 +85,9 @@ jobs:
 
   conclusion:
     needs:
-      - rstar
+      - test
       - check
+      - msrv
       - no_std
     if: always()
     runs-on: ubuntu-latest
