@@ -56,7 +56,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
       - name: Install MSRV toolchain
-        uses: dtolnay/rust-toolchain@1.85.0
+        uses: dtolnay/rust-toolchain@1.100.0
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
         with:
