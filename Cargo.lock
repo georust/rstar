@@ -799,7 +799,7 @@ checksum = "94776032c45f950d30a13af6113c2ad5625316c9abfbccee4dd5a6695f8fe0f5"
 dependencies = [
  "approx",
  "num-traits",
- "rstar",
+ "rstar 0.12.2",
  "serde",
 ]
 
@@ -2117,7 +2117,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "ordered-float",
- "rstar",
+ "rstar 0.12.2",
  "simba 0.9.1",
  "slab",
  "smallvec",
@@ -2590,6 +2590,17 @@ checksum = "4e27ee8bb91ca0adcf0ecb116293afa12d393f9c2b9b9cd54d33e8078fe19839"
 [[package]]
 name = "rstar"
 version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "421400d13ccfd26dfa5858199c30a5d76f9c54e0dba7575273025b43c5175dbb"
+dependencies = [
+ "heapless",
+ "num-traits",
+ "smallvec",
+]
+
+[[package]]
+name = "rstar"
+version = "0.13.0"
 dependencies = [
  "approx",
  "heapless",
@@ -2611,7 +2622,7 @@ dependencies = [
  "geo-types",
  "rand 0.10.1",
  "rand_hc 0.5.0",
- "rstar",
+ "rstar 0.13.0",
 ]
 
 [[package]]
@@ -2621,7 +2632,7 @@ dependencies = [
  "kiss3d",
  "nalgebra 0.30.1",
  "rand 0.7.3",
- "rstar",
+ "rstar 0.13.0",
 ]
 
 [[package]]
