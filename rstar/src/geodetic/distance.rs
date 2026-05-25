@@ -249,9 +249,28 @@ pub fn point_to_mbr_distance(
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
+    use hegel::generators;
 
     fn coord(lon: f64, lat: f64) -> GeodeticCoord {
         GeodeticCoord { lon, lat }
+    }
+
+    /// Draws an ordered pair `(low, high)` within `[min, max]` so a generated MBR never
+    /// wraps across the antimeridian (the documented precondition of
+    /// [`point_to_mbr_distance`]). Degenerate (`low == high`) pairs are allowed.
+    ///
+    /// Uses [`f64::total_cmp`] rather than `<=`: with `<=`, drawing `+0.0` then `-0.0`
+    /// would produce the pair `(+0.0, -0.0)`, which then panics a downstream
+    /// `min_value(+0.0).max_value(-0.0)` generator (IEEE bit-order sees `-0.0 < +0.0`,
+    /// so the range is empty).
+    fn ordered(tc: &hegel::TestCase, min: f64, max: f64) -> (f64, f64) {
+        let a = tc.draw(generators::floats::<f64>().min_value(min).max_value(max));
+        let b = tc.draw(generators::floats::<f64>().min_value(min).max_value(max));
+        if a.total_cmp(&b) == core::cmp::Ordering::Greater {
+            (b, a)
+        } else {
+            (a, b)
+        }
     }
 
     // --- haversine_distance ---
@@ -385,8 +404,9 @@ mod tests {
     // --- point_to_mbr_distance ---
     //
     // These tests verify branch/closest-feature selection but reuse the same internal
-    // helpers the algorithm calls. An independent oracle comparison against rust-geo's
-    // HaversineClosestPoint is added in the property tests (a later task).
+    // helpers the algorithm calls. The independent oracle (refined edge sweep, not
+    // dependent on this module's branch structure) lives in
+    // `tests/geodetic_property.rs::point_to_mbr_matches_bruteforce_region`.
     //
     // MBR: lon_l=10, lat_l=40, lon_h=20, lat_h=50
 
@@ -485,6 +505,143 @@ mod tests {
             point_to_mbr_distance(query, 10.0, 40.0, 20.0, 50.0),
             expected,
             epsilon = 1e-3
+        );
+    }
+
+    // --- property tests (algebraic invariants), driven by Hegel ---
+    //
+    // How these work: unlike the example-based tests above (which assert fixed inputs),
+    // each `#[hegel::test]` function is a *property* that must hold for every input. The
+    // body is run many times; `tc.draw(generators::...)` pulls each value from Hegel
+    // rather than from a literal or a seeded RNG. When a run fails, Hegel automatically
+    // *shrinks* the input to a minimal counterexample (e.g. the smallest MBR/query that
+    // breaks the invariant) instead of reporting whatever random case happened to trip it
+    // – that shrinking is the main reason to prefer this over a fixed-seed `rand` loop.
+    //
+    // Generators span the full valid domain (lon in [-180, 180], lat in [-90, 90], any
+    // extent including degenerate rectangles). The one precondition of
+    // `point_to_mbr_distance` – `lon_l <= lon_h` (no antimeridian wrap) – is satisfied by
+    // construction: `ordered` draws two bounds and swaps them, rather than rejection-
+    // sampling (which Hegel would flag as discarding too many cases).
+    //
+    // These run under plain `cargo test --features geodetic`; the independent oracle test
+    // in `tests/geodetic_property.rs` complements them. `hegeltest` is a dev-dependency
+    // (so it does not affect the published MSRV); in CI the failure database is disabled
+    // and runs are derandomised automatically, and Hegel's local state lives in a
+    // git-ignored `.hegel/` directory.
+
+    #[hegel::test(test_cases = 500)]
+    fn prop_distance_is_nonneg_and_bounded(tc: hegel::TestCase) {
+        let half_circumference = std::f64::consts::PI * EARTH_RADIUS_METRES;
+        let (lon_l, lon_h) = ordered(&tc, -180.0, 180.0);
+        let (lat_l, lat_h) = ordered(&tc, -90.0, 90.0);
+        let query = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(-180.0)
+                    .max_value(180.0),
+            ),
+            tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0)),
+        );
+
+        let ours = point_to_mbr_distance(query, lon_l, lat_l, lon_h, lat_h);
+        assert!(
+            ours >= 0.0 && ours <= half_circumference + 1.0,
+            "distance {ours} out of range [0, {half_circumference}+1]; \
+             query=({},{}), mbr=[{lon_l},{lat_l}]-[{lon_h},{lat_h}]",
+            query.lon,
+            query.lat
+        );
+    }
+
+    #[hegel::test(test_cases = 500)]
+    fn prop_distance_le_every_corner(tc: hegel::TestCase) {
+        let (lon_l, lon_h) = ordered(&tc, -180.0, 180.0);
+        let (lat_l, lat_h) = ordered(&tc, -90.0, 90.0);
+        let query = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(-180.0)
+                    .max_value(180.0),
+            ),
+            tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0)),
+        );
+
+        let ours = point_to_mbr_distance(query, lon_l, lat_l, lon_h, lat_h);
+        for c in [
+            coord(lon_l, lat_l),
+            coord(lon_l, lat_h),
+            coord(lon_h, lat_l),
+            coord(lon_h, lat_h),
+        ] {
+            let corner_dist = haversine_distance(query, c);
+            assert!(
+                ours <= corner_dist + 1e-3,
+                "ours={ours} > corner_dist={corner_dist} + 1e-3; corner=({},{}) \
+                 query=({},{}), mbr=[{lon_l},{lat_l}]-[{lon_h},{lat_h}]",
+                c.lon,
+                c.lat,
+                query.lon,
+                query.lat
+            );
+        }
+    }
+
+    #[hegel::test(test_cases = 500)]
+    fn prop_degenerate_mbr_equals_haversine(tc: hegel::TestCase) {
+        let p = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(-180.0)
+                    .max_value(180.0),
+            ),
+            tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0)),
+        );
+        let query = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(-180.0)
+                    .max_value(180.0),
+            ),
+            tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0)),
+        );
+
+        let ours = point_to_mbr_distance(query, p.lon, p.lat, p.lon, p.lat);
+        let expected = haversine_distance(query, p);
+        assert!(
+            (ours - expected).abs() <= 1e-6,
+            "ours={ours} != haversine={expected}; query=({},{}), degenerate_mbr=({},{})",
+            query.lon,
+            query.lat,
+            p.lon,
+            p.lat
+        );
+    }
+
+    #[hegel::test(test_cases = 500)]
+    fn prop_inside_is_zero(tc: hegel::TestCase) {
+        let (lon_l, lon_h) = ordered(&tc, -180.0, 180.0);
+        let (lat_l, lat_h) = ordered(&tc, -90.0, 90.0);
+        // Draw a query inside (or on the boundary of) the rectangle.
+        let query = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(lon_l)
+                    .max_value(lon_h),
+            ),
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(lat_l)
+                    .max_value(lat_h),
+            ),
+        );
+
+        let ours = point_to_mbr_distance(query, lon_l, lat_l, lon_h, lat_h);
+        assert_eq!(
+            ours, 0.0,
+            "expected 0.0 for interior query ({},{}) in \
+             mbr=[{lon_l},{lat_l}]-[{lon_h},{lat_h}], got {ours}",
+            query.lon, query.lat
         );
     }
 
