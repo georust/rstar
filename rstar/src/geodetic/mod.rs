@@ -53,6 +53,42 @@
 //! remain correct because the leaf-level haversine handles the wrap correctly; only
 //! the efficiency of the branch-and-bound traversal is affected.
 //!
+//! ## Handling data that spans the seam
+//!
+//! You usually need nothing: results are already correct. If a cluster straddles ±180°
+//! and query throughput matters, re-express it in a *consistent* longitude frame (here
+//! `[0, 360)`) so the cluster is contiguous, build and query in that frame, then undo the
+//! shift on the result. The seam only moves: pick a frame whose boundary lies in an empty
+//! part of your data. To carry a richer payload (names, original coordinates), wrap points
+//! in [`GeomWithData<GeodeticPoint, T>`](crate::primitives::GeomWithData).
+//!
+//! ```
+//! # #[cfg(feature = "geodetic")]
+//! # fn main() {
+//! use rstar::RTree;
+//! use rstar::geodetic::{GeodeticCoord, GeodeticPoint};
+//!
+//! // Map any longitude into [0, 360) so a cluster straddling ±180° is contiguous.
+//! let wrap = |lon: f64| if lon < 0.0 { lon + 360.0 } else { lon };
+//!
+//! // Islands either side of the seam (179°E and 175°W) plus a distant point.
+//! let raw = [(179.0, -17.0), (-175.0, -21.0), (-77.0, -12.0)];
+//! let points: Vec<GeodeticPoint> =
+//!     raw.iter().map(|&(lon, lat)| GeodeticPoint::new(wrap(lon), lat)).collect();
+//! let tree = RTree::bulk_load(points);
+//!
+//! // Query near the seam, expressed in the same [0, 360) frame.
+//! let query = GeodeticCoord { lon: wrap(-176.0), lat: -21.0 };
+//! let nn = tree.nearest_neighbor(query).unwrap();
+//!
+//! // Undo the shift to recover the original longitude.
+//! let lon = if nn.0.lon > 180.0 { nn.0.lon - 360.0 } else { nn.0.lon };
+//! assert_eq!((lon, nn.0.lat), (-175.0, -21.0)); // the 175°W island
+//! # }
+//! # #[cfg(not(feature = "geodetic"))]
+//! # fn main() {}
+//! ```
+//!
 //! # Spherical Earth model
 //!
 //! This module uses a spherical Earth model. For WGS84 spheroidal accuracy the
