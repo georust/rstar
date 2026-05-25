@@ -6,4 +6,8 @@
 
 mod coord;
 pub mod distance;
-pub use coord::GeodeticCoord;
+mod envelope;
+mod point;
+pub use coord::{GeodeticCoord, GeodeticError};
+pub use envelope::GeodeticEnvelope;
+pub use point::GeodeticPoint;
