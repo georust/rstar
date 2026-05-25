@@ -5,4 +5,5 @@
 //! Queries on R-Trees for Indexing Geographic Data".
 
 mod coord;
+pub mod distance;
 pub use coord::GeodeticCoord;
