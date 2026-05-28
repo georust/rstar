@@ -31,6 +31,7 @@ jobs:
         with:
           key: test
       - run: cargo test --package rstar
+      - run: cargo test --package rstar --features geodetic
 
   check:
     name: Rustfmt and Clippy check
@@ -48,6 +49,8 @@ jobs:
         run: cargo fmt --all --check
       - name: Lint using Clippy
         run: cargo clippy --workspace --exclude rstar-demo --tests
+      - name: Lint geodetic feature using Clippy
+        run: cargo clippy --package rstar --features geodetic --all-targets -- -D warnings
 
   msrv:
     name: MSRV build
@@ -82,6 +85,8 @@ jobs:
           key: no-std-${{env.NO_STD_TARGET}}
       - name: Run cargo build for ${{env.NO_STD_TARGET}}
         run: cargo build --package rstar --target ${{env.NO_STD_TARGET}}
+      - name: Run cargo build for ${{env.NO_STD_TARGET}} with geodetic feature
+        run: cargo build --package rstar --features geodetic --target ${{env.NO_STD_TARGET}}
 
   conclusion:
     needs:
