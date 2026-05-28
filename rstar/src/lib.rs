@@ -9,6 +9,16 @@
 //! _Spatial data_ refers to an object that has the notion of a position and extent:
 //! for example points, lines and rectangles in any dimension.
 //!
+//! # Storing and Querying Geodetic (longitude/latitude) data
+//! An [RTree] treats coordinates as Cartesian, so on raw longitude/latitude pairs it
+//! measures distance in degrees — which understates distances near the poles and is
+//! meaningless across the ±180° antimeridian. It is **not suitable for storing and querying geodetic coordinates**.
+//! Enable the `geodetic` feature if you require a
+//! lon-lat-capable index: `Geodetic3DTree` in the `geodetic` module embeds each
+//! `(lon, lat)` point on the unit sphere, so **nearest-neighbour, radius and window
+//! queries return great-circle distances in metres**. This index handles the antimeridian and the
+//! poles as ordinary interior points.
+//!
 //!
 //! # Further documentation
 //! The crate's main data structure and documentation is the [RTree] struct.

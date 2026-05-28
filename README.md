@@ -17,6 +17,10 @@ An r-tree is a data structure containing spatial data and is optimized for neare
 
 Primitives are provided for point, line, and rectangle geometries. The [`geo`](https://crates.io/crates/geo) crate uses rstar as an efficient spatial index and provides [`RTreeObject`](file:///Users/sth/dev/rstar/target/doc/rstar/trait.RTreeObject.html) implementations for storing complex geometries such as linestrings and polygons.
 
+## Geodetic (longitude/latitude) data
+
+Enable the `geodetic` feature for a great-circle spatial index over longitude/latitude data. `Geodetic3DTree` embeds each `(lon, lat)` point on the unit sphere, so nearest-neighbour, radius and window queries use great-circle distance (in metres) instead of the misleading Euclidean-in-degrees distance, and the ±180° antimeridian and the poles are handled natively. See the [crate documentation](https://docs.rs/rstar/).
+
 # Demo
 To run the rstar-demo, checkout the repository and run `cargo run rstar-demo` in the
 repository root.

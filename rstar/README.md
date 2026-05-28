@@ -20,11 +20,16 @@ A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) imple
    - Rectangles
  - Small number of dependencies
  - Serde support with the `serde` feature
+ - Geodetic (longitude/latitude, great-circle) indexing with the `geodetic` feature
  - `no_std` compatible (but requires [`alloc`](https://doc.rust-lang.org/alloc/))
 
 ## Geometries
 
 Primitives are provided for point, line, and rectangle geometries. The [`geo`](https://crates.io/crates/geo) crate uses rstar as an efficient spatial index and provides [`RTreeObject`](file:///Users/sth/dev/rstar/target/doc/rstar/trait.RTreeObject.html) implementations for storing complex geometries such as linestrings and polygons.
+
+## Geodetic (longitude/latitude) data
+
+By default rstar treats coordinates as Cartesian, so on raw longitude/latitude it measures distance in degrees — wrong near the poles and across the ±180° antimeridian. Enable the `geodetic` feature for a great-circle index: `Geodetic3DTree` embeds each `(lon, lat)` point on the unit sphere, so nearest-neighbour, radius and window queries return great-circle distances in metres, and the antimeridian and the poles are handled as ordinary interior points.
 
 # Benchmarks
 All benchmarks are performed on a i7-8550U CPU @ 1.80Ghz and with uniformly distributed points. The underlying point type is `[f64; 2]`.
