@@ -1,18 +1,16 @@
 #[macro_use]
 extern crate criterion;
-extern crate geo_types;
 extern crate rand;
 extern crate rand_hc;
 extern crate rstar;
 
 use std::f64::consts::PI;
 
-use geo_types::{LineString, Polygon};
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 use rand_hc::Hc128Rng;
 
 use rstar::primitives::CachedEnvelope;
-use rstar::{RStarInsertionStrategy, RTree, RTreeParams};
+use rstar::{RStarInsertionStrategy, RTree, RTreeObject, RTreeParams, AABB};
 
 use criterion::Criterion;
 
@@ -58,7 +56,7 @@ fn bulk_load_complex_geom(c: &mut Criterion) {
             create_random_polygons(DEFAULT_BENCHMARK_TREE_SIZE, 4096, SEED_1).collect();
 
         b.iter(|| {
-            RTree::<Polygon<f64>, Params>::bulk_load_with_params(polys.clone());
+            RTree::<BenchPolygon, Params>::bulk_load_with_params(polys.clone());
         });
     });
 }
@@ -156,32 +154,30 @@ criterion_main!(benches);
 
 fn create_random_points(num_points: usize, seed: &[u8; 32]) -> Vec<[f64; 2]> {
     let mut rng = Hc128Rng::from_seed(*seed);
-    (0..num_points).map(|_| rng.gen()).collect()
+    (0..num_points).map(|_| rng.random()).collect()
 }
 
 fn create_random_polygons(
     num_points: usize,
     size: usize,
     seed: &[u8; 32],
-) -> impl Iterator<Item = Polygon<f64>> {
+) -> impl Iterator<Item = BenchPolygon> {
     let mut rng = Hc128Rng::from_seed(*seed);
     let base_polygon = circular_polygon(size);
     (0..num_points).map(move |_| {
-        let [scale_x, scale_y]: [f64; 2] = rng.gen();
-        let [shift_x, shift_y]: [f64; 2] = rng.gen();
+        let [scale_x, scale_y]: [f64; 2] = rng.random();
+        let [shift_x, shift_y]: [f64; 2] = rng.random();
 
         let mut shifted_polygon = base_polygon.clone();
-        shifted_polygon.exterior_mut(|exterior| {
-            for coord in exterior {
-                coord.x = (shift_x + coord.x) * scale_x;
-                coord.y = (shift_y + coord.y) * scale_y;
-            }
-        });
+        for coord in &mut shifted_polygon.ring {
+            coord[0] = (shift_x + coord[0]) * scale_x;
+            coord[1] = (shift_y + coord[1]) * scale_y;
+        }
         shifted_polygon
     })
 }
 
-fn circular_polygon(steps: usize) -> Polygon<f64> {
+fn circular_polygon(steps: usize) -> BenchPolygon {
     let delta = 2. * PI / steps as f64;
     let r = 1.0;
 
@@ -189,9 +185,26 @@ fn circular_polygon(steps: usize) -> Polygon<f64> {
         .scan(0.0_f64, |angle, _step| {
             let (sin, cos) = angle.sin_cos();
             *angle += delta;
-            Some((r * cos, r * sin).into())
+            Some([r * cos, r * sin])
         })
         .collect();
 
-    Polygon::new(LineString(ring), Vec::new())
+    BenchPolygon { ring }
+}
+
+/// A minimal stand-in for a `geo_types::Polygon` used only to exercise bulk loading
+/// of a non-trivial [`RTreeObject`] whose envelope spans many vertices. Its envelope
+/// is the axis-aligned bounding box of the exterior ring; no point queries are run
+/// against it, so it deliberately implements only [`RTreeObject`].
+#[derive(Clone)]
+struct BenchPolygon {
+    ring: Vec<[f64; 2]>,
+}
+
+impl RTreeObject for BenchPolygon {
+    type Envelope = AABB<[f64; 2]>;
+
+    fn envelope(&self) -> AABB<[f64; 2]> {
+        AABB::from_points(self.ring.iter())
+    }
 }

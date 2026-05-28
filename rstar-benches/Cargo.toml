@@ -7,7 +7,6 @@ rust-version = "1.68"
 
 [dev-dependencies]
 criterion = { version = "0.8", features = ["html_reports"] }
-geo-types = { version = "0.7.9", features = ["use-rstar_0_12"] }
 rand = "0.10"
 rand_hc = "0.5"
 rstar = { path = "../rstar" }
