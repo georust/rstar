@@ -45,6 +45,9 @@ mod point;
 pub mod primitives;
 mod rtree;
 
+#[cfg(feature = "geodetic")]
+pub mod geodetic;
+
 #[cfg(feature = "mint")]
 pub mod mint;
 
