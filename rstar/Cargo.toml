@@ -25,11 +25,21 @@ mint = { version = "0.5.9", optional = true }
 # polygon sign tests. Forced into no_std mode so the `geodetic` feature builds for a
 # no_std target; no_std robust compiles fine under std too.
 robust = { version = "1", optional = true, default-features = false, features = ["no_std"] }
+# WGS84 geodesic (Karney) distances for the `geodetic-wgs84` refine. It is a `std`
+# crate (it calls the inherent `f64` math methods), so it is gated behind
+# `geodetic-wgs84` rather than `geodetic`, keeping the base `geodetic` feature
+# no_std. `default-features = false` drops its `accurate` summation feature, matching
+# rust-geo's use.
+geographiclib-rs = { version = "0.2", optional = true, default-features = false }
 
 [features]
 default = []
 debug = []
 geodetic = ["dep:robust"]
+# Spheroidal (WGS84) geodesic refine for the point tree, layered on the spherical
+# index. Pulls in `geographiclib-rs` and so requires `std`; the base `geodetic`
+# feature stays no_std.
+geodetic-wgs84 = ["geodetic", "dep:geographiclib-rs"]
 
 [dev-dependencies]
 rand = "0.10"
