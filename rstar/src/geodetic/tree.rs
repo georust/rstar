@@ -37,38 +37,42 @@ use super::point::GeodeticPoint;
 ///
 /// ```
 /// use rstar::{AABB, PointDistance, RTreeObject};
-/// use rstar::geodetic::{squared_chord, GeodeticCoord, GeodeticRTree, UnitVec};
+/// use rstar::geodetic::{arc_bounding_box, arc_distance_2, GeodeticCoord, GeodeticRTree, UnitVec};
 ///
-/// /// A custom leaf: a single lon/lat site in the unit-sphere embedding.
-/// struct Site {
-///     v: UnitVec,
+/// /// A custom leaf: a single great-circle segment between two lon/lat points.
+/// struct Segment {
+///     a: UnitVec,
+///     b: UnitVec,
 /// }
 ///
-/// impl Site {
-///     fn new(c: GeodeticCoord) -> Self {
-///         Site { v: c.into() }
+/// impl Segment {
+///     fn new(a: GeodeticCoord, b: GeodeticCoord) -> Self {
+///         Segment { a: a.into(), b: b.into() }
 ///     }
 /// }
 ///
-/// impl RTreeObject for Site {
+/// impl RTreeObject for Segment {
 ///     type Envelope = AABB<UnitVec>;
 ///     fn envelope(&self) -> AABB<UnitVec> {
-///         AABB::from_point(self.v)
+///         arc_bounding_box(self.a, self.b)
 ///     }
 /// }
 ///
-/// impl PointDistance for Site {
+/// impl PointDistance for Segment {
 ///     fn distance_2(&self, query: &UnitVec) -> f64 {
-///         squared_chord(self.v, *query)
+///         arc_distance_2(self.a, self.b, *query)
 ///     }
 /// }
 ///
-/// // `Site` now satisfies `GeodeticObject` via the blanket impl and can be indexed.
-/// let tree = GeodeticRTree::bulk_load(vec![Site::new(GeodeticCoord { lon: 0.0, lat: 0.0 })]);
+/// // `Segment` now satisfies `GeodeticObject` via the blanket impl and can be indexed.
+/// let tree = GeodeticRTree::bulk_load(vec![Segment::new(
+///     GeodeticCoord { lon: 0.0, lat: 0.0 },
+///     GeodeticCoord { lon: 10.0, lat: 0.0 },
+/// )]);
 ///
-/// // One degree of latitude north of the site: ~111 km away.
-/// let query = GeodeticCoord { lon: 0.0, lat: 1.0 };
-/// let (_site, metres) = tree.nearest_neighbor_with_distance(query).unwrap();
+/// // One degree of latitude north of the segment: nearest point is (5, 0), ~111 km away.
+/// let query = GeodeticCoord { lon: 5.0, lat: 1.0 };
+/// let (_segment, metres) = tree.nearest_neighbor_with_distance(query).unwrap();
 /// assert!((110_000.0..112_000.0).contains(&metres));
 /// ```
 pub trait GeodeticObject: RTreeObject<Envelope = AABB<UnitVec>> + PointDistance {}
