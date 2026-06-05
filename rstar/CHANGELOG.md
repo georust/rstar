@@ -1,5 +1,41 @@
 # Unreleased
 
+## Added
+- `geodetic::GeodeticLineString`: a great-circle polyline leaf for the geodetic R-tree,
+  with arc-aware bounding boxes and nearest-point distance. Built via
+  `try_from_lonlat` from `(f64, f64)` / `[f64; 2]` / `GeodeticCoord` coordinates.
+- `geodetic::GeodeticPolygon` and `geodetic::GeodeticRing`: a filled spherical-polygon
+  leaf with great-circle ray-cast membership (zero distance inside, exact via robust
+  predicates), accepting any simple polygon including ones larger than a hemisphere.
+  Ring orientation follows OGC/GeoJSON (exterior counter-clockwise as seen from outside,
+  holes clockwise) and is respected as given.
+- `GeodeticRTree` is now generic over its leaf type
+  (`GeodeticRTree<G: GeodeticObject = GeodeticPoint>`) via the open `GeodeticObject`
+  marker trait, so it indexes extent geometry as well as points. The point API is
+  unchanged: the default type parameter keeps the bare `GeodeticRTree` spelling.
+- Public great-circle primitives for downstream geodetic leaf types:
+  `geodetic::{arc_bounding_box, arc_contains_point, nearest_point_on_arc, arc_distance_2}`
+  and `geodetic::squared_chord`.
+- `geodetic::haversine_distance`, the spherical great-circle reference distance, and
+  `geodetic::EARTH_RADIUS_METRES`, the sphere radius the index embeds onto (the GRS80 mean
+  radius), exported at the module root alongside `squared_chord_to_metres` and
+  `metres_to_squared_chord`.
+- `GeodeticError::TooFewPoints`, `GeodeticError::EdgeSpansHalfCircle`, and
+  `GeodeticError::RingNotClosed` for the linestring and polygon structural
+  preconditions; infallible `From<(f64, f64)>` and `From<[f64; 2]>` for `GeodeticCoord`.
+- `geodetic-wgs84` feature: an ellipsoidal geodesic refine for the point
+  `GeodeticRTree`, layered on the spherical index as a filter/refine. The reference
+  ellipsoid is a `geodetic::Ellipsoid` value (`Ellipsoid::WGS84`, `Ellipsoid::GRS80`, or
+  a custom `Ellipsoid::new` / `from_inverse_flattening`); "WGS84" denotes the WGS84
+  reference ellipsoid, which is epoch- and realisation-independent, and no datum
+  transformation is performed. `nearest_neighbor_on_ellipsoid`,
+  `nearest_neighbor_with_distance_on_ellipsoid`, and `locate_within_distance_on_ellipsoid`
+  re-rank or filter the spherical candidates by the exact geodesic distance (Karney, via
+  `geographiclib-rs`); `geodetic::geodesic_distance(a, b, ellipsoid)` is the standalone
+  reference distance. The `_wgs84`-suffixed methods and `geodetic::geodesic_distance_wgs84`
+  are shorthands for the WGS84 ellipsoid. The feature requires `std`; the base `geodetic`
+  feature stays no_std.
+
 
 # 0.13.0
 
