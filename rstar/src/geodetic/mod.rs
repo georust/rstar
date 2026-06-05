@@ -6,7 +6,8 @@
 //! [`crate::RTree`]. That embedding is continuous over the whole sphere, so the ±180°
 //! antimeridian and the poles are ordinary interior points – no wrapping, duplication, or
 //! special cases are necessary – and nearest-neighbour ordering matches true great-circle distance.
-//! [`GeodeticRTree`] is the entry point; it indexes [`GeodeticPoint`] leaves.
+//! [`GeodeticRTree`] is the entry point; it indexes [`GeodeticPoint`],
+//! [`GeodeticLineString`], and [`GeodeticPolygon`] leaves.
 //!
 //! # Coordinates and units
 //!
@@ -62,7 +63,10 @@
 //! The unit-sphere embedding is the baseline approach in Schubert et al. (§3.1), which
 //! proves the lower-bound and strict-monotonicity properties the pruning depends on. The
 //! same embedding underlies PostGIS `geography`, Google S2, and Uber H3, so the index can
-//! be validated against independent implementations.
+//! be validated against independent implementations. Extent leaves additionally inflate
+//! each box to enclose the bulge of its great-circle arcs (after PostGIS's
+//! `edge_calculate_gbox`), and point-in-polygon is a great-circle ray cast, so any simple
+//! polygon is supported, including ones larger than a hemisphere.
 //!
 //! - Schubert, Zimek, Kriegel, "Geodetic distance queries on R-trees for indexing
 //!   geographic data", SSTD 2013, LNCS 8098, pp. 146–164
@@ -77,7 +81,9 @@ mod arc;
 mod coord;
 mod distance;
 mod embedding;
+mod linestring;
 mod point;
+mod polygon;
 mod tree;
 
 pub use arc::{arc_bounding_box, arc_contains_point, arc_distance_2, nearest_point_on_arc};
@@ -86,5 +92,7 @@ pub use distance::{
     haversine_distance, metres_to_squared_chord, squared_chord_to_metres, EARTH_RADIUS_METRES,
 };
 pub use embedding::{squared_chord, UnitVec};
+pub use linestring::GeodeticLineString;
 pub use point::GeodeticPoint;
+pub use polygon::{GeodeticPolygon, GeodeticRing};
 pub use tree::{envelope_distance_metres, GeodeticObject, GeodeticRTree};
