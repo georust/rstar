@@ -20,7 +20,8 @@ pub struct GeodeticCoord {
 }
 
 /// Error returned when a coordinate fails range validation in [`GeodeticCoord::try_new`]
-/// or [`crate::geodetic::GeodeticPoint::try_new`].
+/// or [`crate::geodetic::GeodeticPoint::try_new`], or when a geometry fails the
+/// structural preconditions in [`crate::geodetic::GeodeticLineString::try_from_lonlat`].
 ///
 /// A common source of [`GeodeticError::LatOutOfRange`] is a swapped lat/lon: any
 /// longitude with absolute value greater than `90` (most of Asia, the Pacific, and the
@@ -35,6 +36,23 @@ pub enum GeodeticError {
     LatOutOfRange(f64),
     /// Longitude or latitude was NaN or infinite.
     NotFinite,
+    /// A geometry had fewer vertices than its structure requires (a linestring needs at
+    /// least two). Carries the count `found` and the minimum `needed`.
+    TooFewPoints {
+        /// The number of distinct-position vertices supplied.
+        found: usize,
+        /// The minimum the geometry requires.
+        needed: usize,
+    },
+    /// An edge spans `180` degrees or more, so the shorter great-circle arc between its
+    /// endpoints is undefined. Carries the zero-based index of the offending edge (the
+    /// arc from vertex `index` to vertex `index + 1`). Densify such an edge first.
+    EdgeSpansHalfCircle {
+        /// The zero-based index of the edge (vertex `index` to `index + 1`).
+        index: usize,
+    },
+    /// A polygon ring's first and last vertices differ: a ring must be explicitly closed.
+    RingNotClosed,
 }
 
 impl core::fmt::Display for GeodeticError {
@@ -43,6 +61,15 @@ impl core::fmt::Display for GeodeticError {
             Self::LonOutOfRange(v) => write!(f, "longitude {v} outside [-180.0, 180.0]"),
             Self::LatOutOfRange(v) => write!(f, "latitude {v} outside [-90.0, 90.0]"),
             Self::NotFinite => write!(f, "longitude or latitude was NaN or infinite"),
+            Self::TooFewPoints { found, needed } => {
+                write!(f, "too few points: found {found}, need at least {needed}")
+            }
+            Self::EdgeSpansHalfCircle { index } => write!(
+                f,
+                "edge {index} spans 180 degrees or more; its shorter great-circle arc is \
+                 undefined (densify it first)"
+            ),
+            Self::RingNotClosed => write!(f, "polygon ring is not closed (first vertex != last)"),
         }
     }
 }
@@ -111,8 +138,9 @@ impl GeodeticCoord {
     }
 }
 
-/// Constructs from `(lon, lat)` in degrees. Infallible (no range validation); use
-/// [`GeodeticCoord::try_new`] when the input needs range-checking.
+/// Constructs from `(lon, lat)` in degrees. Infallible (no range validation); pass the
+/// result through a fallible constructor such as
+/// [`crate::geodetic::GeodeticLineString::try_from_lonlat`] to range-check it.
 impl From<(f64, f64)> for GeodeticCoord {
     fn from((lon, lat): (f64, f64)) -> Self {
         Self { lon, lat }

@@ -13,7 +13,9 @@ use super::point::GeodeticPoint;
 
 /// A type that can be indexed in a [`GeodeticRTree`]: any [`RTreeObject`] with a
 /// unit-sphere [`AABB<UnitVec>`](crate::AABB) envelope that also implements
-/// [`PointDistance`], alongside the built-in [`GeodeticPoint`].
+/// [`PointDistance`], alongside the built-in [`GeodeticPoint`],
+/// [`GeodeticLineString`](super::GeodeticLineString), and
+/// [`GeodeticPolygon`](super::GeodeticPolygon).
 ///
 /// # Building a custom leaf type
 ///
@@ -108,14 +110,17 @@ impl<T> PointLeaf for GeomWithData<GeodeticPoint, T> {
 /// see [`RTree`] for their detailed semantics and complexity.
 ///
 /// The leaf type `G` defaults to [`GeodeticPoint`], so a bare `GeodeticRTree` is a point
-/// tree; any custom [`GeodeticObject`] leaf can be indexed instead. Queries run from a
-/// query *point* against the indexed geometries:
+/// tree; line and polygon trees are `GeodeticRTree<GeodeticLineString>` and
+/// `GeodeticRTree<GeodeticPolygon>`. Queries run from a query *point* against the indexed
+/// geometries:
 ///
 /// - **Nearest-neighbour** and **radius** queries, against any leaf type, by the
-///   great-circle distance from the query point to the nearest point of each geometry.
+///   great-circle distance from the query point to the nearest point of each geometry —
+///   zero when the point is inside a polygon.
 /// - **Exact-location** and **longitude/latitude rectangle** lookups (`locate_at_point`,
 ///   [`locate_in_rectangle`](GeodeticRTree::locate_in_rectangle)), on point trees only:
-///   any [`PointLeaf`], such as `GeodeticPoint` or `GeomWithData<GeodeticPoint, T>`.
+///   any [`PointLeaf`], such as `GeodeticPoint` or `GeomWithData<GeodeticPoint, T>`; the
+///   window query is **not** currently provided for line or polygon extents.
 ///
 /// # Example
 ///

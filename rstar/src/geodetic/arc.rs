@@ -46,6 +46,13 @@ const ARC_MARGIN: f64 = 1e-12;
 /// is skipped (it would divide by a near-zero frame length).
 const DUP_C2: f64 = 1e-24;
 
+/// Squared chord at or above which an edge spans `>= ~179.96` degrees and is rejected
+/// at construction (the shorter great-circle arc is undefined and the u,v frame is
+/// ill-conditioned). Chosen so the residual no-margin box undercoverage for a still-
+/// valid edge stays below [`ARC_MARGIN`]; pinned by `prop_arc_box_contains_arc_near_180`.
+/// Consumed by linestring/ring construction, which rejects such edges.
+pub(crate) const ANTIPODAL_C2: f64 = 4.0 - 4.5e-7;
+
 /// The axis-aligned bounding box, in the unit-sphere embedding, of the shorter
 /// great-circle arc between `a` and `b`.
 ///
@@ -67,8 +74,10 @@ const DUP_C2: f64 = 1e-24;
 ///
 /// `a` and `b` must be less than 180 degrees apart, so that the *shorter* of the two
 /// great-circle arcs through them is well defined; the box is meaningless for a
-/// near-antipodal pair. The built-in extent leaf types reject such edges when they
-/// are constructed, so a direct caller is responsible for the same.
+/// near-antipodal pair. The built-in
+/// [`GeodeticLineString`](crate::geodetic::GeodeticLineString) and
+/// [`GeodeticPolygon`](crate::geodetic::GeodeticPolygon) reject such edges when they are
+/// constructed, so a direct caller is responsible for the same.
 pub fn arc_bounding_box(a: UnitVec, b: UnitVec) -> AABB<UnitVec> {
     let mut lo = [a.0[0].min(b.0[0]), a.0[1].min(b.0[1]), a.0[2].min(b.0[2])];
     let mut hi = [a.0[0].max(b.0[0]), a.0[1].max(b.0[1]), a.0[2].max(b.0[2])];

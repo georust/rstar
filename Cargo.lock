@@ -2570,6 +2570,7 @@ dependencies = [
  "num-traits",
  "rand 0.10.1",
  "rand_hc 0.5.0",
+ "robust",
  "serde",
  "serde_json",
  "smallvec",

@@ -1,6 +1,17 @@
 # Unreleased
 
 ## Added
+- `geodetic::GeodeticLineString`: a great-circle polyline leaf for the geodetic R-tree,
+  with arc-aware bounding boxes and nearest-point distance. Built via
+  `try_from_lonlat` from `(f64, f64)` / `[f64; 2]` / `GeodeticCoord` coordinates.
+- `geodetic::GeodeticPolygon` and `geodetic::GeodeticRing`: a filled spherical-polygon
+  leaf with great-circle ray-cast membership (zero distance inside, exact via robust
+  predicates), accepting any simple polygon including ones larger than a hemisphere.
+  Ring orientation follows OGC/GeoJSON (exterior counter-clockwise as seen from outside,
+  holes clockwise) and is respected as given.
+- `GeodeticError::TooFewPoints`, `GeodeticError::EdgeSpansHalfCircle`, and
+  `GeodeticError::RingNotClosed` for the linestring and polygon structural
+  preconditions.
 - Public great-circle primitives for downstream geodetic leaf types:
   `geodetic::{arc_bounding_box, arc_contains_point, nearest_point_on_arc,
   arc_distance_2}`.
