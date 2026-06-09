@@ -91,6 +91,7 @@ mod tests {
     use super::*;
     use crate::geodetic::embedding::squared_chord;
     use approx::assert_relative_eq;
+    use hegel::generators;
 
     fn coord(lon: f64, lat: f64) -> GeodeticCoord {
         GeodeticCoord { lon, lat }
@@ -202,5 +203,59 @@ mod tests {
             );
             prev = c2;
         }
+    }
+
+    // --- property tests, driven by Hegel ---
+
+    #[hegel::test(test_cases = 5000)]
+    fn prop_metres_chord_round_trip(tc: hegel::TestCase) {
+        let r = tc.draw(
+            generators::floats::<f64>()
+                .min_value(0.0)
+                .max_value(HALF_CIRCUMFERENCE),
+        );
+        let back = squared_chord_to_metres(metres_to_squared_chord(r));
+        // Near the antipode (r ≈ π·R) the chord->angle inversion via asin is
+        // ill-conditioned because sin(d/2) is flat near 1, so allow a tolerance
+        // that scales with r (a few mm at half-circumference).
+        let tol = 1e-3 + r * 1e-9;
+        assert!(
+            (back - r).abs() <= tol,
+            "round trip diverged: r={r} back={back}"
+        );
+    }
+
+    #[hegel::test(test_cases = 5000)]
+    fn prop_chord_to_metres_matches_haversine(tc: hegel::TestCase) {
+        let a = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(-180.0)
+                    .max_value(180.0),
+            ),
+            tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0)),
+        );
+        let b = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(-180.0)
+                    .max_value(180.0),
+            ),
+            tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0)),
+        );
+        let c2 = squared_chord(a.to_unit_vector(), b.to_unit_vector());
+        let from_chord = squared_chord_to_metres(c2);
+        let from_haversine = haversine_distance(a, b);
+        // Tolerance scales with distance: near the antipode both conversions go
+        // through a flat asin and diverge by a few mm.
+        let tol = 1e-3 + from_haversine * 1e-9;
+        assert!(
+            (from_chord - from_haversine).abs() <= tol,
+            "chord={from_chord} haversine={from_haversine}; a=({},{}) b=({},{})",
+            a.lon,
+            a.lat,
+            b.lon,
+            b.lat
+        );
     }
 }

@@ -784,6 +784,7 @@ mod tests {
 #[cfg(all(test, feature = "geodetic-wgs84"))]
 mod spheroid_tests {
     use approx::assert_relative_eq;
+    use hegel::{generators, TestCase};
 
     use super::GeodeticRTree;
     use crate::geodetic::{
@@ -792,6 +793,24 @@ mod spheroid_tests {
 
     fn coord(lon: f64, lat: f64) -> GeodeticCoord {
         GeodeticCoord { lon, lat }
+    }
+
+    fn draw_lon(tc: &TestCase) -> f64 {
+        tc.draw(
+            generators::floats::<f64>()
+                .min_value(-180.0)
+                .max_value(180.0),
+        )
+    }
+
+    fn draw_lat(tc: &TestCase) -> f64 {
+        tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0))
+    }
+
+    fn draw_points(tc: &TestCase, n: usize) -> Vec<GeodeticPoint> {
+        (0..n)
+            .map(|_| GeodeticPoint::new(draw_lon(tc), draw_lat(tc)))
+            .collect()
     }
 
     #[test]
@@ -869,5 +888,65 @@ mod spheroid_tests {
             .locate_within_distance_on_ellipsoid(query, 100_000.0, Ellipsoid::WGS84)
             .collect();
         assert_eq!(wgs_within, ell_within);
+    }
+
+    /// The branch-and-bound refine returns the same nearest as a brute-force geodesic
+    /// scan: this exercises the spherical-filter / geodesic-refine pruning, the part
+    /// the spherical lower bound has to get right. (The geodesic distance value itself
+    /// is anchored to textbook ellipsoid figures in `spheroid::tests`.)
+    #[hegel::test(test_cases = 300)]
+    fn prop_nn_wgs84_matches_geodesic_linear_scan(tc: TestCase) {
+        let n = (tc.draw(generators::floats::<f64>().min_value(1.0).max_value(30.99)) as usize)
+            .clamp(1, 30);
+        let points = draw_points(&tc, n);
+        let query = coord(draw_lon(&tc), draw_lat(&tc));
+        let tree = GeodeticRTree::bulk_load(points.clone());
+
+        let (_, tree_metres) = tree
+            .nearest_neighbor_with_distance_wgs84(query)
+            .expect("non-empty");
+        let scan = points
+            .iter()
+            .map(|p| geodesic_distance_wgs84(query, p.coord()))
+            .fold(f64::INFINITY, f64::min);
+        let tol = 1e-3 + scan * 1e-9;
+        assert!(
+            (tree_metres - scan).abs() <= tol,
+            "wgs84 NN {tree_metres} != geodesic scan best {scan}"
+        );
+    }
+
+    /// The radius refine returns exactly the brute-force geodesic in-range set: the
+    /// inflated spherical fetch must drop nothing it should keep.
+    #[hegel::test(test_cases = 300)]
+    fn prop_locate_within_distance_wgs84_matches_scan(tc: TestCase) {
+        let n = (tc.draw(generators::floats::<f64>().min_value(1.0).max_value(40.99)) as usize)
+            .clamp(1, 40);
+        let points = draw_points(&tc, n);
+        let query = coord(draw_lon(&tc), draw_lat(&tc));
+        let radius = tc.draw(
+            generators::floats::<f64>()
+                .min_value(0.0)
+                .max_value(10_000_000.0),
+        );
+        let tree = GeodeticRTree::bulk_load(points.clone());
+
+        let key = |c: &GeodeticCoord| (c.lon.to_bits(), c.lat.to_bits());
+        let mut from_tree: Vec<GeodeticCoord> = tree
+            .locate_within_distance_wgs84(query, radius)
+            .map(|p| p.coord())
+            .collect();
+        let mut from_scan: Vec<GeodeticCoord> = points
+            .iter()
+            .filter(|p| geodesic_distance_wgs84(query, p.coord()) <= radius)
+            .map(|p| p.coord())
+            .collect();
+        from_tree.sort_by_key(key);
+        from_scan.sort_by_key(key);
+        assert_eq!(
+            from_tree, from_scan,
+            "wgs84 radius set != geodesic scan; query=({},{}) radius={radius}",
+            query.lon, query.lat
+        );
     }
 }

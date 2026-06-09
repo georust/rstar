@@ -5,7 +5,7 @@
 //! These exercise nearest-neighbour correctness against a brute-force scan, sorted
 //! iterator ordering, and the previously-impossible edge cases the 2D design could
 //! not handle: the antimeridian, the poles, antipodal points, and coincident
-//! points.
+//! points. The rand-driven scans complement the Hegel property tests.
 
 use approx::assert_relative_eq;
 use rand::rngs::StdRng;

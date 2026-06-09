@@ -199,7 +199,9 @@ pub fn geodesic_distance_wgs84(a: GeodeticCoord, b: GeodeticCoord) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::geodetic::distance::haversine_distance;
     use approx::assert_relative_eq;
+    use hegel::generators;
 
     fn coord(lon: f64, lat: f64) -> GeodeticCoord {
         GeodeticCoord { lon, lat }
@@ -300,6 +302,105 @@ mod tests {
     }
 
     // --- the soundness margin, validated against geographiclib-rs ---
+
+    /// The relative deviation between the spherical and WGS84 geodesic distance for a
+    /// pair stays within [`GEODESIC_SPHERICAL_MAX_REL_ERROR`]. This is the assumption
+    /// the refine's lower bound and radius inflation rely on; if `geographiclib-rs`
+    /// ever disagreed past the margin, the refine would be unsound.
+    #[hegel::test(test_cases = 10000)]
+    fn prop_geodesic_within_margin_of_spherical(tc: hegel::TestCase) {
+        let a = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(-180.0)
+                    .max_value(180.0),
+            ),
+            tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0)),
+        );
+        let b = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(-180.0)
+                    .max_value(180.0),
+            ),
+            tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0)),
+        );
+        let spherical = haversine_distance(a, b);
+        // Skip sub-kilometre pairs: the ratio is well defined but the division is noisy
+        // as both distances approach zero, and the bound there is the same local
+        // radius-of-curvature ratio as for short arcs.
+        if spherical < 1_000.0 {
+            return;
+        }
+        let geodesic = geodesic_distance_wgs84(a, b);
+        let rel = (geodesic / spherical - 1.0).abs();
+        assert!(
+            rel < GEODESIC_SPHERICAL_MAX_REL_ERROR,
+            "geodesic/spherical deviation {rel} exceeds margin {GEODESIC_SPHERICAL_MAX_REL_ERROR}; \
+             a=({},{}) b=({},{}) spherical={spherical} geodesic={geodesic}",
+            a.lon,
+            a.lat,
+            b.lon,
+            b.lat
+        );
+    }
+
+    /// `geodesic_spherical_margin` stays sound across the family of terrestrial
+    /// ellipsoids, not just WGS84: for any pair and any ellipsoid in the published
+    /// range (equatorial radius and inverse flattening spanning the standard figures),
+    /// the spherical/geodesic deviation stays within the margin the function returns.
+    /// This is what lets `Ellipsoid::new` callers keep the filter/refine sound.
+    #[hegel::test(test_cases = 4000)]
+    fn prop_margin_bounds_deviation_for_any_terrestrial_ellipsoid(tc: hegel::TestCase) {
+        // Bounds enclosing every standard terrestrial ellipsoid (Airy, Bessel, Clarke,
+        // International, Krasovsky, GRS80, WGS84).
+        let ellipsoid = Ellipsoid::from_inverse_flattening(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(6_377_000.0)
+                    .max_value(6_378_400.0),
+            ),
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(294.0)
+                    .max_value(300.0),
+            ),
+        );
+        let a = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(-180.0)
+                    .max_value(180.0),
+            ),
+            tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0)),
+        );
+        let b = coord(
+            tc.draw(
+                generators::floats::<f64>()
+                    .min_value(-180.0)
+                    .max_value(180.0),
+            ),
+            tc.draw(generators::floats::<f64>().min_value(-90.0).max_value(90.0)),
+        );
+        let spherical = haversine_distance(a, b);
+        if spherical < 1_000.0 {
+            return;
+        }
+        let geodesic = geodesic_distance(a, b, ellipsoid);
+        let rel = (geodesic / spherical - 1.0).abs();
+        let margin = geodesic_spherical_margin(ellipsoid);
+        assert!(
+            rel < margin,
+            "deviation {rel} exceeds margin {margin}; a=({},{}) b=({},{}) \
+             ellipsoid=({}, 1/{})",
+            a.lon,
+            a.lat,
+            b.lon,
+            b.lat,
+            ellipsoid.equatorial_radius,
+            1.0 / ellipsoid.flattening
+        );
+    }
 
     #[test]
     fn lower_bound_and_fetch_bracket_the_spherical_distance() {
