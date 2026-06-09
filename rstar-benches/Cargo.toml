@@ -9,8 +9,26 @@ rust-version = "1.68"
 criterion = { version = "0.8", features = ["html_reports"] }
 rand = "0.10"
 rand_hc = "0.5"
-rstar = { path = "../rstar" }
+rstar = { path = "../rstar", features = ["geodetic"] }
+
+[features]
+# Enables the WGS84 ellipsoidal refine path (and its `geographiclib-rs` dependency)
+# for the `geodetic_wgs84` bench only; the default benches stay geographiclib-free.
+wgs84 = ["rstar/geodetic-wgs84"]
 
 [[bench]]
 name = "benchmarks"
 harness = false
+
+[[bench]]
+name = "geodetic"
+harness = false
+
+[[bench]]
+name = "geodetic_extent"
+harness = false
+
+[[bench]]
+name = "geodetic_wgs84"
+harness = false
+required-features = ["wgs84"]
