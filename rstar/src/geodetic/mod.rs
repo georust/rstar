@@ -73,6 +73,7 @@
 //!   [`lwgeodetic.c`](https://github.com/postgis/postgis/blob/master/liblwgeom/lwgeodetic.c),
 //!   and [Uber H3](https://h3geo.org/).
 
+mod arc;
 mod coord;
 mod distance;
 mod embedding;
@@ -91,6 +92,7 @@ pub(crate) fn clamp_unit(x: f64) -> f64 {
     x.clamp(-1.0, 1.0)
 }
 
+pub use arc::{arc_bounding_box, arc_contains_point, arc_distance_2, nearest_point_on_arc};
 pub use coord::{GeodeticCoord, GeodeticError};
 pub use distance::{
     haversine_distance, metres_to_squared_chord, squared_chord_to_metres, EARTH_RADIUS_METRES,

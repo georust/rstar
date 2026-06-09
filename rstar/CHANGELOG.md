@@ -1,6 +1,9 @@
 # Unreleased
 
 ## Added
+- Public great-circle primitives for downstream geodetic leaf types:
+  `geodetic::{arc_bounding_box, arc_contains_point, nearest_point_on_arc,
+  arc_distance_2}`.
 - `geodetic::GeodeticRTree`: a great-circle point index over the unit-sphere
   embedding, with nearest-neighbour (`nearest_neighbor`,
   `nearest_neighbor_with_distance`, returning metres), radius
