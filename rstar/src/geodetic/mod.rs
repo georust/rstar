@@ -20,7 +20,17 @@
 //! # Earth model
 //!
 //! Distances use a **spherical** Earth (the GRS80 mean radius, 6 371 008.8 m, matching
-//! `geo::MEAN_EARTH_RADIUS`); against an ellipsoid the error is at most about 0.5%.
+//! `geo::MEAN_EARTH_RADIUS`); against an ellipsoid the error is at most about 0.5%. For
+//! exact ellipsoidal distances on the point tree, enable the optional `geodetic-wgs84`
+//! feature: it adds `nearest_neighbor_with_distance_on_ellipsoid` and
+//! `locate_within_distance_on_ellipsoid` (Karney's geodesic, via `geographiclib-rs`),
+//! their `_wgs84` shorthands, and the standalone `geodesic_distance`. That feature
+//! requires `std`; the base is no_std.
+//!
+//! The ellipsoid is chosen with an `Ellipsoid` value: `Ellipsoid::WGS84` (the default),
+//! `Ellipsoid::GRS80`, or a custom `Ellipsoid::new`. "WGS84" here denotes the WGS84
+//! reference *ellipsoid*, a geometric surface fixed by `a = 6 378 137.0 m` and
+//! `1/f = 298.257 223 563`.
 //!
 //! # Window queries
 //!
@@ -84,6 +94,8 @@ mod embedding;
 mod linestring;
 mod point;
 mod polygon;
+#[cfg(feature = "geodetic-wgs84")]
+mod spheroid;
 mod tree;
 
 /// Clamps a sine/cosine value to the `asin`/`acos` domain `[-1, 1]`.
@@ -107,4 +119,6 @@ pub use embedding::{squared_chord, UnitVec};
 pub use linestring::GeodeticLineString;
 pub use point::GeodeticPoint;
 pub use polygon::{GeodeticPolygon, GeodeticRing};
+#[cfg(feature = "geodetic-wgs84")]
+pub use spheroid::{geodesic_distance, geodesic_distance_wgs84, Ellipsoid};
 pub use tree::{envelope_distance_metres, GeodeticObject, GeodeticRTree, PointLeaf};

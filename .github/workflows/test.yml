@@ -33,6 +33,7 @@ jobs:
       - run: cargo test --package rstar
       - run: cargo test --package rstar --features geodetic
       - run: cargo test --package rstar --features "geodetic serde"
+      - run: cargo test --package rstar --features geodetic-wgs84
 
   check:
     name: Rustfmt and Clippy check
@@ -52,6 +53,8 @@ jobs:
         run: cargo clippy --workspace --exclude rstar-demo --tests
       - name: Lint geodetic feature using Clippy
         run: cargo clippy --package rstar --features geodetic --all-targets -- -D warnings
+      - name: Lint geodetic-wgs84 feature using Clippy
+        run: cargo clippy --package rstar --features geodetic-wgs84 --all-targets -- -D warnings
 
   check_aux:
     # Informational only: these crates aren't published, and their dependencies

@@ -10,6 +10,11 @@ use super::coord::GeodeticCoord;
 use super::distance::{metres_to_squared_chord, squared_chord_to_metres};
 use super::embedding::{rectangle_bounding_box, rectangle_contains, UnitVec};
 use super::point::GeodeticPoint;
+#[cfg(feature = "geodetic-wgs84")]
+use super::spheroid::{
+    geodesic_metres, geodesic_spherical_margin, geoid_for, radius_fetch_metres,
+    spherical_lower_bound_metres, Ellipsoid,
+};
 
 /// A type that can be indexed in a [`GeodeticRTree`]: any [`RTreeObject`] with a
 /// unit-sphere [`AABB<UnitVec>`](crate::AABB) envelope that also implements
@@ -397,6 +402,188 @@ impl<P: PointLeaf> GeodeticRTree<P> {
     }
 }
 
+/// Ellipsoidal geodesic refine for point trees, on any [`PointLeaf`] (the `geodetic-wgs84` feature).
+///
+/// The spherical index yields candidates ordered by great-circle distance; these
+/// methods re-rank or filter them by the exact geodesic distance on a reference
+/// [`Ellipsoid`] (Karney, via `geographiclib-rs`). The spherical distance, deflated by a
+/// margin derived from the ellipsoid, is a sound lower bound on the geodesic distance,
+/// so the branch-and-bound search stays correct: nearest neighbour never stops early
+/// and a radius query never drops an in-range point.
+///
+/// The `*_on_ellipsoid` methods take the ellipsoid explicitly; the `*_wgs84` methods are
+/// the [`Ellipsoid::WGS84`] case. "WGS84" denotes the WGS84 reference *ellipsoid*, which
+/// is epoch- and realisation-independent (see the [module docs](super)); these methods
+/// perform no datum transformation.
+#[cfg(feature = "geodetic-wgs84")]
+impl<P: PointLeaf> GeodeticRTree<P> {
+    /// Returns the geodesic nearest point to `query` on `ellipsoid`, or `None` if the
+    /// tree is empty. See [`Self::nearest_neighbor_with_distance_on_ellipsoid`] for the
+    /// metric.
+    pub fn nearest_neighbor_on_ellipsoid(
+        &self,
+        query: GeodeticCoord,
+        ellipsoid: Ellipsoid,
+    ) -> Option<&P> {
+        self.nearest_neighbor_with_distance_on_ellipsoid(query, ellipsoid)
+            .map(|(point, _)| point)
+    }
+
+    /// Returns the geodesic nearest point to `query` on `ellipsoid` together with its
+    /// geodesic distance in **metres**, or `None` if the tree is empty.
+    ///
+    /// Candidates are visited in spherical-distance order and refined to the geodesic
+    /// distance; the walk stops once the next candidate's geodesic lower bound exceeds
+    /// the best distance found, so only points that could win are measured on the
+    /// ellipsoid.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use rstar::geodetic::{Ellipsoid, GeodeticRTree, GeodeticCoord, GeodeticPoint};
+    ///
+    /// let tree = GeodeticRTree::bulk_load(vec![
+    ///     GeodeticPoint::new(2.3522, 48.8566),  // Paris
+    ///     GeodeticPoint::new(13.4050, 52.5200), // Berlin
+    /// ]);
+    ///
+    /// let query = GeodeticCoord { lon: 2.0, lat: 49.0 };
+    /// let (nearest, metres) = tree
+    ///     .nearest_neighbor_with_distance_on_ellipsoid(query, Ellipsoid::GRS80)
+    ///     .unwrap();
+    ///
+    /// assert_eq!(nearest.coord().lon, 2.3522); // Paris is nearest
+    /// assert!(metres < 35_000.0);
+    /// ```
+    pub fn nearest_neighbor_with_distance_on_ellipsoid(
+        &self,
+        query: GeodeticCoord,
+        ellipsoid: Ellipsoid,
+    ) -> Option<(&P, f64)> {
+        let geoid = geoid_for(ellipsoid);
+        let margin = geodesic_spherical_margin(ellipsoid);
+        let mut best: Option<(&P, f64)> = None;
+        for (point, c2) in self
+            .inner
+            .nearest_neighbor_iter_with_distance_2(UnitVec::from(query))
+        {
+            if let Some((_, best_metres)) = best {
+                // Candidates arrive in non-decreasing spherical distance, so every
+                // remaining one has a geodesic distance of at least this lower bound.
+                if spherical_lower_bound_metres(squared_chord_to_metres(c2), margin) > best_metres {
+                    break;
+                }
+            }
+            let metres = geodesic_metres(&geoid, query, point.coord());
+            match best {
+                Some((_, best_metres)) if metres >= best_metres => {}
+                _ => best = Some((point, metres)),
+            }
+        }
+        best
+    }
+
+    /// Returns every point within `radius_metres` geodesic metres of `query` on
+    /// `ellipsoid`, in arbitrary order.
+    ///
+    /// The spherical filter fetches a superset (the radius widened by the margin), and
+    /// each candidate is kept only if its exact geodesic distance is within
+    /// `radius_metres`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use rstar::geodetic::{Ellipsoid, GeodeticRTree, GeodeticCoord, GeodeticPoint};
+    ///
+    /// let tree = GeodeticRTree::bulk_load(vec![
+    ///     GeodeticPoint::new(2.3522, 48.8566),  // Paris
+    ///     GeodeticPoint::new(13.4050, 52.5200), // Berlin
+    /// ]);
+    ///
+    /// // Within 100 km of a point near Paris: Paris only, Berlin is ~900 km away.
+    /// let query = GeodeticCoord { lon: 2.0, lat: 49.0 };
+    /// let within: Vec<_> = tree
+    ///     .locate_within_distance_on_ellipsoid(query, 100_000.0, Ellipsoid::GRS80)
+    ///     .collect();
+    ///
+    /// assert_eq!(within.len(), 1);
+    /// assert_eq!(within[0].coord().lon, 2.3522); // Paris
+    /// ```
+    pub fn locate_within_distance_on_ellipsoid(
+        &self,
+        query: GeodeticCoord,
+        radius_metres: f64,
+        ellipsoid: Ellipsoid,
+    ) -> impl Iterator<Item = &P> + '_ {
+        let geoid = geoid_for(ellipsoid);
+        let margin = geodesic_spherical_margin(ellipsoid);
+        let threshold = metres_to_squared_chord(radius_fetch_metres(radius_metres, margin));
+        self.inner
+            .locate_within_distance(UnitVec::from(query), threshold)
+            .filter(move |point| geodesic_metres(&geoid, query, point.coord()) <= radius_metres)
+    }
+
+    /// Returns the WGS84-ellipsoid geodesic nearest point to `query`, or `None` if the
+    /// tree is empty; [`Self::nearest_neighbor_on_ellipsoid`] on [`Ellipsoid::WGS84`].
+    pub fn nearest_neighbor_wgs84(&self, query: GeodeticCoord) -> Option<&P> {
+        self.nearest_neighbor_on_ellipsoid(query, Ellipsoid::WGS84)
+    }
+
+    /// Returns the WGS84-ellipsoid geodesic nearest point to `query` with its geodesic
+    /// distance in **metres**, or `None` if the tree is empty;
+    /// [`Self::nearest_neighbor_with_distance_on_ellipsoid`] on [`Ellipsoid::WGS84`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use rstar::geodetic::{GeodeticRTree, GeodeticCoord, GeodeticPoint};
+    ///
+    /// let tree = GeodeticRTree::bulk_load(vec![
+    ///     GeodeticPoint::new(2.3522, 48.8566),  // Paris
+    ///     GeodeticPoint::new(13.4050, 52.5200), // Berlin
+    /// ]);
+    ///
+    /// let query = GeodeticCoord { lon: 2.0, lat: 49.0 };
+    /// let (nearest, metres) = tree.nearest_neighbor_with_distance_wgs84(query).unwrap();
+    ///
+    /// assert_eq!(nearest.coord().lon, 2.3522); // Paris is nearest
+    /// // Exact WGS84-ellipsoid geodesic metres, not the spherical approximation.
+    /// assert!(metres < 35_000.0);
+    /// ```
+    pub fn nearest_neighbor_with_distance_wgs84(&self, query: GeodeticCoord) -> Option<(&P, f64)> {
+        self.nearest_neighbor_with_distance_on_ellipsoid(query, Ellipsoid::WGS84)
+    }
+
+    /// Returns every point within `radius_metres` WGS84-ellipsoid geodesic metres of
+    /// `query`, in arbitrary order;
+    /// [`Self::locate_within_distance_on_ellipsoid`] on [`Ellipsoid::WGS84`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use rstar::geodetic::{GeodeticRTree, GeodeticCoord, GeodeticPoint};
+    ///
+    /// let tree = GeodeticRTree::bulk_load(vec![
+    ///     GeodeticPoint::new(2.3522, 48.8566),  // Paris
+    ///     GeodeticPoint::new(13.4050, 52.5200), // Berlin
+    /// ]);
+    ///
+    /// // Within 100 km of a point near Paris: Paris only, Berlin is ~900 km away.
+    /// let query = GeodeticCoord { lon: 2.0, lat: 49.0 };
+    /// let within: Vec<_> = tree.locate_within_distance_wgs84(query, 100_000.0).collect();
+    ///
+    /// assert_eq!(within.len(), 1);
+    /// assert_eq!(within[0].coord().lon, 2.3522); // Paris
+    /// ```
+    pub fn locate_within_distance_wgs84(
+        &self,
+        query: GeodeticCoord,
+        radius_metres: f64,
+    ) -> impl Iterator<Item = &P> + '_ {
+        self.locate_within_distance_on_ellipsoid(query, radius_metres, Ellipsoid::WGS84)
+    }
+}
+
 /// Great-circle metres from `query` to the nearest point of a node `envelope`
 /// encountered during [`GeodeticRTree::root`] traversal.
 ///
@@ -591,5 +778,96 @@ mod tests {
                 .count(),
             0
         );
+    }
+}
+
+#[cfg(all(test, feature = "geodetic-wgs84"))]
+mod spheroid_tests {
+    use approx::assert_relative_eq;
+
+    use super::GeodeticRTree;
+    use crate::geodetic::{
+        geodesic_distance, geodesic_distance_wgs84, Ellipsoid, GeodeticCoord, GeodeticPoint,
+    };
+
+    fn coord(lon: f64, lat: f64) -> GeodeticCoord {
+        GeodeticCoord { lon, lat }
+    }
+
+    #[test]
+    fn nearest_neighbor_wgs84_returns_nearest_with_geodesic_distance() {
+        let london = GeodeticPoint::new(-0.1278, 51.5074);
+        let paris = GeodeticPoint::new(2.3522, 48.8566);
+        let berlin = GeodeticPoint::new(13.4050, 52.5200);
+        let madrid = GeodeticPoint::new(-3.7038, 40.4168);
+        let tree = GeodeticRTree::bulk_load(vec![london, paris, berlin, madrid]);
+
+        let query = coord(2.0, 49.0);
+        let (nn, metres) = tree
+            .nearest_neighbor_with_distance_wgs84(query)
+            .expect("non-empty");
+        assert_eq!(*nn, paris);
+        assert_relative_eq!(
+            metres,
+            geodesic_distance_wgs84(query, paris.coord()),
+            epsilon = 1e-6
+        );
+    }
+
+    #[test]
+    fn empty_tree_wgs84_queries_are_empty() {
+        let tree: GeodeticRTree = GeodeticRTree::new();
+        assert!(tree.nearest_neighbor_wgs84(coord(0.0, 0.0)).is_none());
+        assert!(tree
+            .nearest_neighbor_with_distance_wgs84(coord(0.0, 0.0))
+            .is_none());
+        assert_eq!(
+            tree.locate_within_distance_wgs84(coord(0.0, 0.0), 1e6)
+                .count(),
+            0
+        );
+    }
+
+    /// The `*_wgs84` methods are exactly their `*_on_ellipsoid` counterparts on
+    /// [`Ellipsoid::WGS84`], and a different ellipsoid still returns the same nearest
+    /// point (the ranking is unchanged at this scale) with a distance matching a direct
+    /// geodesic computation on that ellipsoid.
+    #[test]
+    fn ellipsoid_methods_agree_with_wgs84_wrappers() {
+        let london = GeodeticPoint::new(-0.1278, 51.5074);
+        let paris = GeodeticPoint::new(2.3522, 48.8566);
+        let berlin = GeodeticPoint::new(13.4050, 52.5200);
+        let madrid = GeodeticPoint::new(-3.7038, 40.4168);
+        let tree = GeodeticRTree::bulk_load(vec![london, paris, berlin, madrid]);
+        let query = coord(2.0, 49.0);
+
+        let (wgs_nn, wgs_metres) = tree
+            .nearest_neighbor_with_distance_wgs84(query)
+            .expect("non-empty");
+        let (ell_nn, ell_metres) = tree
+            .nearest_neighbor_with_distance_on_ellipsoid(query, Ellipsoid::WGS84)
+            .expect("non-empty");
+        assert_eq!(wgs_nn, ell_nn);
+        assert_eq!(wgs_metres, ell_metres);
+
+        // A different ellipsoid: same nearest, distance matching a direct geodesic.
+        let (grs_nn, grs_metres) = tree
+            .nearest_neighbor_with_distance_on_ellipsoid(query, Ellipsoid::GRS80)
+            .expect("non-empty");
+        assert_eq!(*grs_nn, paris);
+        assert_relative_eq!(
+            grs_metres,
+            geodesic_distance(query, paris.coord(), Ellipsoid::GRS80),
+            epsilon = 1e-6
+        );
+
+        // The radius wrapper agrees with the ellipsoid form on WGS84.
+        let wgs_within: Vec<_> = tree
+            .locate_within_distance_wgs84(query, 100_000.0)
+            .collect();
+        let ell_within: Vec<_> = tree
+            .locate_within_distance_on_ellipsoid(query, 100_000.0, Ellipsoid::WGS84)
+            .collect();
+        assert_eq!(wgs_within, ell_within);
     }
 }

@@ -1,6 +1,18 @@
 # Unreleased
 
 ## Added
+- `geodetic-wgs84` feature: an ellipsoidal geodesic refine for the point
+  `GeodeticRTree`, layered on the spherical index as a filter/refine. The reference
+  ellipsoid is a `geodetic::Ellipsoid` value (`Ellipsoid::WGS84`, `Ellipsoid::GRS80`, or
+  a custom `Ellipsoid::new` / `from_inverse_flattening`); "WGS84" denotes the WGS84
+  reference ellipsoid, which is epoch- and realisation-independent, and no datum
+  transformation is performed. `nearest_neighbor_on_ellipsoid`,
+  `nearest_neighbor_with_distance_on_ellipsoid`, and `locate_within_distance_on_ellipsoid`
+  re-rank or filter the spherical candidates by the exact geodesic distance (Karney, via
+  `geographiclib-rs`); `geodetic::geodesic_distance(a, b, ellipsoid)` is the standalone
+  reference distance. The `_wgs84`-suffixed methods and `geodetic::geodesic_distance_wgs84`
+  are shorthands for the WGS84 ellipsoid. The feature requires `std`; the base `geodetic`
+  feature stays no_std.
 - `geodetic::GeodeticLineString`: a great-circle polyline leaf for the geodetic R-tree,
   with arc-aware bounding boxes and nearest-point distance. Built via
   `try_from_lonlat` from `(f64, f64)` / `[f64; 2]` / `GeodeticCoord` coordinates.
