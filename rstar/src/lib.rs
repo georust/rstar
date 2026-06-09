@@ -13,10 +13,12 @@
 //! An [RTree] treats coordinates as Cartesian, so on raw longitude/latitude pairs it
 //! measures distance in degrees – which understates distances near the poles and is
 //! meaningless across the ±180° antimeridian. It is **not suitable for storing and querying geodetic coordinates**.
-//! Enable the `geodetic` feature if you require a lon-lat-capable index: the
-//! `geodetic` module embeds each `(lon, lat)` point on the unit sphere, so the
-//! antimeridian and the poles are ordinary interior points and distances are
-//! great-circle metres.
+//! Enable the `geodetic` feature if you require a lon-lat-capable index:
+//! `GeodeticRTree` in the `geodetic` module embeds each `(lon, lat)` point on
+//! the unit sphere, so **all distances are true great-circle metres** –
+//! nearest-neighbour results can include the distance in metres and radius
+//! queries take their radius in metres – and the antimeridian and the poles
+//! are ordinary interior points.
 //!
 //! # Further documentation
 //! The crate's main data structure and documentation is the [RTree] struct.

@@ -1,6 +1,15 @@
 # Unreleased
 
 ## Added
+- `geodetic::GeodeticRTree`: a great-circle point index over the unit-sphere
+  embedding, with nearest-neighbour (`nearest_neighbor`,
+  `nearest_neighbor_with_distance`, returning metres), radius
+  (`locate_within_distance`), exact-location, and longitude/latitude window
+  (`locate_in_rectangle`) queries. The antimeridian and the poles are ordinary
+  interior points. `geodetic::GeodeticPoint` is the leaf type, and the tree is
+  generic over leaves via the open `geodetic::GeodeticObject` marker trait. The
+  point-only queries are available on any `geodetic::PointLeaf`, so a
+  `GeomWithData<GeodeticPoint, T>` tree keeps them.
 - `geodetic` feature: the unit-sphere embedding foundation for geodetic
   (longitude/latitude) indexing. Adds the `geodetic` module with
   `GeodeticCoord` (degrees, longitude first), validation via

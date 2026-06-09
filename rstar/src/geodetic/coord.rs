@@ -19,7 +19,8 @@ pub struct GeodeticCoord {
     pub lat: f64,
 }
 
-/// Error returned when a coordinate fails range validation in [`GeodeticCoord::try_new`].
+/// Error returned when a coordinate fails range validation in [`GeodeticCoord::try_new`]
+/// or [`crate::geodetic::GeodeticPoint::try_new`].
 ///
 /// A common source of [`GeodeticError::LatOutOfRange`] is a swapped lat/lon: any
 /// longitude with absolute value greater than `90` (most of Asia, the Pacific, and the
