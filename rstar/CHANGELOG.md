@@ -1,5 +1,13 @@
 # Unreleased
 
+## Added
+- `geodetic` feature: the unit-sphere embedding foundation for geodetic
+  (longitude/latitude) indexing. Adds the `geodetic` module with
+  `GeodeticCoord` (degrees, longitude first), validation via
+  `GeodeticCoord::try_new` and `GeodeticError`, infallible `From<(f64, f64)>`
+  and `From<[f64; 2]>` conversions, the `UnitVec` n-vector embedding, and the
+  great-circle distance helpers `haversine_distance`, `EARTH_RADIUS_METRES`,
+  `squared_chord`, `squared_chord_to_metres`, and `metres_to_squared_chord`.
 
 # 0.13.0
 

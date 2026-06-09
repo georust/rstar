@@ -31,6 +31,8 @@ jobs:
         with:
           key: test
       - run: cargo test --package rstar
+      - run: cargo test --package rstar --features geodetic
+      - run: cargo test --package rstar --features "geodetic serde"
 
   check:
     name: Rustfmt and Clippy check
@@ -48,6 +50,8 @@ jobs:
         run: cargo fmt --all --check
       - name: Lint using Clippy
         run: cargo clippy --workspace --exclude rstar-demo --tests
+      - name: Lint geodetic feature using Clippy
+        run: cargo clippy --package rstar --features geodetic --all-targets -- -D warnings
 
   check_aux:
     # Informational only: these crates aren't published, and their dependencies
@@ -100,6 +104,8 @@ jobs:
           key: no-std-${{env.NO_STD_TARGET}}
       - name: Run cargo build for ${{env.NO_STD_TARGET}}
         run: cargo build --package rstar --target ${{env.NO_STD_TARGET}}
+      - name: Run cargo build for ${{env.NO_STD_TARGET}} with geodetic feature
+        run: cargo build --package rstar --features geodetic --target ${{env.NO_STD_TARGET}}
 
   conclusion:
     needs:

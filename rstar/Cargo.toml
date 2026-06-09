@@ -15,6 +15,11 @@ categories = ["data-structures", "algorithms", "science::geo"]
 [badges]
 maintenance = { status = "actively-developed" }
 
+# docs.rs builds with default features unless told otherwise; enable everything so
+# the feature-gated modules (geodetic, mint) are documented.
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 heapless = { version = "0.8", default-features = false }
 num-traits = { version = "0.2", default-features = false, features = ["libm"] }
@@ -25,6 +30,7 @@ mint = { version = "0.5.9", optional = true }
 [features]
 default = []
 debug = []
+geodetic = []
 
 [dev-dependencies]
 rand = "0.10"
