@@ -1,3 +1,5 @@
 target
 Cargo.lock
 .idea
+# Hegel property-testing local state (server logs + failure database)
+.hegel/
