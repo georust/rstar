@@ -109,7 +109,8 @@ pub enum RenderData {
     TwoD(Vec<two_d::LineRenderData2D>),
 }
 
-fn main() {
+#[kiss3d::main]
+async fn main() {
     const WINDOW_WIDTH: u32 = 1024;
     const WINDOW_HEIGHT: u32 = 768;
     let mut window = Window::new_with_size("RStar demo", WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -121,7 +122,10 @@ fn main() {
 
     let mut render_data = create_render_data_from_scene(&scene);
 
-    while window.render_with_cameras(&mut scene.camera_3d, &mut scene.camera_2d) {
+    while window
+        .render_with_cameras(&mut scene.camera_3d, &mut scene.camera_2d)
+        .await
+    {
         render_data = handle_input(&window, &mut scene).unwrap_or(render_data);
         draw_tree(&mut window, &render_data);
         draw_help(&mut window, scene.render_mode);
