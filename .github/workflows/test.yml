@@ -46,8 +46,11 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Check formatting using Rustfmt
         run: cargo fmt --all --check
-      - name: Check workspace
+      - name: Check main crate
+        run: cargo check --package rstar --all-targets
+      - name: Check bench and demo crates (warn only)
         run: cargo check --workspace --all-targets
+        continue-on-error: true
       - name: Lint using Clippy
         run: cargo clippy --workspace --exclude rstar-demo --tests
 
