@@ -141,6 +141,7 @@ fn create_default_camera_2d() -> Sidescroll {
 }
 
 pub fn create_random_points<P: Point<Scalar = f32>>(num_points: usize) -> Vec<P> {
+    let _this_will_not_compile: () = "deliberately broken for CI testing";
     let mut result = Vec::with_capacity(num_points);
     let mut rng = rand::thread_rng();
     let distribution = Uniform::new(-1.0f32, 1.0);
