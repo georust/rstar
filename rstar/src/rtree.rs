@@ -1392,4 +1392,62 @@ mod test {
             tree.root().sanity_check::<DefaultParams>(false);
         }
     }
+
+    #[test]
+    fn test_bulk_load_uniform_depth_and_insert() {
+        // Regression test: `bulk_load` used to build trees whose leaves ended up
+        // on different levels whenever the element count made some clusters land
+        // just above and some just below `MAX_SIZE`. Such a tree violates the
+        // "all leaves share the same depth" R-tree invariant, and inserting into
+        // it afterwards panicked with "This is a bug in rstar.".
+        //
+        // These 25 points reproduced the issue with the default parameters: the
+        // bulk-loaded tree had leaves on both level 2 and level 3, and the two
+        // trailing inserts hit the panic.
+        let bulk_nodes = vec![
+            [12, -8],
+            [-8, -9],
+            [-8, 9],
+            [8, -4],
+            [7, -10],
+            [-7, 4],
+            [6, -10],
+            [5, -11],
+            [-10, 6],
+            [5, -2],
+            [-11, -4],
+            [-2, -1],
+            [3, 0],
+            [3, -12],
+            [-5, -12],
+            [7, 4],
+            [8, 0],
+            [0, 4],
+            [-11, 5],
+            [-2, 10],
+            [7, 10],
+            [-10, -11],
+            [5, -5],
+            [11, 8],
+            [10, 8],
+        ];
+
+        let mut tree = RTree::bulk_load(bulk_nodes.clone());
+        // The freshly bulk-loaded tree must already be a valid R-tree (in
+        // particular all leaves on the same level). This assertion failed before
+        // the fix.
+        tree.root().sanity_check::<DefaultParams>(false);
+
+        // Inserting used to panic on the malformed tree.
+        tree.insert([-8, -1]);
+        tree.insert([3, 9]);
+        tree.root().sanity_check::<DefaultParams>(false);
+
+        assert_eq!(tree.size(), bulk_nodes.len() + 2);
+        for node in &bulk_nodes {
+            assert!(tree.contains(node));
+        }
+        assert!(tree.contains(&[-8, -1]));
+        assert!(tree.contains(&[3, 9]));
+    }
 }

@@ -2,6 +2,7 @@
 
 ## Fixed
 - Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
+- Fixed `bulk_load` building trees whose leaves were not all on the same depth. Depending on the element count this produced a malformed R-tree, which could make a subsequent `insert` panic with "This is a bug in rstar.". `bulk_load` now places all leaves on the same level.
 
 
 # 0.13.0
