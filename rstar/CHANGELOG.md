@@ -1,5 +1,8 @@
 # Unreleased
 
+## Fixed
+- Fixed `bulk_load` building trees whose leaves were not all on the same depth. Depending on the element count this produced a malformed R-tree, which could make a subsequent `insert` panic with "This is a bug in rstar.". `bulk_load` now places all leaves on the same level.
+
 
 # 0.13.0
 
