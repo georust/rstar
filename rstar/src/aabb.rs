@@ -252,6 +252,7 @@ mod test {
     use super::AABB;
     use crate::envelope::Envelope;
     use crate::object::PointDistance;
+    use crate::RTree;
 
     #[test]
     fn empty_rect() {
@@ -300,5 +301,71 @@ mod test {
 
         let not_empty = AABB::from_corners([1.0, 1.0], [1.0, 1.0]);
         assert!(!not_empty.is_empty());
+    }
+
+    #[test]
+    fn rtree_operations_with_nan_do_not_panic() {
+        let mut points: Vec<_> = (0..64).map(|value| [value as f64, value as f64]).collect();
+        points[16][0] = f64::NAN;
+
+        let tree = RTree::bulk_load(points.clone());
+        assert_eq!(tree.size(), points.len());
+        assert_eq!(
+            tree.nearest_neighbor_iter([f64::NAN, 0.0]).count(),
+            points.len()
+        );
+
+        let mut tree = RTree::new();
+        for point in &points {
+            tree.insert(*point);
+        }
+
+        assert_eq!(tree.size(), points.len());
+        assert_eq!(
+            tree.nearest_neighbor_iter([f64::NAN, 0.0]).count(),
+            points.len()
+        );
+    }
+
+    #[test]
+    fn tree_with_nan_is_still_queryable() {
+        let before_the_nan = [10.0, 0.0];
+        let after_the_nan = [20.0, 0.0];
+
+        let mut tree = RTree::new();
+        tree.insert(before_the_nan);
+        tree.insert([f64::NAN, 0.0]);
+        tree.insert(after_the_nan);
+
+        assert_eq!(tree.size(), 3);
+        assert_eq!(tree.iter().count(), 3);
+
+        assert_eq!(tree.locate_at_point(before_the_nan), Some(&before_the_nan));
+        assert_eq!(tree.locate_at_point(after_the_nan), Some(&after_the_nan));
+
+        assert!(tree.contains(&before_the_nan));
+        assert!(tree.contains(&after_the_nan));
+
+        assert_eq!(tree.remove(&before_the_nan), Some(before_the_nan));
+        assert_eq!(tree.remove(&after_the_nan), Some(after_the_nan));
+    }
+
+    /// `-0.0` and `0.0` are the same point as far as `==` is concerned, so a query for
+    /// one must find data inserted under the other.
+    ///
+    /// This is why the scalar ordering is `OrderedFloat` rather than `f64::total_cmp`:
+    /// which would rank `-0.0` strictly below `0.0`.
+    #[test]
+    fn signed_zeroes_are_interchangeable_in_queries() {
+        let envelope = AABB::from_corners([0.0f64, 0.0], [1.0, 1.0]);
+        assert!(envelope.contains_point(&[-0.0f64, -0.0]));
+
+        let mut tree = RTree::new();
+        tree.insert([0.0f64, 0.0]);
+        assert_eq!(tree.locate_at_point([-0.0f64, -0.0]), Some(&[0.0, 0.0]));
+
+        let mut tree = RTree::new();
+        tree.insert([-0.0f64, -0.0]);
+        assert_eq!(tree.locate_at_point([0.0f64, 0.0]), Some(&[-0.0, -0.0]));
     }
 }
