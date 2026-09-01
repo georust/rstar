@@ -1,5 +1,7 @@
 use core::fmt::Debug;
+use core::num::Wrapping;
 use num_traits::{Bounded, Num, Signed, Zero};
+use ordered_float::OrderedFloat;
 
 /// Defines a number type that is compatible with rstar.
 ///
@@ -8,13 +10,15 @@ use num_traits::{Bounded, Num, Signed, Zero};
 ///  - [Wrapping](core::num::Wrapping) versions of the above
 ///  - f32, f64
 ///
-/// This type cannot be implemented directly. Instead, it is required to implement
-/// all required traits from the `num_traits` crate.
+/// r-trees require a *total* order on their scalars.
+/// [`RTreeNum::OrdType`] supplies that ordering. Integral types, which are already Ord,
+/// are their own OrdType. `f32` and `f64` use [`ordered_float::OrderedFloat`].
 ///
 /// # Example
 /// ```
 /// # extern crate num_traits;
 /// use num_traits::{Bounded, Num, Signed};
+/// use rstar::RTreeNum;
 ///
 /// #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 /// struct MyFancyNumberType(f32);
@@ -43,6 +47,12 @@ use num_traits::{Bounded, Num, Signed, Zero};
 ///   // ... details hidden ...
 /// # type FromStrRadixErr = num_traits::ParseFloatError;
 /// # fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> { unimplemented!() }
+/// }
+///
+/// impl RTreeNum for MyFancyNumberType {
+///   // Any `Ord` type will do; `OrderedFloat` is from the `ordered-float` crate.
+///   type OrdType = ordered_float::OrderedFloat<f32>;
+///   fn ord(self) -> Self::OrdType { ordered_float::OrderedFloat(self.0) }
 /// }
 ///
 /// // Lots of traits are still missing to make the above code compile, but
@@ -95,9 +105,146 @@ use num_traits::{Bounded, Num, Signed, Zero};
 /// #
 /// ```
 ///
-pub trait RTreeNum: Bounded + Num + Clone + Copy + Signed + PartialOrd + Debug {}
+pub trait RTreeNum: Bounded + Num + Clone + Copy + Signed + Debug {
+    /// A type that orders values of `Self` *totally*, i.e. any two values can be
+    /// compared and the comparison is reflexive, antisymmetric and transitive.
+    ///
+    /// For integral types this is simply `Self`. Floating point types use
+    /// [`OrderedFloat`] to account for NaN.
+    type OrdType: Ord;
 
-impl<S> RTreeNum for S where S: Bounded + Num + Clone + Copy + Signed + PartialOrd + Debug {}
+    /// Converts `self` into a value that can be ordered totally.
+    ///
+    /// ```
+    /// use rstar::RTreeNum;
+    ///
+    /// assert!(!(f64::NAN <= f64::NAN));           // PartialOrd: refuses to order the pair
+    /// assert!(f64::NAN.ord() <= f64::NAN.ord());  // Ord: always commits to an answer
+    /// ```
+    fn ord(self) -> Self::OrdType;
+}
+
+impl RTreeNum for f32 {
+    type OrdType = OrderedFloat<Self>;
+    #[inline]
+    fn ord(self) -> Self::OrdType {
+        OrderedFloat(self)
+    }
+}
+
+impl RTreeNum for f64 {
+    type OrdType = OrderedFloat<Self>;
+    #[inline]
+    fn ord(self) -> Self::OrdType {
+        OrderedFloat(self)
+    }
+}
+
+macro_rules! impl_rtree_num_for_ord {
+    ($($type:ty),+ $(,)?) => {
+        $(
+            impl RTreeNum for $type {
+                type OrdType = $type;
+                #[inline]
+                fn ord(self) -> Self::OrdType {
+                    self
+                }
+            }
+        )+
+    };
+}
+
+// Keep this list in sync with `tests::test_types`, which asserts these types implement `RTreeNum`.
+impl_rtree_num_for_ord!(i8, i16, i32, i64, i128, isize);
+
+impl<T> RTreeNum for Wrapping<T>
+where
+    T: RTreeNum,
+    Wrapping<T>: Bounded + Num + Clone + Copy + Signed + Debug,
+{
+    type OrdType = T::OrdType;
+    #[inline]
+    fn ord(self) -> Self::OrdType {
+        self.0.ord()
+    }
+}
+
+#[cfg(test)]
+mod rtree_num_tests {
+    use super::RTreeNum;
+    use core::cmp::Ordering;
+
+    /// Away from `-0.0` and `-NaN`, [`RTreeNum::ord`] agrees with the platform's
+    /// intrinsic total order. Those two values are the only deliberate divergences, so
+    /// callers of this helper must leave them out of `values` on purpose, not by
+    /// accident. They are covered by the two tests below.
+    fn assert_matches_intrinsic_total_cmp<S: RTreeNum + core::fmt::Debug>(
+        values: &[S],
+        intrinsic_total_cmp: impl Fn(&S, &S) -> Ordering,
+    ) {
+        for left in values {
+            for right in values {
+                assert_eq!(
+                    left.ord().cmp(&right.ord()),
+                    intrinsic_total_cmp(left, right),
+                    "unexpected ordering for {left:?} and {right:?}",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn ord_matches_f32_intrinsic_total_cmp() {
+        assert_matches_intrinsic_total_cmp(
+            &[f32::NEG_INFINITY, -1.0, 0.0, 1.0, f32::INFINITY, f32::NAN],
+            f32::total_cmp,
+        );
+    }
+
+    #[test]
+    fn ord_matches_f64_intrinsic_total_cmp() {
+        assert_matches_intrinsic_total_cmp(
+            &[f64::NEG_INFINITY, -1.0, 0.0, 1.0, f64::INFINITY, f64::NAN],
+            f64::total_cmp,
+        );
+    }
+
+    /// Every `NaN` ranks above every other value and equal to every other `NaN`,
+    /// whatever its sign bit. This is what keeps a `NaN` coordinate *conservative*: it
+    /// always loses a `min` and always wins a `max`, so it can only widen an envelope's
+    /// upper bound, never shrink a bound inwards and strand the finite children already
+    /// merged in.
+    ///
+    /// [`f64::total_cmp`] does not have this property -- it sorts `-NaN` below
+    /// `-inf` -- which would let an arbitrary `NaN`'s sign bit decide which end of the
+    /// envelope it corrupted.
+    #[test]
+    fn every_nan_ranks_highest_regardless_of_sign() {
+        for nan in [f64::NAN, -f64::NAN] {
+            for other in [f64::NEG_INFINITY, -1.0, 0.0, 1.0, f64::INFINITY] {
+                assert_eq!(nan.ord().cmp(&other.ord()), Ordering::Greater);
+                assert_eq!(other.ord().cmp(&nan.ord()), Ordering::Less);
+            }
+            // Reflexive, unlike `<=`, which is what makes this usable as a comparator.
+            assert_eq!(nan.ord().cmp(&nan.ord()), Ordering::Equal);
+            assert_eq!(nan.ord().cmp(&(-nan).ord()), Ordering::Equal);
+        }
+    }
+
+    /// `-0.0` and `0.0` must stay *equal*, as they are under `==`.
+    ///
+    /// [`f64::total_cmp`] ranks `-0.0` strictly below `0.0`. Since every comparison in
+    /// the tree now goes through this ordering, adopting that behaviour would mean an
+    /// envelope with a lower bound of `0.0` no longer contains the point `-0.0`. See
+    /// `signed_zeroes_are_interchangeable_in_queries` in `aabb.rs`.
+    #[test]
+    fn signed_zeroes_compare_equal() {
+        assert_eq!((-0.0f64).ord().cmp(&0.0f64.ord()), Ordering::Equal);
+        assert_eq!((-0.0f32).ord().cmp(&0.0f32.ord()), Ordering::Equal);
+
+        assert_eq!(f64::total_cmp(&-0.0, &0.0), Ordering::Less);
+    }
+}
 
 /// Defines a point type that is compatible with rstar.
 ///
@@ -273,7 +420,7 @@ pub fn min_inline<S>(a: S, b: S) -> S
 where
     S: RTreeNum,
 {
-    if a < b {
+    if a.ord() < b.ord() {
         a
     } else {
         b
@@ -285,7 +432,7 @@ pub fn max_inline<S>(a: S, b: S) -> S
 where
     S: RTreeNum,
 {
-    if a > b {
+    if a.ord() > b.ord() {
         a
     } else {
         b

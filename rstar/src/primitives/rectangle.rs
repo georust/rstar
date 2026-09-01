@@ -1,6 +1,7 @@
 use crate::envelope::Envelope;
 use crate::object::{PointDistance, RTreeObject};
 use crate::point::{Point, PointExt};
+use crate::RTreeNum;
 use crate::{aabb::AABB, object::Distance};
 
 /// An n-dimensional rectangle defined by its two corners.
@@ -102,7 +103,7 @@ where
         max_distance_2: Distance<Self>,
     ) -> Option<Distance<Self>> {
         let distance_2 = self.distance_2(point);
-        if distance_2 <= max_distance_2 {
+        if distance_2.ord() <= max_distance_2.ord() {
             Some(distance_2)
         } else {
             None

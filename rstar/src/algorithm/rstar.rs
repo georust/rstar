@@ -1,7 +1,7 @@
 use crate::node::{envelope_for_children, ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::{InsertionStrategy, RTreeParams};
-use crate::point::{Point, PointExt};
+use crate::point::{Point, PointExt, RTreeNum};
 use crate::rtree::RTree;
 use crate::{envelope::Envelope, object::Distance};
 
@@ -170,7 +170,7 @@ where
         if envelope.contains_envelope(&insertion_envelope) {
             inclusion_count += 1;
             let area = envelope.area();
-            if area < min_area {
+            if area.ord() < min_area.ord() {
                 min_area = area;
                 min_index = index;
             }
@@ -178,7 +178,7 @@ where
     }
     if inclusion_count == 0 {
         // No inclusion found, subtree depends on overlap and area increase
-        let mut min = (zero, zero, zero);
+        let mut min = (zero.ord(), zero.ord(), zero.ord());
 
         for (index1, child1) in node.children.iter().enumerate() {
             let envelope = child1.envelope();
@@ -205,7 +205,7 @@ where
             // Calculate area increase and area
             let area = new_envelope.area();
             let area_increase = area - envelope.area();
-            let new_min = (overlap_increase, area_increase, area);
+            let new_min = (overlap_increase.ord(), area_increase.ord(), area.ord());
             if new_min < min || index1 == 0 {
                 min = new_min;
                 min_index = index1;
@@ -254,7 +254,7 @@ where
     debug_assert!(node.children.len() >= 2);
     // Sort along axis
     T::Envelope::sort_envelopes(axis, &mut node.children);
-    let mut best = (zero, zero);
+    let mut best = (zero.ord(), zero.ord());
     let min_size = Params::MIN_SIZE;
     let mut best_index = min_size;
 
@@ -271,7 +271,7 @@ where
 
         let overlap_value = first_envelope.intersection_area(&second_envelope);
         let area_value = first_envelope.area() + second_envelope.area();
-        let new_best = (overlap_value, area_value);
+        let new_best = (overlap_value.ord(), area_value.ord());
         if new_best < best || k == min_size {
             best = new_best;
             best_index = k;
@@ -287,7 +287,7 @@ where
     T: RTreeObject,
     Params: RTreeParams,
 {
-    let mut best_goodness = Distance::<T>::max_value();
+    let mut best_goodness = Distance::<T>::max_value().ord();
     let mut best_axis = 0;
     let min_size = Params::MIN_SIZE;
     let until = node.children.len() - min_size + 1;
@@ -315,9 +315,9 @@ where
 
             let perimeter_value =
                 first_modified.perimeter_value() + second_modified.perimeter_value();
-            if best_goodness > perimeter_value {
+            if best_goodness > perimeter_value.ord() {
                 best_axis = axis;
-                best_goodness = perimeter_value;
+                best_goodness = perimeter_value.ord();
             }
         }
     }
@@ -337,8 +337,8 @@ where
         l_center
             .sub(&center)
             .length_2()
-            .partial_cmp(&(r_center.sub(&center)).length_2())
-            .unwrap()
+            .ord()
+            .cmp(&r_center.sub(&center).length_2().ord())
     });
     let num_children = node.children.len();
     let result = node

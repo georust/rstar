@@ -1,5 +1,26 @@
 # Unreleased
 
+## Changed
+
+- **BREAKING** `RTreeNum` no longer has a blanket implementation, and no longer requires `PartialOrd`. It now requires
+  an associated `OrdType: Ord` plus an `ord()` conversion, so that every comparison the r-tree makes is *total*, avoiding
+  problems with NaN. Implementations have been added for all common numeric types.
+  If you implement `RTreeNum` for your own scalar type, you'll need to add an implementation like:
+  ```rust
+  impl RTreeNum for MyScalar {
+      // Any `Ord` type will do; `OrderedFloat` is from the `ordered-float` crate.
+      type OrdType = ordered_float::OrderedFloat<f64>;
+      fn ord(self) -> Self::OrdType { ordered_float::OrderedFloat(self.0) }
+  }
+  ```
+  ([PR](https://github.com/georust/rstar/pull/237))
+
+## Fixed
+
+- Envelopes no longer panic on `NaN` inputs, and a `NaN` coordinate no longer strands finite points.
+  ([PR](https://github.com/georust/rstar/pull/237))
+
+[`ordered_float::OrderedFloat`]: https://docs.rs/ordered-float/latest/ordered_float/struct.OrderedFloat.html
 
 # 0.13.0
 

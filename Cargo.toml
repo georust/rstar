@@ -7,6 +7,9 @@ members = [
     "rstar-benches"
 ]
 
+[workspace.dependencies]
+ordered-float = { version = "5.5.0", default-features = false }
+
 # Ensure any transitive dependencies, e.g. via `geo`, use the local `rstar` crate
 [patch.crates-io]
 rstar = { path = "rstar" }

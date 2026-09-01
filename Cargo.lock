@@ -2568,6 +2568,7 @@ dependencies = [
  "mint",
  "nalgebra",
  "num-traits",
+ "ordered-float",
  "rand 0.10.1",
  "rand_hc 0.5.0",
  "serde",

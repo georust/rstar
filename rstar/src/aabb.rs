@@ -1,4 +1,4 @@
-use crate::point::{max_inline, Point, PointExt};
+use crate::point::{max_inline, Point, PointExt, RTreeNum};
 use crate::{Envelope, RTreeObject};
 use num_traits::{Bounded, One, Zero};
 
@@ -134,17 +134,23 @@ where
     }
 
     fn is_empty(&self) -> bool {
-        self.lower.nth(0) > self.upper.nth(0)
+        self.lower.nth(0).ord() > self.upper.nth(0).ord()
     }
 
     fn contains_point(&self, point: &P) -> bool {
-        self.lower.all_component_wise(point, |x, y| x <= y)
-            && self.upper.all_component_wise(point, |x, y| x >= y)
+        self.lower
+            .all_component_wise(point, |x, y| x.ord() <= y.ord())
+            && self
+                .upper
+                .all_component_wise(point, |x, y| x.ord() >= y.ord())
     }
 
     fn contains_envelope(&self, other: &Self) -> bool {
-        self.lower.all_component_wise(&other.lower, |l, r| l <= r)
-            && self.upper.all_component_wise(&other.upper, |l, r| l >= r)
+        self.lower
+            .all_component_wise(&other.lower, |l, r| l.ord() <= r.ord())
+            && self
+                .upper
+                .all_component_wise(&other.upper, |l, r| l.ord() >= r.ord())
     }
 
     fn merge(&mut self, other: &Self) {
@@ -160,8 +166,11 @@ where
     }
 
     fn intersects(&self, other: &Self) -> bool {
-        self.lower.all_component_wise(&other.upper, |l, r| l <= r)
-            && self.upper.all_component_wise(&other.lower, |l, r| l >= r)
+        self.lower
+            .all_component_wise(&other.upper, |l, r| l.ord() <= r.ord())
+            && self
+                .upper
+                .all_component_wise(&other.lower, |l, r| l.ord() >= r.ord())
     }
 
     fn area(&self) -> P::Scalar {
@@ -178,7 +187,8 @@ where
     fn min_max_dist_2(&self, point: &P) -> <P as Point>::Scalar {
         let l = self.lower.sub(point);
         let u = self.upper.sub(point);
-        let mut max_diff = (Zero::zero(), Zero::zero(), 0); // diff, min, index
+        // diff, min, index
+        let mut max_diff: (P::Scalar, P::Scalar, usize) = (Zero::zero(), Zero::zero(), 0);
         let mut result = P::new();
 
         for i in 0..P::DIMENSIONS {
@@ -186,14 +196,14 @@ where
             let mut max = u.nth(i);
             max = max * max;
             min = min * min;
-            if max < min {
+            if max.ord() < min.ord() {
                 core::mem::swap(&mut min, &mut max);
             }
 
             let diff = max - min;
             *result.nth_mut(i) = max;
 
-            if diff >= max_diff.0 {
+            if diff.ord() >= max_diff.0.ord() {
                 max_diff = (diff, min, i);
             }
         }
@@ -227,8 +237,8 @@ where
             l.envelope()
                 .lower
                 .nth(axis)
-                .partial_cmp(&r.envelope().lower.nth(axis))
-                .unwrap()
+                .ord()
+                .cmp(&r.envelope().lower.nth(axis).ord())
         });
     }
 
@@ -241,8 +251,8 @@ where
             l.envelope()
                 .lower
                 .nth(axis)
-                .partial_cmp(&r.envelope().lower.nth(axis))
-                .unwrap()
+                .ord()
+                .cmp(&r.envelope().lower.nth(axis).ord())
         });
     }
 }
