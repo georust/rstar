@@ -2581,6 +2581,7 @@ name = "rstar-benches"
 version = "0.1.1"
 dependencies = [
  "criterion",
+ "ordered-float",
  "rand 0.10.1",
  "rand_hc 0.5.0",
  "rstar 0.13.0",

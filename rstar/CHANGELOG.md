@@ -6,7 +6,7 @@
 - `remove`, `remove_at_point`, `remove_with_selection_function` and `pop_nearest_neighbor` remove the element in place instead of taking the tree apart with a drain iterator, and do not allocate anymore.
 - **BREAKING** `RTreeNum` no longer has a blanket implementation, and no longer requires `PartialOrd`. It now requires
   an associated `OrdType: Ord` plus an `ord()` conversion, so that every comparison the r-tree makes is *total*, avoiding
-  problems with NaN. Implementations have been added for all common numeric types.
+  problems with NaN. Implementations have been added for all common numeric types as well as [`ordered_float::NotNan`]
   If you implement `RTreeNum` for your own scalar type, you'll need to add an implementation like:
   ```rust
   impl RTreeNum for MyScalar {
@@ -23,6 +23,7 @@
   ([PR](https://github.com/georust/rstar/pull/237))
 
 [`ordered_float::OrderedFloat`]: https://docs.rs/ordered-float/latest/ordered_float/struct.OrderedFloat.html
+[`ordered_float::NotNan`]: https://docs.rs/ordered-float/latest/ordered_float/struct.NotNan.html
 
 # 0.13.0
 
