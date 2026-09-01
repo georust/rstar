@@ -378,4 +378,91 @@ mod test {
         tree.insert([-0.0f64, -0.0]);
         assert_eq!(tree.locate_at_point([0.0f64, 0.0]), Some(&[-0.0, -0.0]));
     }
+
+    #[test]
+    fn not_nan_coordinates_are_supported() {
+        use ordered_float::NotNan;
+
+        let point = |x: f64, y: f64| [NotNan::new(x).unwrap(), NotNan::new(y).unwrap()];
+
+        let mut tree = RTree::new();
+        for value in 0..32 {
+            tree.insert(point(value as f64, (value * 2) as f64));
+        }
+
+        assert_eq!(tree.size(), 32);
+        assert_eq!(
+            tree.locate_at_point(point(10.0, 20.0)),
+            Some(&point(10.0, 20.0))
+        );
+        assert_eq!(
+            tree.nearest_neighbor(point(10.4, 20.0)),
+            Some(&point(10.0, 20.0))
+        );
+        assert_eq!(tree.locate_at_point(point(0.5, 0.5)), None);
+    }
+
+    // document some known panic cases with NotNan
+    mod known_panics {
+        use super::*;
+
+        #[test]
+        #[should_panic(expected = "resulted in NaN")]
+        fn infinite_not_nan_coordinates_panic() {
+            use ordered_float::NotNan;
+
+            let point = |x: f64, y: f64| [NotNan::new(x).unwrap(), NotNan::new(y).unwrap()];
+            let infinite = point(f64::INFINITY, 0.0);
+
+            let mut tree = RTree::new();
+            tree.insert(infinite);
+            tree.insert(point(0.0, 0.0));
+
+            // This line panics. Measuring the distance from the query point to the point at infinity computes
+            // `inf - inf`, which is `NaN`.
+            tree.nearest_neighbor(infinite);
+        }
+
+        /// `area` multiplies the envelope's
+        /// extents together, once per dimension, so in 3-D any extent beyond the cube root of
+        /// `f32::MAX` (7e12) gives `inf`. `choose_subtree` subtracts two such areas, and `inf - inf`
+        /// is `NaN` -- though every coordinate below is finite and well inside `f32::MAX` (3.4e38).
+        #[test]
+        #[should_panic(expected = "resulted in NaN")]
+        fn overflowing_not_nan_coordinates_panic() {
+            use ordered_float::NotNan;
+
+            let point = |i: u32| {
+                let v = 1e13 * i as f32;
+                [
+                    NotNan::new(v).unwrap(),
+                    NotNan::new(-v).unwrap(),
+                    NotNan::new(v / 2.0).unwrap(),
+                ]
+            };
+
+            let mut tree = RTree::new();
+            for i in 0..8 {
+                tree.insert(point(i));
+            }
+        }
+
+        /// The likelier failure in practice needs no extreme magnitudes at all: `nearest_point`
+        /// divides by the line's squared length, so a segment whose endpoints coincide -- a polyline
+        /// with a duplicated vertex -- divides `0.0 / 0.0` while answering a query.
+        #[test]
+        #[should_panic(expected = "resulted in NaN")]
+        fn degenerate_not_nan_line_panics() {
+            use crate::primitives::Line;
+            use ordered_float::NotNan;
+
+            let n = |v: f64| NotNan::new(v).unwrap();
+
+            let mut tree = RTree::new();
+            tree.insert(Line::new([n(0.0), n(0.0)], [n(1.0), n(1.0)]));
+            tree.insert(Line::new([n(2.0), n(2.0)], [n(2.0), n(2.0)]));
+
+            tree.nearest_neighbor([n(2.0), n(3.0)]);
+        }
+    }
 }
