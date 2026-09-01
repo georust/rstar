@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 use core::num::Wrapping;
 use num_traits::{Bounded, Num, Signed, Zero};
-use ordered_float::OrderedFloat;
+use ordered_float::{NotNan, OrderedFloat};
 
 /// Defines a number type that is compatible with rstar.
 ///
@@ -137,6 +137,84 @@ impl RTreeNum for f64 {
     #[inline]
     fn ord(self) -> Self::OrdType {
         OrderedFloat(self)
+    }
+}
+
+/// `NotNan` has ruled `NaN` out by construction, so comparisons skip the `NaN` test that
+/// every `f32`/`f64` comparison performs. Building a tree over `[NotNan<f64>; 2]`
+/// moves that cost onto the one-time construction of the coordinates, which pays off
+/// for query-heavy workloads over well-formed input.
+///
+/// ```
+/// use ordered_float::NotNan;
+/// use rstar::RTree;
+///
+/// let point = |x: f64, y: f64| [NotNan::new(x).unwrap(), NotNan::new(y).unwrap()];
+///
+/// let tree = RTree::bulk_load(vec![
+///     point(0.0, 0.0),
+///     point(10.0, 20.0),
+///     point(-3.0, 4.5),
+/// ]);
+///
+/// assert_eq!(tree.locate_at_point(point(0.0, 0.0)), Some(&point(0.0, 0.0)));
+/// assert_eq!(
+///     tree.nearest_neighbor(point(10.4, 20.0)),
+///     Some(&point(10.0, 20.0)),
+/// );
+/// ```
+///
+/// In exchange, `NotNan` re-validates every arithmetic result and **panics** if one
+/// is `NaN`. The r-tree does arithmetic on coordinates as well as comparing them,
+/// and its intermediates leave the range of the input, so ordinary-looking
+/// coordinates can reach a `NaN`:
+///
+/// - **Large coordinates.** [`area`](crate::Envelope::area) multiplies one extent
+///   per dimension, so in 3-D an extent past the cube root of `f32::MAX` (7e12)
+///   gives `inf`. Insertion subtracts two such areas, and `inf - inf` is `NaN`.
+/// - **Tiny or degenerate geometry.** [`Line::nearest_point`](crate::primitives::Line::nearest_point)
+///   divides by the line's squared length. Two identical endpoints -- a duplicated
+///   vertex in a polyline -- make that `0.0 / 0.0`, and so does a line short enough
+///   that its squared length underflows to zero.
+///
+/// An `f32`/`f64` tree computes the same `NaN`s without panicking: they misinform a
+/// heuristic, but the total order keeps every comparison well defined.
+///
+/// ```should_panic
+/// use ordered_float::NotNan;
+/// use rstar::RTree;
+///
+/// // Finite coordinates, four orders of magnitude clear of `f32::MAX`.
+/// let point = |i: u32| {
+///     let v = 1e13 * i as f32;
+///     [
+///         NotNan::new(v).unwrap(),
+///         NotNan::new(-v).unwrap(),
+///         NotNan::new(v / 2.0).unwrap(),
+///     ]
+/// };
+///
+/// let mut tree = RTree::new();
+/// for i in 0..8 {
+///     // Panics once two envelope areas overflow to `inf`: `inf - inf` is `NaN`.
+///     tree.insert(point(i));
+/// }
+/// ```
+impl RTreeNum for NotNan<f64> {
+    type OrdType = Self;
+    #[inline]
+    fn ord(self) -> Self::OrdType {
+        self
+    }
+}
+
+/// The `f32` counterpart of the `NotNan<f64>` implementation above; see its documentation for
+/// what this scalar buys, and for the cases where the r-tree's own arithmetic panics.
+impl RTreeNum for NotNan<f32> {
+    type OrdType = Self;
+    #[inline]
+    fn ord(self) -> Self::OrdType {
+        self
     }
 }
 
