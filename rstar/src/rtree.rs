@@ -184,6 +184,7 @@ where
 {
     root: ParentNode<T>,
     size: usize,
+    #[cfg_attr(feature = "serde", serde(skip))]
     _params: ::core::marker::PhantomData<Params>,
 }
 
