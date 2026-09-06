@@ -12,14 +12,54 @@ use num_traits::Float;
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
-fn bulk_load_recursive<T, Params>(mut elements: Vec<T>) -> ParentNode<T>
+/// Computes the depth (number of node levels, leaves included) of the tree that
+/// bulk loading will build for `number_of_elements` elements.
+///
+/// This mirrors the partitioning performed by [`bulk_load_recursive`]: on every
+/// level a node is split into `number_of_clusters_on_axis ^ DIMENSIONS`
+/// clusters, so a balanced cluster shrinks by that factor per level. The
+/// returned depth is the first level at which a balanced cluster fits into a
+/// single (leaf) node, i.e. holds at most `MAX_SIZE` elements.
+///
+/// Threading this depth through the recursion (instead of stopping each branch
+/// individually as soon as it reaches `MAX_SIZE` elements) guarantees that all
+/// leaves end up on the same level. Otherwise clusters whose size straddles
+/// `MAX_SIZE` -- some just below, some just above -- would produce leaves on
+/// different levels, yielding a malformed R-tree that violates the "all leaves
+/// share the same depth" invariant and makes a subsequent `insert` panic.
+fn bulk_load_depth<T, Params>(number_of_elements: usize) -> usize
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    let m = Params::MAX_SIZE;
+    let dimensions = <T::Envelope as Envelope>::Point::DIMENSIONS;
+    let mut depth = 1;
+    let mut cluster_size = number_of_elements;
+    while cluster_size > m {
+        let number_of_clusters_on_axis =
+            calculate_number_of_clusters_on_axis::<T, Params>(cluster_size).max(2);
+        // Number of clusters this node is split into (across all axes).
+        let mut fanout = 1usize;
+        for _ in 0..dimensions {
+            fanout = fanout.saturating_mul(number_of_clusters_on_axis);
+        }
+        // Size of a balanced cluster on the next level. Rounding down selects
+        // the shallowest depth that keeps clusters from underflowing, which
+        // avoids creating nodes with fewer than `MIN_SIZE` children.
+        cluster_size /= fanout.max(2);
+        depth += 1;
+    }
+    depth
+}
+
+fn bulk_load_recursive<T, Params>(mut elements: Vec<T>, remaining_depth: usize) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    let m = Params::MAX_SIZE;
-    if elements.len() <= m {
+    if remaining_depth <= 1 {
         // Reached leaf level. Shrink excess capacity so the in-place collect
         // (which reuses the allocation when size_of::<T> == size_of::<RTreeNode<T>>)
         // doesn't preserve a massively over-sized buffer in the final tree node.
@@ -32,6 +72,7 @@ where
 
     let iterator = PartitioningTask::<_, Params> {
         number_of_clusters_on_axis,
+        remaining_depth,
         work_queue: vec![PartitioningState {
             current_axis: <T::Envelope as Envelope>::Point::DIMENSIONS,
             elements,
@@ -54,6 +95,7 @@ struct PartitioningState<T: RTreeObject> {
 struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
     work_queue: Vec<PartitioningState<T>>,
     number_of_clusters_on_axis: usize,
+    remaining_depth: usize,
     _params: core::marker::PhantomData<Params>,
 }
 
@@ -68,7 +110,7 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
             } = next;
             if current_axis == 0 {
                 // Partitioning finished successfully on all axis. The remaining cluster forms a new node
-                let data = bulk_load_recursive::<_, Params>(elements);
+                let data = bulk_load_recursive::<_, Params>(elements, self.remaining_depth - 1);
                 return RTreeNode::Parent(data).into();
             } else {
                 // The cluster group needs to be partitioned further along the next axis
@@ -97,7 +139,8 @@ where
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    bulk_load_recursive::<_, Params>(elements)
+    let depth = bulk_load_depth::<T, Params>(elements.len());
+    bulk_load_recursive::<_, Params>(elements, depth)
 }
 
 #[cfg(test)]
