@@ -100,7 +100,12 @@ where
         let m = Params::MIN_SIZE;
         let max_depth = (original_size as f32).log(m.max(2) as f32).ceil() as usize;
         let mut node_stack = Vec::with_capacity(max_depth);
-        node_stack.push((root, 0, 0));
+
+        // Do not push on an empty root onto `node_stack` as
+        // its AABB is pathological and might make `should_unpack_parent` panic.
+        if !root.children.is_empty() {
+            node_stack.push((root, 0, 0));
+        }
 
         DrainIterator {
             node_stack,
@@ -374,6 +379,23 @@ mod test {
         let sel_count = tree.locate_with_selection_function(sel).count();
         assert_eq!(sel_count, 0);
         assert_eq!(tree.size(), 1000 - 80 - 326);
+    }
+
+    #[test]
+    fn test_drain_within_distance_on_empty_tree() {
+        let mut tree: RTree<[f64; 3]> = RTree::new();
+        assert_eq!(tree.drain_within_distance([0.0, 0.0, 0.0], 10.0).count(), 0);
+
+        let mut tree: RTree<[i64; 3]> = RTree::new();
+        assert_eq!(tree.drain_within_distance([0, 0, 0], 10).count(), 0);
+
+        // A tree emptied by removals is in the same state: its root envelope
+        // has been reset to the empty envelope.
+        let mut tree: RTree<[i64; 3]> = RTree::new();
+        tree.insert([1, 2, 3]);
+        assert_eq!(tree.remove(&[1, 2, 3]), Some([1, 2, 3]));
+        assert_eq!(tree.drain_within_distance([0, 0, 0], 10).count(), 0);
+        assert_eq!(tree.size(), 0);
     }
 
     #[test]

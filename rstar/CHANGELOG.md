@@ -1,5 +1,8 @@
 # Unreleased
 
+## Fixed
+- Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
+
 
 # 0.13.0
 

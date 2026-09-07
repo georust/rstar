@@ -55,6 +55,8 @@ where
 {
     pub(crate) fn new(root: &'a ParentNode<T>, func: Func) -> Self {
         let current_nodes =
+            // Do not call `should_unpack_parent` on an empty root as
+            // its AABB is pathological and might make that function panic.
             if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
                 root.children.iter().collect()
             } else {
