@@ -1,5 +1,9 @@
 # Unreleased
 
+# 0.14.0
+
+## Added
+- Added generic parameter, `E`, to avoid contagious `T: RTreeObject` bound in struct definitions.
 
 # 0.13.0
 
