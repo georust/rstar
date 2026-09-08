@@ -13,21 +13,18 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(
     feature = "serde",
     serde(bound(
-        serialize = "T: Serialize, T::Envelope: Serialize",
-        deserialize = "T: Deserialize<'de>, T::Envelope: Deserialize<'de>"
+        serialize = "T: Serialize, E: Serialize",
+        deserialize = "T: Deserialize<'de>, E: Deserialize<'de>"
     ))
 )]
 /// An internal tree node.
 ///
 /// For most applications, using this type should not be required.
-pub enum RTreeNode<T>
-where
-    T: RTreeObject,
-{
+pub enum RTreeNode<T, E = <T as RTreeObject>::Envelope> {
     /// A leaf node, only containing the r-tree object
     Leaf(T),
     /// A parent node containing several child nodes
-    Parent(ParentNode<T>),
+    Parent(ParentNode<T, E>),
 }
 
 /// Represents an internal parent node.
@@ -36,12 +33,9 @@ where
 /// node's envelope and its children.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ParentNode<T>
-where
-    T: RTreeObject,
-{
-    pub(crate) children: Vec<RTreeNode<T>>,
-    pub(crate) envelope: T::Envelope,
+pub struct ParentNode<T, E = <T as RTreeObject>::Envelope> {
+    pub(crate) children: Vec<RTreeNode<T, E>>,
+    pub(crate) envelope: E,
 }
 
 impl<T> RTreeObject for RTreeNode<T>
@@ -59,10 +53,7 @@ where
 }
 
 #[doc(hidden)]
-impl<T> RTreeNode<T>
-where
-    T: RTreeObject,
-{
+impl<T, E> RTreeNode<T, E> {
     pub fn is_leaf(&self) -> bool {
         match self {
             RTreeNode::Leaf(..) => true,

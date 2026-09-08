@@ -145,6 +145,7 @@ where
 /// * `T`: The type of objects stored in the r-tree.
 /// * `Params`: Compile time parameters that change the r-tree's internal layout. Refer to the
 ///   [RTreeParams] trait for more information.
+/// * `E`: The envelope type used by tree nodes. Defaults to `<T as RTreeObject>::Envelope`.
 ///
 /// # Defining methods generic over r-trees
 /// If a library defines a method that should be generic over the r-tree type signature, make
@@ -173,16 +174,15 @@ where
 #[cfg_attr(
     feature = "serde",
     serde(bound(
-        serialize = "T: Serialize, T::Envelope: Serialize",
-        deserialize = "T: Deserialize<'de>, T::Envelope: Deserialize<'de>"
+        serialize = "T: Serialize, E: Serialize",
+        deserialize = "T: Deserialize<'de>, E: Deserialize<'de>"
     ))
 )]
-pub struct RTree<T, Params = DefaultParams>
+pub struct RTree<T, Params = DefaultParams, E = <T as RTreeObject>::Envelope>
 where
     Params: RTreeParams,
-    T: RTreeObject,
 {
-    root: ParentNode<T>,
+    root: ParentNode<T, E>,
     size: usize,
     #[cfg_attr(feature = "serde", serde(skip))]
     _params: ::core::marker::PhantomData<Params>,
