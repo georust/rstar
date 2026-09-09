@@ -1,4 +1,4 @@
-use crate::point::{max_inline, Point, PointExt};
+use crate::point::{max_inline, Point, PointExt, RTreeNum};
 use crate::{Envelope, RTreeObject};
 use num_traits::{Bounded, One, Zero};
 
@@ -134,17 +134,23 @@ where
     }
 
     fn is_empty(&self) -> bool {
-        self.lower.nth(0) > self.upper.nth(0)
+        self.lower.nth(0).ord() > self.upper.nth(0).ord()
     }
 
     fn contains_point(&self, point: &P) -> bool {
-        self.lower.all_component_wise(point, |x, y| x <= y)
-            && self.upper.all_component_wise(point, |x, y| x >= y)
+        self.lower
+            .all_component_wise(point, |x, y| x.ord() <= y.ord())
+            && self
+                .upper
+                .all_component_wise(point, |x, y| x.ord() >= y.ord())
     }
 
     fn contains_envelope(&self, other: &Self) -> bool {
-        self.lower.all_component_wise(&other.lower, |l, r| l <= r)
-            && self.upper.all_component_wise(&other.upper, |l, r| l >= r)
+        self.lower
+            .all_component_wise(&other.lower, |l, r| l.ord() <= r.ord())
+            && self
+                .upper
+                .all_component_wise(&other.upper, |l, r| l.ord() >= r.ord())
     }
 
     fn merge(&mut self, other: &Self) {
@@ -160,8 +166,11 @@ where
     }
 
     fn intersects(&self, other: &Self) -> bool {
-        self.lower.all_component_wise(&other.upper, |l, r| l <= r)
-            && self.upper.all_component_wise(&other.lower, |l, r| l >= r)
+        self.lower
+            .all_component_wise(&other.upper, |l, r| l.ord() <= r.ord())
+            && self
+                .upper
+                .all_component_wise(&other.lower, |l, r| l.ord() >= r.ord())
     }
 
     fn area(&self) -> P::Scalar {
@@ -178,7 +187,8 @@ where
     fn min_max_dist_2(&self, point: &P) -> <P as Point>::Scalar {
         let l = self.lower.sub(point);
         let u = self.upper.sub(point);
-        let mut max_diff = (Zero::zero(), Zero::zero(), 0); // diff, min, index
+        // diff, min, index
+        let mut max_diff: (P::Scalar, P::Scalar, usize) = (Zero::zero(), Zero::zero(), 0);
         let mut result = P::new();
 
         for i in 0..P::DIMENSIONS {
@@ -186,14 +196,14 @@ where
             let mut max = u.nth(i);
             max = max * max;
             min = min * min;
-            if max < min {
+            if max.ord() < min.ord() {
                 core::mem::swap(&mut min, &mut max);
             }
 
             let diff = max - min;
             *result.nth_mut(i) = max;
 
-            if diff >= max_diff.0 {
+            if diff.ord() >= max_diff.0.ord() {
                 max_diff = (diff, min, i);
             }
         }
@@ -227,8 +237,8 @@ where
             l.envelope()
                 .lower
                 .nth(axis)
-                .partial_cmp(&r.envelope().lower.nth(axis))
-                .unwrap()
+                .ord()
+                .cmp(&r.envelope().lower.nth(axis).ord())
         });
     }
 
@@ -241,8 +251,8 @@ where
             l.envelope()
                 .lower
                 .nth(axis)
-                .partial_cmp(&r.envelope().lower.nth(axis))
-                .unwrap()
+                .ord()
+                .cmp(&r.envelope().lower.nth(axis).ord())
         });
     }
 }
@@ -252,6 +262,7 @@ mod test {
     use super::AABB;
     use crate::envelope::Envelope;
     use crate::object::PointDistance;
+    use crate::RTree;
 
     #[test]
     fn empty_rect() {
@@ -300,5 +311,158 @@ mod test {
 
         let not_empty = AABB::from_corners([1.0, 1.0], [1.0, 1.0]);
         assert!(!not_empty.is_empty());
+    }
+
+    #[test]
+    fn rtree_operations_with_nan_do_not_panic() {
+        let mut points: Vec<_> = (0..64).map(|value| [value as f64, value as f64]).collect();
+        points[16][0] = f64::NAN;
+
+        let tree = RTree::bulk_load(points.clone());
+        assert_eq!(tree.size(), points.len());
+        assert_eq!(
+            tree.nearest_neighbor_iter([f64::NAN, 0.0]).count(),
+            points.len()
+        );
+
+        let mut tree = RTree::new();
+        for point in &points {
+            tree.insert(*point);
+        }
+
+        assert_eq!(tree.size(), points.len());
+        assert_eq!(
+            tree.nearest_neighbor_iter([f64::NAN, 0.0]).count(),
+            points.len()
+        );
+    }
+
+    #[test]
+    fn tree_with_nan_is_still_queryable() {
+        let before_the_nan = [10.0, 0.0];
+        let after_the_nan = [20.0, 0.0];
+
+        let mut tree = RTree::new();
+        tree.insert(before_the_nan);
+        tree.insert([f64::NAN, 0.0]);
+        tree.insert(after_the_nan);
+
+        assert_eq!(tree.size(), 3);
+        assert_eq!(tree.iter().count(), 3);
+
+        assert_eq!(tree.locate_at_point(before_the_nan), Some(&before_the_nan));
+        assert_eq!(tree.locate_at_point(after_the_nan), Some(&after_the_nan));
+
+        assert!(tree.contains(&before_the_nan));
+        assert!(tree.contains(&after_the_nan));
+
+        assert_eq!(tree.remove(&before_the_nan), Some(before_the_nan));
+        assert_eq!(tree.remove(&after_the_nan), Some(after_the_nan));
+    }
+
+    /// `-0.0` and `0.0` are the same point as far as `==` is concerned, so a query for
+    /// one must find data inserted under the other.
+    ///
+    /// This is why the scalar ordering is `OrderedFloat` rather than `f64::total_cmp`:
+    /// which would rank `-0.0` strictly below `0.0`.
+    #[test]
+    fn signed_zeroes_are_interchangeable_in_queries() {
+        let envelope = AABB::from_corners([0.0f64, 0.0], [1.0, 1.0]);
+        assert!(envelope.contains_point(&[-0.0f64, -0.0]));
+
+        let mut tree = RTree::new();
+        tree.insert([0.0f64, 0.0]);
+        assert_eq!(tree.locate_at_point([-0.0f64, -0.0]), Some(&[0.0, 0.0]));
+
+        let mut tree = RTree::new();
+        tree.insert([-0.0f64, -0.0]);
+        assert_eq!(tree.locate_at_point([0.0f64, 0.0]), Some(&[-0.0, -0.0]));
+    }
+
+    #[test]
+    fn not_nan_coordinates_are_supported() {
+        use ordered_float::NotNan;
+
+        let point = |x: f64, y: f64| [NotNan::new(x).unwrap(), NotNan::new(y).unwrap()];
+
+        let mut tree = RTree::new();
+        for value in 0..32 {
+            tree.insert(point(value as f64, (value * 2) as f64));
+        }
+
+        assert_eq!(tree.size(), 32);
+        assert_eq!(
+            tree.locate_at_point(point(10.0, 20.0)),
+            Some(&point(10.0, 20.0))
+        );
+        assert_eq!(
+            tree.nearest_neighbor(point(10.4, 20.0)),
+            Some(&point(10.0, 20.0))
+        );
+        assert_eq!(tree.locate_at_point(point(0.5, 0.5)), None);
+    }
+
+    // document some known panic cases with NotNan
+    mod known_panics {
+        use super::*;
+
+        #[test]
+        #[should_panic(expected = "resulted in NaN")]
+        fn infinite_not_nan_coordinates_panic() {
+            use ordered_float::NotNan;
+
+            let point = |x: f64, y: f64| [NotNan::new(x).unwrap(), NotNan::new(y).unwrap()];
+            let infinite = point(f64::INFINITY, 0.0);
+
+            let mut tree = RTree::new();
+            tree.insert(infinite);
+            tree.insert(point(0.0, 0.0));
+
+            // This line panics. Measuring the distance from the query point to the point at infinity computes
+            // `inf - inf`, which is `NaN`.
+            tree.nearest_neighbor(infinite);
+        }
+
+        /// `area` multiplies the envelope's
+        /// extents together, once per dimension, so in 3-D any extent beyond the cube root of
+        /// `f32::MAX` (7e12) gives `inf`. `choose_subtree` subtracts two such areas, and `inf - inf`
+        /// is `NaN` -- though every coordinate below is finite and well inside `f32::MAX` (3.4e38).
+        #[test]
+        #[should_panic(expected = "resulted in NaN")]
+        fn overflowing_not_nan_coordinates_panic() {
+            use ordered_float::NotNan;
+
+            let point = |i: u32| {
+                let v = 1e13 * i as f32;
+                [
+                    NotNan::new(v).unwrap(),
+                    NotNan::new(-v).unwrap(),
+                    NotNan::new(v / 2.0).unwrap(),
+                ]
+            };
+
+            let mut tree = RTree::new();
+            for i in 0..8 {
+                tree.insert(point(i));
+            }
+        }
+
+        /// The likelier failure in practice needs no extreme magnitudes at all: `nearest_point`
+        /// divides by the line's squared length, so a segment whose endpoints coincide -- a polyline
+        /// with a duplicated vertex -- divides `0.0 / 0.0` while answering a query.
+        #[test]
+        #[should_panic(expected = "resulted in NaN")]
+        fn degenerate_not_nan_line_panics() {
+            use crate::primitives::Line;
+            use ordered_float::NotNan;
+
+            let n = |v: f64| NotNan::new(v).unwrap();
+
+            let mut tree = RTree::new();
+            tree.insert(Line::new([n(0.0), n(0.0)], [n(1.0), n(1.0)]));
+            tree.insert(Line::new([n(2.0), n(2.0)], [n(2.0), n(2.0)]));
+
+            tree.nearest_neighbor([n(2.0), n(3.0)]);
+        }
     }
 }

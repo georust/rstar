@@ -2,6 +2,7 @@ use crate::envelope::Envelope;
 use crate::object::PointDistance;
 use crate::object::RTreeObject;
 use crate::point::{Point, PointExt};
+use crate::RTreeNum;
 use crate::{aabb::AABB, object::Distance};
 use num_traits::{One, Zero};
 
@@ -93,9 +94,9 @@ where
         let (p1, p2) = (self.from.clone(), self.to.clone());
         let dir = p2.sub(&p1);
         let s = self.project_point(query_point);
-        if P::Scalar::zero() < s && s < One::one() {
+        if P::Scalar::zero().ord() < s.ord() && s.ord() < P::Scalar::one().ord() {
             p1.add(&dir.mul(s))
-        } else if s <= P::Scalar::zero() {
+        } else if s.ord() <= P::Scalar::zero().ord() {
             p1
         } else {
             p2
