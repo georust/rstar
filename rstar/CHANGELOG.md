@@ -2,6 +2,7 @@
 
 ## Changed
 
+- Increase our MSRV to Rust 1.90 following that of the `ordered-float` crate. ([PR](https://github.com/georust/rstar/pull/237))
 - **BREAKING** `RTreeNum` no longer has a blanket implementation, and no longer requires `PartialOrd`. It now requires
   an associated `OrdType: Ord` plus an `ord()` conversion, so that every comparison the r-tree makes is *total*, avoiding
   problems with NaN. Implementations have been added for all common numeric types as well as [`ordered_float::NotNan`]
