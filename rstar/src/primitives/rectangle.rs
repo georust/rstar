@@ -14,19 +14,16 @@ use crate::{aabb::AABB, object::Distance};
 /// `P`: The rectangle's [Point] type.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Rectangle<P>
-where
-    P: Point,
-{
+pub struct Rectangle<P> {
     aabb: AABB<P>,
 }
 
-impl<P> Rectangle<P>
-where
-    P: Point,
-{
+impl<P> Rectangle<P> {
     /// Creates a new rectangle defined by two corners.
-    pub fn from_corners(corner_1: P, corner_2: P) -> Self {
+    pub fn from_corners(corner_1: P, corner_2: P) -> Self
+    where
+        P: Point,
+    {
         AABB::from_corners(corner_1, corner_2).into()
     }
 
@@ -34,7 +31,9 @@ where
     pub fn from_aabb(aabb: AABB<P>) -> Self {
         Rectangle { aabb }
     }
+}
 
+impl<P: Clone> Rectangle<P> {
     /// Returns the rectangle's lower corner.
     ///
     /// This is the point contained within the rectangle with the smallest coordinate value in each
@@ -52,10 +51,7 @@ where
     }
 }
 
-impl<P> From<AABB<P>> for Rectangle<P>
-where
-    P: Point,
-{
+impl<P> From<AABB<P>> for Rectangle<P> {
     fn from(aabb: AABB<P>) -> Self {
         Self::from_aabb(aabb)
     }

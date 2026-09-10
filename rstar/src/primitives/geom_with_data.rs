@@ -31,7 +31,7 @@ use crate::{envelope::Envelope, object::Distance};
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct GeomWithData<R: RTreeObject, T> {
+pub struct GeomWithData<R, T> {
     geom: R,
     /// Data to be associated with the geometry being stored in the [`RTree`](crate::RTree).
     pub data: T,
@@ -63,7 +63,7 @@ impl<R: PointDistance, T> PointDistance for GeomWithData<R, T> {
     }
 }
 
-impl<R: RTreeObject, T> GeomWithData<R, T> {
+impl<R, T> GeomWithData<R, T> {
     /// Create a new [GeomWithData] struct using the provided geometry and data.
     pub fn new(geom: R, data: T) -> Self {
         Self { geom, data }

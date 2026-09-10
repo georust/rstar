@@ -20,17 +20,14 @@ use serde::{Deserialize, Serialize};
 /// type will result in an n-dimensional bounding box.
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct AABB<P>
-where
-    P: Point,
-{
+pub struct AABB<P> {
     lower: P,
     upper: P,
 }
 
 impl<P> AABB<P>
 where
-    P: Point,
+    P: Clone,
 {
     /// Returns the AABB encompassing a single point.
     pub fn from_point(p: P) -> Self {
@@ -55,7 +52,12 @@ where
     pub fn upper(&self) -> P {
         self.upper.clone()
     }
+}
 
+impl<P> AABB<P>
+where
+    P: Point,
+{
     /// Creates a new AABB encompassing two points.
     pub fn from_corners(p1: P, p2: P) -> Self {
         Self {

@@ -12,7 +12,7 @@ use core::ops::Deref;
 /// **Note:** the wrapper implements [RTreeObject] and referenced object `T` can be
 /// accessed via an implementation of `Deref<Target=T>`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ObjectRef<'a, T: RTreeObject> {
+pub struct ObjectRef<'a, T> {
     inner: &'a T,
 }
 
@@ -43,14 +43,14 @@ impl<T: PointDistance> PointDistance for ObjectRef<'_, T> {
     }
 }
 
-impl<'a, T: RTreeObject> ObjectRef<'a, T> {
+impl<'a, T> ObjectRef<'a, T> {
     /// Create a new [ObjectRef] struct using the object.
     pub fn new(inner: &'a T) -> Self {
         Self { inner }
     }
 }
 
-impl<T: RTreeObject> Deref for ObjectRef<'_, T> {
+impl<T> Deref for ObjectRef<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
