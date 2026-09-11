@@ -269,9 +269,9 @@ pub trait PointExt: Point {
 }
 
 #[inline]
-pub fn min_inline<S>(a: S, b: S) -> S
+pub(crate) fn min_inline<S>(a: S, b: S) -> S
 where
-    S: RTreeNum,
+    S: PartialOrd,
 {
     if a < b {
         a
@@ -281,9 +281,9 @@ where
 }
 
 #[inline]
-pub fn max_inline<S>(a: S, b: S) -> S
+pub(crate) fn max_inline<S>(a: S, b: S) -> S
 where
-    S: RTreeNum,
+    S: PartialOrd,
 {
     if a > b {
         a

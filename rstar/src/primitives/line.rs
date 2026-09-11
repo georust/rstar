@@ -24,20 +24,14 @@ use num_traits::{One, Zero};
 /// ```
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Line<P>
-where
-    P: Point,
-{
+pub struct Line<P> {
     /// The line's start point
     pub from: P,
     /// The line's end point.
     pub to: P,
 }
 
-impl<P> Line<P>
-where
-    P: Point,
-{
+impl<P> Line<P> {
     /// Creates a new line between two points.
     pub fn new(from: P, to: P) -> Self {
         Line { from, to }
