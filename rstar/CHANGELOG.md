@@ -14,6 +14,7 @@
 - Added `Envelope::is_empty`. ([PR](https://github.com/georust/rstar/pull/190))
 - New `AABB::from_center` utility constructor
 - New `AABB::from_bounds` utility constructor
+- Added `RTree::map_data`, `RTree::map_data_ref`. ([PR](https://github.com/georust/rstar/pull/240))
 
 ## Fixed
 - Fix excessive memory retention in `bulk_load` from `Vec::split_off` over-capacity

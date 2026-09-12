@@ -1190,6 +1190,44 @@ where
         Params::DefaultInsertionStrategy::insert(self, t);
         self.size += 1;
     }
+
+    /// Maps the data contained in the r-tree under the condition that
+    /// the transformation keeps the envelope intact
+    /// (if this property is violated, this function panics).
+    ///
+    /// # Runtime
+    /// This method runs in `O(n)` (in contrast to `O(n log(n))` for the general mapping).
+    pub fn map_data<U, F>(self, mut f: F) -> RTree<U, Params>
+    where
+        U: RTreeObject<Envelope = T::Envelope>,
+        F: FnMut(T) -> U,
+    {
+        RTree {
+            root: self.root.map_data(&mut f),
+            size: self.size,
+            _params: ::core::marker::PhantomData,
+        }
+    }
+
+    /// Maps the data contained in the r-tree under the condition that
+    /// the transformation keeps the envelope intact
+    /// (if this property is violated, this function panics).
+    ///
+    /// This is the by-reference variant of [`RTree::map_data`].
+    ///
+    /// # Runtime
+    /// This method runs in `O(n)` (in contrast to `O(n log(n))` for the general mapping).
+    pub fn map_data_ref<'a, U, F>(&'a self, mut f: F) -> RTree<U, Params>
+    where
+        U: RTreeObject<Envelope = T::Envelope>,
+        F: FnMut(&'a T) -> U,
+    {
+        RTree {
+            root: self.root.map_data_ref(&mut f),
+            size: self.size,
+            _params: ::core::marker::PhantomData,
+        }
+    }
 }
 
 impl<T, Params> IntoIterator for RTree<T, Params>

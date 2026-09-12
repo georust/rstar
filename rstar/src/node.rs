@@ -69,6 +69,38 @@ where
             RTreeNode::Parent(..) => false,
         }
     }
+
+    fn map_data<U, F>(self, f: &mut F) -> RTreeNode<U>
+    where
+        U: RTreeObject<Envelope = T::Envelope>,
+        F: FnMut(T) -> U,
+    {
+        match self {
+            RTreeNode::Leaf(leaf) => RTreeNode::Leaf({
+                let old_envelope = leaf.envelope();
+                let new_leaf = f(leaf);
+                assert_eq!(new_leaf.envelope(), old_envelope);
+                new_leaf
+            }),
+            RTreeNode::Parent(parent) => RTreeNode::Parent(parent.map_data(f)),
+        }
+    }
+
+    fn map_data_ref<'a, U, F>(&'a self, f: &mut F) -> RTreeNode<U>
+    where
+        U: RTreeObject<Envelope = T::Envelope>,
+        F: FnMut(&'a T) -> U,
+    {
+        match self {
+            RTreeNode::Leaf(leaf) => RTreeNode::Leaf({
+                let old_envelope = leaf.envelope();
+                let new_leaf = f(leaf);
+                assert_eq!(new_leaf.envelope(), old_envelope);
+                new_leaf
+            }),
+            RTreeNode::Parent(parent) => RTreeNode::Parent(parent.map_data_ref(f)),
+        }
+    }
 }
 
 impl<T> ParentNode<T>
@@ -99,6 +131,36 @@ where
         let envelope = envelope_for_children(&children);
 
         ParentNode { envelope, children }
+    }
+
+    pub(crate) fn map_data<U, F>(self, f: &mut F) -> ParentNode<U>
+    where
+        U: RTreeObject<Envelope = T::Envelope>,
+        F: FnMut(T) -> U,
+    {
+        ParentNode {
+            envelope: self.envelope,
+            children: self
+                .children
+                .into_iter()
+                .map(move |i| i.map_data(f))
+                .collect(),
+        }
+    }
+
+    pub(crate) fn map_data_ref<'a, U, F>(&'a self, f: &mut F) -> ParentNode<U>
+    where
+        U: RTreeObject<Envelope = T::Envelope>,
+        F: FnMut(&'a T) -> U,
+    {
+        ParentNode {
+            envelope: self.envelope.clone(),
+            children: self
+                .children
+                .iter()
+                .map(move |i| i.map_data_ref(f))
+                .collect(),
+        }
     }
 
     #[cfg(test)]
