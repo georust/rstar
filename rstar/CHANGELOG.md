@@ -1,8 +1,9 @@
 # Unreleased
 
 ## Fixed
-- Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
 
+- Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
+- Bumped `heapless` dependency to v0.9.
 
 # 0.13.0
 
