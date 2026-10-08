@@ -1,7 +1,7 @@
 # Unreleased
 
 ## Changed
-- `locate_*` iterators test nodes before pushing them onto their stack.
+- `locate_*` iterators test parent nodes before pushing them onto their stack.
 
 ## Fixed
 - Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.

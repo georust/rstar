@@ -61,18 +61,22 @@ where
         // Do not call `should_unpack_parent` on an empty root as
         // its AABB is pathological and might make that function panic.
         if !root.children.is_empty() && result.func.should_unpack_parent(&root.envelope) {
-            result.push_selected(&root.children);
+            result.push_children(&root.children);
         }
         result
     }
 
-    /// Pushes the selected children. Testing them before they are pushed keeps the rejected
-    /// ones off the stack: `current_nodes` only contains nodes that are to be unpacked.
-    fn push_selected(&mut self, children: &'a [RTreeNode<T>]) {
+    /// Pushes the children that may have to be unpacked.
+    ///
+    /// Parents are tested before they are pushed, which keeps the rejected ones off the stack.
+    /// Leaves are pushed untested and only tested once they are popped: `should_unpack_leaf`
+    /// can be far more expensive than testing an envelope, and it must not be called for
+    /// elements that an iterator which is not consumed to its end never reaches.
+    fn push_children(&mut self, children: &'a [RTreeNode<T>]) {
         let func = &self.func;
         self.current_nodes
             .extend(children.iter().filter(|child| match child {
-                RTreeNode::Leaf(ref t) => func.should_unpack_leaf(t),
+                RTreeNode::Leaf(_) => true,
                 RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
             }));
     }
@@ -88,8 +92,12 @@ where
     fn next(&mut self) -> Option<&'a T> {
         while let Some(next) = self.current_nodes.pop() {
             match next {
-                RTreeNode::Leaf(ref t) => return Some(t),
-                RTreeNode::Parent(ref data) => self.push_selected(&data.children),
+                RTreeNode::Leaf(ref t) => {
+                    if self.func.should_unpack_leaf(t) {
+                        return Some(t);
+                    }
+                }
+                RTreeNode::Parent(ref data) => self.push_children(&data.children),
             }
         }
         None
@@ -167,17 +175,17 @@ where
             current_nodes: SmallVec::new(),
         };
         if !root.children.is_empty() && result.func.should_unpack_parent(&root.envelope) {
-            result.push_selected(&mut root.children);
+            result.push_children(&mut root.children);
         }
         result
     }
 
-    /// See [`SelectionIterator::push_selected`].
-    fn push_selected(&mut self, children: &'a mut [RTreeNode<T>]) {
+    /// See [`SelectionIterator::push_children`].
+    fn push_children(&mut self, children: &'a mut [RTreeNode<T>]) {
         let func = &self.func;
         self.current_nodes
             .extend(children.iter_mut().filter(|child| match child {
-                RTreeNode::Leaf(ref t) => func.should_unpack_leaf(t),
+                RTreeNode::Leaf(_) => true,
                 RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
             }));
     }
@@ -193,8 +201,12 @@ where
     fn next(&mut self) -> Option<&'a mut T> {
         while let Some(next) = self.current_nodes.pop() {
             match next {
-                RTreeNode::Leaf(ref mut t) => return Some(t),
-                RTreeNode::Parent(ref mut data) => self.push_selected(&mut data.children),
+                RTreeNode::Leaf(ref mut t) => {
+                    if self.func.should_unpack_leaf(t) {
+                        return Some(t);
+                    }
+                }
+                RTreeNode::Parent(ref mut data) => self.push_children(&mut data.children),
             }
         }
         None
@@ -278,6 +290,41 @@ mod test {
 
         let mut elements = tree.locate_with_selection_function_mut(SelectNoneFunc {});
         assert!(elements.next().is_none());
+    }
+
+    /// `should_unpack_leaf` may be expensive, so it must only be called for the leaves an
+    /// iterator actually gets to.
+    #[test]
+    fn test_leaves_are_tested_lazily() {
+        use core::cell::Cell;
+
+        struct CountingFunc<'a>(&'a Cell<usize>);
+
+        impl SelectionFunction<[f64; 2]> for CountingFunc<'_> {
+            fn should_unpack_parent(&self, _: &AABB<[f64; 2]>) -> bool {
+                true
+            }
+
+            fn should_unpack_leaf(&self, _: &[f64; 2]) -> bool {
+                self.0.set(self.0.get() + 1);
+                true
+            }
+        }
+
+        let mut tree = RTree::bulk_load(create_random_points(1000, SEED_1));
+
+        let tested_leaves = Cell::new(0);
+        let mut elements = tree.locate_with_selection_function(CountingFunc(&tested_leaves));
+        assert!(elements.next().is_some());
+        assert_eq!(tested_leaves.get(), 1);
+        assert!(elements.next().is_some());
+        assert_eq!(tested_leaves.get(), 2);
+        drop(elements);
+
+        tested_leaves.set(0);
+        let mut elements = tree.locate_with_selection_function_mut(CountingFunc(&tested_leaves));
+        assert!(elements.next().is_some());
+        assert_eq!(tested_leaves.get(), 1);
     }
 
     #[test]
