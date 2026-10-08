@@ -14,3 +14,7 @@ rstar = { path = "../rstar" }
 [[bench]]
 name = "benchmarks"
 harness = false
+
+[[bench]]
+name = "editor_workload"
+harness = false
