@@ -129,7 +129,7 @@ where
                     }
                 }
                 RTreeNode::Parent(ref data) => {
-                    if args.func.should_unpack_parent(&data.envelope) {
+                    if args.func.should_unpack_parent(&data.envelope()) {
                         inner(data, args)?;
                     }
                 }
@@ -139,7 +139,7 @@ where
         ControlFlow::Continue(())
     }
 
-    if !root.children.is_empty() && func.should_unpack_parent(&root.envelope) {
+    if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
         inner(root, &mut Args { func, visitor })?;
     }
 
@@ -234,7 +234,7 @@ where
                     }
                 }
                 RTreeNode::Parent(ref mut data) => {
-                    if args.func.should_unpack_parent(&data.envelope) {
+                    if args.func.should_unpack_parent(&data.envelope()) {
                         inner(data, args)?;
                     }
                 }
@@ -244,7 +244,7 @@ where
         ControlFlow::Continue(())
     }
 
-    if !root.children.is_empty() && func.should_unpack_parent(&root.envelope) {
+    if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
         inner(root, &mut Args { func, visitor })?;
     }
 
