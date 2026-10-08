@@ -54,19 +54,27 @@ where
     Func: SelectionFunction<T>,
 {
     pub(crate) fn new(root: &'a ParentNode<T>, func: Func) -> Self {
-        let current_nodes =
-            // Do not call `should_unpack_parent` on an empty root as
-            // its AABB is pathological and might make that function panic.
-            if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
-                root.children.iter().collect()
-            } else {
-                SmallVec::new()
-            };
-
-        SelectionIterator {
+        let mut result = SelectionIterator {
             func,
-            current_nodes,
+            current_nodes: SmallVec::new(),
+        };
+        // Do not call `should_unpack_parent` on an empty root as
+        // its AABB is pathological and might make that function panic.
+        if !root.children.is_empty() && result.func.should_unpack_parent(&root.envelope) {
+            result.push_selected(&root.children);
         }
+        result
+    }
+
+    /// Pushes the selected children. Testing them before they are pushed keeps the rejected
+    /// ones off the stack: `current_nodes` only contains nodes that are to be unpacked.
+    fn push_selected(&mut self, children: &'a [RTreeNode<T>]) {
+        let func = &self.func;
+        self.current_nodes
+            .extend(children.iter().filter(|child| match child {
+                RTreeNode::Leaf(ref t) => func.should_unpack_leaf(t),
+                RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
+            }));
     }
 }
 
@@ -80,16 +88,8 @@ where
     fn next(&mut self) -> Option<&'a T> {
         while let Some(next) = self.current_nodes.pop() {
             match next {
-                RTreeNode::Leaf(ref t) => {
-                    if self.func.should_unpack_leaf(t) {
-                        return Some(t);
-                    }
-                }
-                RTreeNode::Parent(ref data) => {
-                    if self.func.should_unpack_parent(&data.envelope) {
-                        self.current_nodes.extend(&data.children);
-                    }
-                }
+                RTreeNode::Leaf(ref t) => return Some(t),
+                RTreeNode::Parent(ref data) => self.push_selected(&data.children),
             }
         }
         None
@@ -129,7 +129,7 @@ where
                     }
                 }
                 RTreeNode::Parent(ref data) => {
-                    if args.func.should_unpack_parent(&data.envelope()) {
+                    if args.func.should_unpack_parent(&data.envelope) {
                         inner(data, args)?;
                     }
                 }
@@ -139,7 +139,7 @@ where
         ControlFlow::Continue(())
     }
 
-    if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
+    if !root.children.is_empty() && func.should_unpack_parent(&root.envelope) {
         inner(root, &mut Args { func, visitor })?;
     }
 
@@ -162,17 +162,24 @@ where
     Func: SelectionFunction<T>,
 {
     pub(crate) fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
-        let current_nodes =
-            if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
-                root.children.iter_mut().collect()
-            } else {
-                SmallVec::new()
-            };
-
-        SelectionIteratorMut {
+        let mut result = SelectionIteratorMut {
             func,
-            current_nodes,
+            current_nodes: SmallVec::new(),
+        };
+        if !root.children.is_empty() && result.func.should_unpack_parent(&root.envelope) {
+            result.push_selected(&mut root.children);
         }
+        result
+    }
+
+    /// See [`SelectionIterator::push_selected`].
+    fn push_selected(&mut self, children: &'a mut [RTreeNode<T>]) {
+        let func = &self.func;
+        self.current_nodes
+            .extend(children.iter_mut().filter(|child| match child {
+                RTreeNode::Leaf(ref t) => func.should_unpack_leaf(t),
+                RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
+            }));
     }
 }
 
@@ -186,16 +193,8 @@ where
     fn next(&mut self) -> Option<&'a mut T> {
         while let Some(next) = self.current_nodes.pop() {
             match next {
-                RTreeNode::Leaf(ref mut t) => {
-                    if self.func.should_unpack_leaf(t) {
-                        return Some(t);
-                    }
-                }
-                RTreeNode::Parent(ref mut data) => {
-                    if self.func.should_unpack_parent(&data.envelope) {
-                        self.current_nodes.extend(&mut data.children);
-                    }
-                }
+                RTreeNode::Leaf(ref mut t) => return Some(t),
+                RTreeNode::Parent(ref mut data) => self.push_selected(&mut data.children),
             }
         }
         None
@@ -235,7 +234,7 @@ where
                     }
                 }
                 RTreeNode::Parent(ref mut data) => {
-                    if args.func.should_unpack_parent(&data.envelope()) {
+                    if args.func.should_unpack_parent(&data.envelope) {
                         inner(data, args)?;
                     }
                 }
@@ -245,7 +244,7 @@ where
         ControlFlow::Continue(())
     }
 
-    if !root.children.is_empty() && func.should_unpack_parent(&root.envelope()) {
+    if !root.children.is_empty() && func.should_unpack_parent(&root.envelope) {
         inner(root, &mut Args { func, visitor })?;
     }
 
