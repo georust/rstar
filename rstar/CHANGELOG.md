@@ -1,5 +1,8 @@
 # Unreleased
 
+## Changed
+- `remove`, `remove_at_point`, `remove_with_selection_function` and `pop_nearest_neighbor` remove the element in place instead of taking the tree apart with a drain iterator, and do not allocate anymore.
+
 ## Fixed
 - Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
 

@@ -1,7 +1,7 @@
 use core::mem::replace;
 
 use crate::algorithm::selection_functions::SelectionFunction;
-use crate::node::{ParentNode, RTreeNode};
+use crate::node::{envelope_for_children, ParentNode, RTreeNode};
 use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::{Envelope, RTree};
@@ -49,6 +49,66 @@ where
 
         None
     }
+}
+
+/// Removes and returns the first element (depth first) selected by `removal_function`.
+///
+/// Other than a [`DrainIterator`] that is stopped after its first element, this neither takes
+/// the nodes on the path apart nor allocates.
+pub(crate) fn remove_first<T, R, Params>(
+    rtree: &mut RTree<T, Params>,
+    removal_function: &R,
+) -> Option<T>
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+    R: SelectionFunction<T>,
+{
+    let root = rtree.root_mut();
+    // Do not call `should_unpack_parent` on an empty root as
+    // its AABB is pathological and might make that function panic.
+    if root.children.is_empty() || !removal_function.should_unpack_parent(&root.envelope) {
+        return None;
+    }
+    let removed = remove_first_recursive(root, removal_function)?;
+    *rtree.size_mut() -= 1;
+    Some(removed)
+}
+
+fn remove_first_recursive<T, R>(node: &mut ParentNode<T>, removal_function: &R) -> Option<T>
+where
+    T: RTreeObject,
+    R: SelectionFunction<T>,
+{
+    for index in 0..node.children.len() {
+        let removed = match &mut node.children[index] {
+            RTreeNode::Leaf(leaf) => {
+                if !removal_function.should_unpack_leaf(leaf) {
+                    continue;
+                }
+                match node.children.swap_remove(index) {
+                    RTreeNode::Leaf(leaf) => leaf,
+                    RTreeNode::Parent(_) => unreachable!("This is a bug in rstar."),
+                }
+            }
+            RTreeNode::Parent(data) => {
+                if !removal_function.should_unpack_parent(&data.envelope) {
+                    continue;
+                }
+                let Some(removed) = remove_first_recursive(data, removal_function) else {
+                    continue;
+                };
+                // A node without children is not kept in its parent
+                if data.children.is_empty() {
+                    node.children.swap_remove(index);
+                }
+                removed
+            }
+        };
+        node.envelope = envelope_for_children(&node.children);
+        return Some(removed);
+    }
+    None
 }
 
 /// Iterator returned by `RTree::drain_*` methods.
@@ -125,7 +185,7 @@ where
 
         // TODO: May be make this a method on `ParentNode`
         if num_removed > 0 {
-            node.envelope = crate::node::envelope_for_children(&node.children);
+            node.envelope = envelope_for_children(&node.children);
         }
 
         // If there is no parent, this is the new root node to set back in the rtree
