@@ -10,3 +10,7 @@ members = [
 # Ensure any transitive dependencies, e.g. via `geo`, use the local `rstar` crate
 [patch.crates-io]
 rstar = { path = "rstar" }
+
+# A single codegen unit keeps the inlining of unrelated code paths from shifting the results
+[profile.bench]
+codegen-units = 1
