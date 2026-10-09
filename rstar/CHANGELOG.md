@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changed
+- Internal iteration (`locate_in_envelope_int`, `locate_in_envelope_intersecting_int`, `locate_at_point_int`, `locate_all_at_point_int` and their `_mut` variants) does not clone the envelope of every visited node anymore.
 - `locate_*` iterators test parent nodes before pushing them onto their stack.
 
 ## Fixed
