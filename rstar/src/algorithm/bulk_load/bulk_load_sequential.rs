@@ -27,12 +27,16 @@ where
         let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
         return ParentNode::new_parent(elements);
     }
-    // The number of elements each subtree can hold
-    let subtree_capacity = Params::MAX_SIZE.saturating_pow(height as u32 - 1);
-    // How many clusters will this node contain at least
-    let clusters = elements.len().div_ceil(subtree_capacity);
-    // More clusters would leave some subtree less than half full
-    let max_clusters = (elements.len() / subtree_capacity.div_ceil(2)).min(Params::MAX_SIZE);
+    // The number of elements each subtree can hold at most and must hold at least
+    let max_subtree_size = Params::MAX_SIZE.saturating_pow(height as u32 - 1);
+    let min_subtree_size = Params::MIN_SIZE.saturating_pow(height as u32 - 1);
+    // How many clusters this node needs at least and can have at most
+    let min_clusters = elements.len().div_ceil(max_subtree_size);
+    let max_clusters = (elements.len() / min_subtree_size).min(Params::MAX_SIZE);
+    debug_assert!(min_clusters <= max_clusters);
+    let clusters = preferred_number_of_clusters::<T, Params>()
+        .max(min_clusters)
+        .min(max_clusters);
 
     let iterator = PartitioningTask::<_, Params> {
         subtree_height: height - 1,
@@ -111,6 +115,23 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
     }
 }
 
+/// The number of clusters a node is split into if its number of elements allows for it: the
+/// largest full grid with the same number of clusters on every axis that fits into a node.
+fn preferred_number_of_clusters<T, Params>() -> usize
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    let dimensions = <T::Envelope as Envelope>::Point::DIMENSIONS;
+    let mut clusters_on_axis = 2usize;
+    while (clusters_on_axis + 1).saturating_pow(dimensions as u32) <= Params::MAX_SIZE {
+        clusters_on_axis += 1;
+    }
+    clusters_on_axis
+        .saturating_pow(dimensions as u32)
+        .clamp(Params::MIN_SIZE, Params::MAX_SIZE)
+}
+
 /// Returns the smallest `root` with `root.pow(degree) >= value`.
 fn ceil_root(value: usize, degree: usize) -> usize {
     let mut root = 1usize;
@@ -132,12 +153,18 @@ where
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    // The height of the resulting tree, assuming all nodes will be filled up to MAX_SIZE
+    // The height of the resulting tree, assuming all nodes will be split into the preferred
+    // number of clusters
+    let preferred_clusters = preferred_number_of_clusters::<T, Params>();
     let mut height = 1;
     let mut capacity = Params::MAX_SIZE;
     while capacity < elements.len() {
-        capacity = capacity.saturating_mul(Params::MAX_SIZE);
+        capacity = capacity.saturating_mul(preferred_clusters);
         height += 1;
+    }
+    // The root needs two children that are sufficiently filled
+    while height > 1 && elements.len() / 2 < Params::MIN_SIZE.saturating_pow(height as u32 - 1) {
+        height -= 1;
     }
     bulk_load_recursive::<_, Params>(elements, height)
 }
