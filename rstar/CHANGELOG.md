@@ -4,6 +4,7 @@
 - Internal iteration (`locate_in_envelope_int`, `locate_in_envelope_intersecting_int`, `locate_at_point_int`, `locate_all_at_point_int` and their `_mut` variants) does not clone the envelope of every visited node anymore.
 
 ## Fixed
+- Fixed `bulk_load` building trees with leaves on different levels for some sizes (e.g. 25 elements with the default parameters), which made later insertions panic. All nodes but the root are now at least half full and no node exceeds `MAX_SIZE`, for any parameters and dimension.
 - Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
 
 
