@@ -80,8 +80,8 @@ where
     T: RTreeObject,
     R: SelectionFunction<T>,
 {
-    for index in 0..node.children.len() {
-        let removed = match &mut node.children[index] {
+    for (index, child) in node.children.iter_mut().enumerate() {
+        let removed = match child {
             RTreeNode::Leaf(leaf) => {
                 if !removal_function.should_unpack_leaf(leaf) {
                     continue;
