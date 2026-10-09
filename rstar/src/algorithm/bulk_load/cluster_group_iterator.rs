@@ -1,4 +1,5 @@
 use crate::{Envelope, Point, RTreeObject, RTreeParams};
+use smallvec::SmallVec;
 
 #[cfg(not(test))]
 use alloc::vec::Vec;
@@ -57,12 +58,13 @@ impl<T: RTreeObject> Iterator for ClusterGroupIterator<T> {
     }
 }
 
-/// Calculates the desired number of clusters on any axis
+/// Calculates how many clusters a node holding `number_of_elements` elements
+/// should be split into.
 ///
 /// A 'cluster' refers to a set of elements that will finally form an rtree node.
-pub fn calculate_number_of_clusters_on_axis<T, Params>(number_of_elements: usize) -> usize
+/// The result is the node's fan-out and is therefore capped at `MAX_SIZE`.
+pub fn calculate_number_of_clusters<Params>(number_of_elements: usize) -> usize
 where
-    T: RTreeObject,
     Params: RTreeParams,
 {
     let max_size = Params::MAX_SIZE as f32;
@@ -73,9 +75,59 @@ where
     // How many clusters will this node contain
     let number_of_clusters = (number_of_elements as f32 / n_subtree).ceil();
 
-    let max_dimension = <T::Envelope as Envelope>::Point::DIMENSIONS as f32;
-    // Try to split all clusters among all dimensions as evenly as possible by taking the nth root.
-    number_of_clusters.powf(1. / max_dimension).floor() as usize
+    // `number_of_clusters` cannot exceed `MAX_SIZE` mathematically, but it is
+    // computed in `f32` and is clamped here to stay robust against rounding.
+    (number_of_clusters as usize).clamp(2, Params::MAX_SIZE)
+}
+
+/// Distributes a node's fan-out over the axes, returning how many cuts to make
+/// on each one.
+///
+/// The OMT paper is written for two dimensional data and cuts `sqrt(N)` slabs
+/// on each of the two axes. Taking the same number of cuts `k` on every axis
+/// generalises badly: the node ends up with `k ^ DIMENSIONS` children, which
+/// exceeds `MAX_SIZE` as soon as there are more than two dimensions -- with the
+/// default parameters a three dimensional bulk load produced nodes with 8
+/// children and a six dimensional one nodes with 64.
+///
+/// Cuts are therefore handed out one at a time, always to the axis that has
+/// been cut least so far, and only while the resulting product stays within
+/// `MAX_SIZE`. Axes that receive no cut are simply not partitioned, which is
+/// what keeps the fan-out bounded in high dimensions.
+pub fn calculate_cuts_per_axis<T, Params>(
+    number_of_elements: usize,
+    first_axis: usize,
+) -> SmallVec<[usize; 8]>
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    let dimensions = <T::Envelope as Envelope>::Point::DIMENSIONS;
+    let max_size = Params::MAX_SIZE;
+    let target = calculate_number_of_clusters::<Params>(number_of_elements);
+
+    let mut cuts = SmallVec::from_elem(1usize, dimensions);
+    let mut fan_out = 1usize;
+    while fan_out < target {
+        // Pick the least-cut axis whose next cut keeps the fan-out within
+        // `MAX_SIZE`; stop when no axis can be cut any further. Ties are broken
+        // by starting the scan at `first_axis`, which is what rotates the cut
+        // axes from level to level.
+        let mut chosen: Option<usize> = None;
+        for offset in 0..dimensions {
+            let axis = (first_axis + offset) % dimensions;
+            if fan_out / cuts[axis] * (cuts[axis] + 1) > max_size {
+                continue;
+            }
+            if chosen.is_none_or(|best| cuts[axis] < cuts[best]) {
+                chosen = Some(axis);
+            }
+        }
+        let Some(axis) = chosen else { break };
+        fan_out = fan_out / cuts[axis] * (cuts[axis] + 1);
+        cuts[axis] += 1;
+    }
+    cuts
 }
 
 #[cfg(test)]
