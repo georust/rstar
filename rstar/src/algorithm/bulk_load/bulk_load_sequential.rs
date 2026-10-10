@@ -145,8 +145,8 @@ fn ceil_root(value: usize, degree: usize) -> usize {
 ///
 /// See http://ceur-ws.org/Vol-74/files/FORUM_18.pdf
 ///
-/// All leaves of the resulting tree are on the same level and every node but the root is at
-/// least half full.
+/// All leaves of the resulting tree are on the same level and every node but the root holds
+/// `MIN_SIZE..=MAX_SIZE` children.
 pub fn bulk_load_sequential<T, Params>(elements: Vec<T>) -> ParentNode<T>
 where
     T: RTreeObject,
