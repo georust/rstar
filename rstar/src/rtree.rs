@@ -725,7 +725,7 @@ where
     where
         F: SelectionFunction<T>,
     {
-        removal::DrainIterator::new(self, function).take(1).last()
+        removal::remove_first(self, &function)
     }
 
     /// Drain elements selected by a [`SelectionFunction`]. Returns an

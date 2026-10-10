@@ -2,6 +2,8 @@
 
 ## Changed
 - Internal iteration (`locate_in_envelope_int`, `locate_in_envelope_intersecting_int`, `locate_at_point_int`, `locate_all_at_point_int` and their `_mut` variants) does not clone the envelope of every visited node anymore.
+- `locate_*` iterators test parent nodes before pushing them onto their stack.
+- `remove`, `remove_at_point`, `remove_with_selection_function` and `pop_nearest_neighbor` remove the element in place instead of taking the tree apart with a drain iterator, and do not allocate anymore.
 
 ## Fixed
 - Fixed `bulk_load` building trees with leaves on different levels for some sizes (e.g. 25 elements with the default parameters), which made later insertions panic. All nodes but the root now hold `MIN_SIZE..=MAX_SIZE` children, for any parameters and dimension.
