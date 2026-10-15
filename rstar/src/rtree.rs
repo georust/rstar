@@ -950,6 +950,10 @@ where
     /// The distance is calculated by calling
     /// [PointDistance::distance_2]
     ///
+    /// If several elements have the same smallest distance, only one of them is returned;
+    /// [`RTree::nearest_neighbors`] returns all of them. For the `k` nearest elements, take
+    /// the first `k` elements of [`RTree::nearest_neighbor_iter`].
+    ///
     /// # Example
     /// ```
     /// use rstar::RTree;
@@ -997,12 +1001,16 @@ where
         }
     }
 
-    /// Returns the nearest neighbors for a given point.
+    /// Returns all elements that share the smallest distance to a given point.
     ///
     /// The distance is calculated by calling
     /// [PointDistance::distance_2]
     ///
-    /// All returned values will have the exact same distance from the given query point.
+    /// This is not a `k` nearest neighbors query: all returned values have exactly the same
+    /// distance from the query point, so usually a single element is returned, and more only
+    /// on ties. For the `k` nearest elements, take the first `k` elements of
+    /// [`RTree::nearest_neighbor_iter`]. The order of the returned elements is unspecified.
+    ///
     /// Returns an empty `Vec` if the tree is empty.
     ///
     /// # Example
@@ -1029,13 +1037,18 @@ where
             .unwrap_or_default()
     }
 
-    /// Returns the nearest neighbors for a given point with distance squared.
+    /// Returns all elements that share the smallest distance to a given point, together with
+    /// that distance squared.
     ///
     /// The distance is calculated by calling
     /// [PointDistance::distance_2]
     ///
-    /// All returned values will have the exact same distance from the given query point.
-    /// Returns an empty `None` if the tree is empty.
+    /// Like [`RTree::nearest_neighbors`], this is not a `k` nearest neighbors query: all
+    /// returned values have exactly the same distance from the query point. For the `k`
+    /// nearest elements with their distances, take the first `k` elements of
+    /// [`RTree::nearest_neighbor_iter_with_distance_2`].
+    ///
+    /// Returns `None` if the tree is empty.
     ///
     /// # Example
     /// ```
@@ -1097,6 +1110,9 @@ where
 
     /// Returns all elements of the tree sorted by their distance to a given point.
     ///
+    /// This is the method for `k` nearest neighbors queries: the iterator is lazy, so taking
+    /// its first `k` elements only does the work needed for them.
+    ///
     /// # Runtime
     /// Every `next()` call runs in `O(log(n))`. Creating the iterator runs in
     /// `O(log(n))`.
@@ -1109,11 +1125,18 @@ where
     /// let tree = RTree::bulk_load(vec![
     ///   [0.0, 0.0],
     ///   [0.0, 1.0],
+    ///   [3.0, 0.0],
     /// ]);
     ///
     /// let nearest_neighbors = tree.nearest_neighbor_iter([0.5, 0.0]).collect::<Vec<_>>();
-    /// assert_eq!(nearest_neighbors, vec![&[0.0, 0.0], &[0.0, 1.0]]);
+    /// assert_eq!(nearest_neighbors, vec![&[0.0, 0.0], &[0.0, 1.0], &[3.0, 0.0]]);
+    ///
+    /// // The two nearest neighbors
+    /// let nearest_two = tree.nearest_neighbor_iter([0.5, 0.0]).take(2).collect::<Vec<_>>();
+    /// assert_eq!(nearest_two, vec![&[0.0, 0.0], &[0.0, 1.0]]);
     /// ```
+    #[doc(alias = "knn")]
+    #[doc(alias = "k_nearest_neighbors")]
     pub fn nearest_neighbor_iter(
         &self,
         query_point: <T::Envelope as Envelope>::Point,
