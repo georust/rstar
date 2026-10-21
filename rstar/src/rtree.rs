@@ -1111,7 +1111,9 @@ where
     /// Returns all elements of the tree sorted by their distance to a given point.
     ///
     /// This is the method for `k` nearest neighbors queries: the iterator is lazy, so taking
-    /// its first `k` elements only does the work needed for them.
+    /// its first `k` elements only does the work needed for them. Elements at the same distance
+    /// count individually: `take(k)` returns at most `k` elements, which may share their
+    /// distance, and which of several equally near elements come first is unspecified.
     ///
     /// # Runtime
     /// Every `next()` call runs in `O(log(n))`. Creating the iterator runs in
@@ -1134,6 +1136,16 @@ where
     /// // The two nearest neighbors
     /// let nearest_two = tree.nearest_neighbor_iter([0.5, 0.0]).take(2).collect::<Vec<_>>();
     /// assert_eq!(nearest_two, vec![&[0.0, 0.0], &[0.0, 1.0]]);
+    ///
+    /// // Ties: both nearest neighbors of the origin have the same distance,
+    /// // the third element is not included.
+    /// let tree = RTree::bulk_load(vec![[1.0, 0.0], [-1.0, 0.0], [0.0, 2.0]]);
+    /// let distances_2 = tree
+    ///     .nearest_neighbor_iter_with_distance_2([0.0, 0.0])
+    ///     .take(2)
+    ///     .map(|(_, distance_2)| distance_2)
+    ///     .collect::<Vec<_>>();
+    /// assert_eq!(distances_2, vec![1.0, 1.0]);
     /// ```
     #[doc(alias = "knn")]
     #[doc(alias = "k_nearest_neighbors")]
