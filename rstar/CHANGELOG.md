@@ -6,6 +6,7 @@
 - `remove`, `remove_at_point`, `remove_with_selection_function` and `pop_nearest_neighbor` remove the element in place instead of taking the tree apart with a drain iterator, and do not allocate anymore.
 
 ## Fixed
+- Fixed `bulk_load` building trees with leaves on different levels for some sizes (e.g. 25 elements with the default parameters), which made later insertions panic. All nodes but the root now hold `MIN_SIZE..=MAX_SIZE` children, for any parameters and dimension.
 - Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
 
 
