@@ -1,4 +1,4 @@
-use crate::point::min_inline;
+use crate::point::{min_inline, RTreeNum};
 use crate::{
     node::{ParentNode, RTreeNode},
     object::Distance,
@@ -28,7 +28,9 @@ where
     T: PointDistance,
 {
     fn eq(&self, other: &Self) -> bool {
-        self.distance == other.distance
+        // Not `self.distance == other.distance`: that leaves `Eq` inconsistent with the
+        // `Ord` impl below, which reports two NaN distances as equal.
+        self.distance.ord() == other.distance.ord()
     }
 }
 
@@ -49,7 +51,7 @@ where
 {
     fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
         // Inverse comparison creates a min heap
-        other.distance.partial_cmp(&self.distance).unwrap()
+        other.distance.ord().cmp(&self.distance.ord())
     }
 }
 
@@ -248,7 +250,7 @@ where
             let distance_if_less_or_equal = match child {
                 RTreeNode::Parent(ref data) => {
                     let distance = data.envelope.distance_2(query_point);
-                    if distance <= *min_max_distance {
+                    if distance.ord() <= min_max_distance.ord() {
                         Some(distance)
                     } else {
                         None
