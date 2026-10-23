@@ -50,9 +50,9 @@ use ordered_float::{NotNan, OrderedFloat};
 /// }
 ///
 /// impl RTreeNum for MyFancyNumberType {
-///   // Any `Ord` type will do; `OrderedFloat` is from the `ordered-float` crate.
-///   type OrdType = ordered_float::OrderedFloat<f32>;
-///   fn ord(self) -> Self::OrdType { ordered_float::OrderedFloat(self.0) }
+///   // Any `Ord` type will do; `OrderedFloat` is re-exported from the `ordered-float` crate.
+///   type OrdType = rstar::ordered_float::OrderedFloat<f32>;
+///   fn ord(self) -> Self::OrdType { rstar::ordered_float::OrderedFloat(self.0) }
 /// }
 ///
 /// // Lots of traits are still missing to make the above code compile, but
@@ -146,7 +146,7 @@ impl RTreeNum for f64 {
 /// for query-heavy workloads over well-formed input.
 ///
 /// ```
-/// use ordered_float::NotNan;
+/// use rstar::ordered_float::NotNan;
 /// use rstar::RTree;
 ///
 /// let point = |x: f64, y: f64| [NotNan::new(x).unwrap(), NotNan::new(y).unwrap()];
@@ -181,7 +181,7 @@ impl RTreeNum for f64 {
 /// heuristic, but the total order keeps every comparison well defined.
 ///
 /// ```should_panic
-/// use ordered_float::NotNan;
+/// use rstar::ordered_float::NotNan;
 /// use rstar::RTree;
 ///
 /// // Finite coordinates, four orders of magnitude clear of `f32::MAX`.

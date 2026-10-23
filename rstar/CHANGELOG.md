@@ -8,12 +8,13 @@
 - **BREAKING** `RTreeNum` no longer has a blanket implementation, and no longer requires `PartialOrd`. It now requires
   an associated `OrdType: Ord` plus an `ord()` conversion, so that every comparison the r-tree makes is *total*, avoiding
   problems with NaN. Implementations have been added for all common numeric types as well as [`ordered_float::NotNan`]
+  (`ordered_float` is re-exported as `rstar::ordered_float`).
   If you implement `RTreeNum` for your own scalar type, you'll need to add an implementation like:
   ```rust
   impl RTreeNum for MyScalar {
-      // Any `Ord` type will do; `OrderedFloat` is from the `ordered-float` crate.
-      type OrdType = ordered_float::OrderedFloat<f64>;
-      fn ord(self) -> Self::OrdType { ordered_float::OrderedFloat(self.0) }
+      // Any `Ord` type will do; `OrderedFloat` is re-exported from the `ordered-float` crate.
+      type OrdType = rstar::ordered_float::OrderedFloat<f64>;
+      fn ord(self) -> Self::OrdType { rstar::ordered_float::OrderedFloat(self.0) }
   }
   ```
   ([PR](https://github.com/georust/rstar/pull/237))

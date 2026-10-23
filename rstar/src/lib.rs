@@ -61,4 +61,6 @@ pub use crate::params::{DefaultParams, InsertionStrategy, RTreeParams};
 pub use crate::point::{Point, RTreeNum};
 pub use crate::rtree::RTree;
 
+pub use ordered_float;
+
 pub use crate::algorithm::iterators;
