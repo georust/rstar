@@ -1,13 +1,31 @@
 # Unreleased
 
 ## Changed
+- Increase our MSRV to Rust 1.90 following that of the `ordered-float` crate. ([PR](https://github.com/georust/rstar/pull/237))
 - Internal iteration (`locate_in_envelope_int`, `locate_in_envelope_intersecting_int`, `locate_at_point_int`, `locate_all_at_point_int` and their `_mut` variants) does not clone the envelope of every visited node anymore.
 - `locate_*` iterators test parent nodes before pushing them onto their stack.
 - `remove`, `remove_at_point`, `remove_with_selection_function` and `pop_nearest_neighbor` remove the element in place instead of taking the tree apart with a drain iterator, and do not allocate anymore.
+- **BREAKING** `RTreeNum` no longer has a blanket implementation, and no longer requires `PartialOrd`. It now requires
+  an associated `OrdType: Ord` plus an `ord()` conversion, so that every comparison the r-tree makes is *total*, avoiding
+  problems with NaN. Implementations have been added for all common numeric types as well as [`ordered_float::NotNan`]
+  (`ordered_float` is re-exported as `rstar::ordered_float`).
+  If you implement `RTreeNum` for your own scalar type, you'll need to add an implementation like:
+  ```rust
+  impl RTreeNum for MyScalar {
+      // Any `Ord` type will do; `OrderedFloat` is re-exported from the `ordered-float` crate.
+      type OrdType = rstar::ordered_float::OrderedFloat<f64>;
+      fn ord(self) -> Self::OrdType { rstar::ordered_float::OrderedFloat(self.0) }
+  }
+  ```
+  ([PR](https://github.com/georust/rstar/pull/237))
 
 ## Fixed
 - Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
+- Envelopes no longer panic on `NaN` inputs, and a `NaN` coordinate no longer strands finite points.
+  ([PR](https://github.com/georust/rstar/pull/237))
 
+[`ordered_float::OrderedFloat`]: https://docs.rs/ordered-float/latest/ordered_float/struct.OrderedFloat.html
+[`ordered_float::NotNan`]: https://docs.rs/ordered-float/latest/ordered_float/struct.NotNan.html
 
 # 0.13.0
 

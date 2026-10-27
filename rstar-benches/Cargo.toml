@@ -9,6 +9,7 @@ rust-version = "1.68"
 criterion = { version = "0.8", features = ["html_reports"] }
 rand = "0.10"
 rand_hc = "0.5"
+ordered-float = { workspace = true, features = ["std"] }
 rstar = { path = "../rstar" }
 
 [[bench]]
