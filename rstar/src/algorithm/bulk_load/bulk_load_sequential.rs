@@ -101,11 +101,17 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
                 // Try to split all clusters among the remaining axes as evenly as possible by
                 // taking the nth root. On the last axis, every cluster group is a cluster.
                 let groups = ceil_root(clusters, remaining_axes);
-                // The first axis gets the most cluster groups. Rotating it with the level of
-                // the tree keeps the envelopes of the nodes from being stretched along the
-                // same axis on every level.
+                // The first axis gets the most cluster groups. If the preferred grid does not
+                // split every axis (2x2 in 3D with `MAX_SIZE = 6`), the axes rotate with the
+                // level of the tree, so that the axes left out on one level are split on the
+                // next. A grid over all axes keeps their order, which is faster for queries.
                 let dimensions = <T::Envelope as Envelope>::Point::DIMENSIONS;
-                let axis = (remaining_axes - 1 + self.subtree_height) % dimensions;
+                let rotation = if preferred_grid::<T, Params>().0 < dimensions {
+                    self.subtree_height
+                } else {
+                    0
+                };
+                let axis = (remaining_axes - 1 + rotation) % dimensions;
                 let iterator = ClusterGroupIterator::new(elements, clusters, groups, axis);
                 self.work_queue
                     .extend(iterator.map(|(slab, clusters)| PartitioningState {
@@ -120,20 +126,34 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
 }
 
 /// The number of clusters a node is split into if its number of elements allows for it: the
-/// largest full grid with the same number of clusters on every axis that fits into a node.
+/// largest full grid with the same number of clusters on as many axes as fit into a node (2x2 in
+/// 2D, and also in 3D with `MAX_SIZE = 6`, where the third axis is split on the next level).
 fn preferred_number_of_clusters<T, Params>() -> usize
 where
     T: RTreeObject,
     Params: RTreeParams,
 {
+    preferred_grid::<T, Params>()
+        .1
+        .clamp(Params::MIN_SIZE, Params::MAX_SIZE)
+}
+
+/// The preferred grid: the number of axes it splits and its number of clusters.
+fn preferred_grid<T, Params>() -> (usize, usize)
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
     let dimensions = <T::Envelope as Envelope>::Point::DIMENSIONS;
+    let mut axes = dimensions;
+    while axes > 1 && 2usize.saturating_pow(axes as u32) > Params::MAX_SIZE {
+        axes -= 1;
+    }
     let mut clusters_on_axis = 2usize;
-    while (clusters_on_axis + 1).saturating_pow(dimensions as u32) <= Params::MAX_SIZE {
+    while (clusters_on_axis + 1).saturating_pow(axes as u32) <= Params::MAX_SIZE {
         clusters_on_axis += 1;
     }
-    clusters_on_axis
-        .saturating_pow(dimensions as u32)
-        .clamp(Params::MIN_SIZE, Params::MAX_SIZE)
+    (axes, clusters_on_axis.saturating_pow(axes as u32))
 }
 
 /// Returns the smallest `root` with `root.pow(degree) >= value`.
