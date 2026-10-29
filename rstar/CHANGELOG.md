@@ -6,7 +6,7 @@
 - `remove`, `remove_at_point`, `remove_with_selection_function` and `pop_nearest_neighbor` remove the element in place instead of taking the tree apart with a drain iterator, and do not allocate anymore.
 
 ## Fixed
-- Fixed `bulk_load` building trees with leaves on different levels for some sizes (e.g. 25 elements with the default parameters), which made later insertions panic. All nodes but the root now hold `MIN_SIZE..=MAX_SIZE` children, for any parameters and dimension.
+- Fixed `bulk_load` building trees with leaves on different levels for some sizes, which made later insertions panic ([#256](https://github.com/georust/rstar/issues/256)). With the default parameters these are e.g. 25–27 and 97–111 elements in 2D, a regression in 0.13.0 ([#221](https://github.com/georust/rstar/pull/221)), and 51 or 385 elements in 3D. All nodes but the root now hold `MIN_SIZE..=MAX_SIZE` children, for any parameters and dimension: in 3D and higher dimensions, nodes are no longer filled beyond `MAX_SIZE` ([#197](https://github.com/georust/rstar/issues/197)), which changes the shape of bulk loaded trees there. ([PR](https://github.com/georust/rstar/pull/254))
 - Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
 
 

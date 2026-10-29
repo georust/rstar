@@ -60,7 +60,10 @@ impl<T: RTreeObject> Iterator for ClusterGroupIterator<T> {
             return (last, clusters).into();
         }
         let slab_axis = self.cluster_dimension;
-        let partition_point = clusters_before * self.number_of_elements / self.number_of_clusters;
+        // `clusters_before * number_of_elements / number_of_clusters`, without the product
+        // (it overflows on 32-bit targets for large trees)
+        let (n, k) = (self.number_of_elements, self.number_of_clusters);
+        let partition_point = clusters_before * (n / k) + clusters_before * (n % k) / k;
         // Partition so that the slab elements end up at the tail.
         T::Envelope::partition_envelopes(slab_axis, &mut self.remaining, partition_point);
         // Drain from the end into a new Vec with exact capacity.

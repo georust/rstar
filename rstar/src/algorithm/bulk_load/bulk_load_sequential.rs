@@ -33,18 +33,32 @@ where
     // How many clusters this node needs at least and can have at most
     let min_clusters = elements.len().div_ceil(max_subtree_size);
     let max_clusters = (elements.len() / min_subtree_size).min(Params::MAX_SIZE);
+    // Holds in release builds too: every subtree of height `h` gets `MIN_SIZE^h..=MAX_SIZE^h`
+    // elements (the root at least `2 * MIN_SIZE^(h - 1)`, see `bulk_load_sequential`), and
+    // since `MAX_SIZE >= 2 * MIN_SIZE - 1` (`verify_parameters`), the ranges
+    // `k * MIN_SIZE^(h - 1)..=k * MAX_SIZE^(h - 1)` for `k = 1..=MAX_SIZE` clusters leave no gap
+    // up to `MAX_SIZE^h`. Splitting the elements evenly among the clusters then passes the same
+    // bounds on to the subtrees.
     debug_assert!(min_clusters <= max_clusters);
-    let clusters = preferred_number_of_clusters::<T, Params>()
+    let mut clusters = preferred_number_of_clusters::<T, Params>()
         .max(min_clusters)
         .min(max_clusters);
+    // Clusters of the same shape overlap less than a grid with a row of wider clusters, so fill
+    // the grid if that does not leave the subtrees too empty. (Below this level, the clusters of
+    // a group always form a full grid already.)
+    let dimensions = <T::Envelope as Envelope>::Point::DIMENSIONS;
+    let groups = ceil_root(clusters, dimensions);
+    let grid = groups * clusters.div_ceil(groups);
+    if grid <= max_clusters {
+        clusters = grid;
+    }
 
     let iterator = PartitioningTask::<_, Params> {
         subtree_height: height - 1,
         work_queue: vec![PartitioningState {
             elements,
             clusters,
-            max_clusters,
-            remaining_axes: <T::Envelope as Envelope>::Point::DIMENSIONS,
+            remaining_axes: dimensions,
         }],
         _params: Default::default(),
     };
@@ -58,8 +72,6 @@ where
 struct PartitioningState<T: RTreeObject> {
     elements: Vec<T>,
     clusters: usize,
-    /// The number of clusters may be raised up to this value to get a full grid of clusters.
-    max_clusters: usize,
     remaining_axes: usize,
 }
 
@@ -77,8 +89,7 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
         while let Some(next) = self.work_queue.pop() {
             let PartitioningState {
                 elements,
-                mut clusters,
-                max_clusters,
+                clusters,
                 remaining_axes,
             } = next;
             if clusters == 1 {
@@ -90,12 +101,6 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
                 // Try to split all clusters among the remaining axes as evenly as possible by
                 // taking the nth root. On the last axis, every cluster group is a cluster.
                 let groups = ceil_root(clusters, remaining_axes);
-                // Clusters of the same shape overlap less than a grid with a row of wider
-                // clusters, so fill the grid if that does not leave the subtrees too empty.
-                let grid = groups * clusters.div_ceil(groups);
-                if grid <= max_clusters {
-                    clusters = grid;
-                }
                 // The first axis gets the most cluster groups. Rotating it with the level of
                 // the tree keeps the envelopes of the nodes from being stretched along the
                 // same axis on every level.
@@ -106,7 +111,6 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
                     .extend(iterator.map(|(slab, clusters)| PartitioningState {
                         elements: slab,
                         clusters,
-                        max_clusters: clusters,
                         remaining_axes: remaining_axes - 1,
                     }));
             }
@@ -276,6 +280,25 @@ mod test {
             }
             assert_eq!(tree.size(), size);
             assert!(more_rectangles.iter().all(|r| tree.contains(r)));
+        }
+        // 3D sizes that used to put leaves on different levels, where the inserts panicked
+        for size in [388, 400, 444] {
+            let to_f64 = |p: [i32; 3]| p.map(f64::from);
+            let points: Vec<_> = create_random_integers::<[i32; 3]>(size, SEED_1)
+                .into_iter()
+                .map(to_f64)
+                .collect();
+            let more_points: Vec<_> = create_random_integers::<[i32; 3]>(size, SEED_2)
+                .into_iter()
+                .map(to_f64)
+                .collect();
+            let mut tree = RTree::bulk_load(points.clone());
+            for (old, new) in points.iter().zip(&more_points) {
+                assert!(tree.remove(old).is_some());
+                tree.insert(*new);
+            }
+            assert_eq!(tree.size(), size);
+            assert!(more_points.iter().all(|p| tree.contains(p)));
         }
     }
 
