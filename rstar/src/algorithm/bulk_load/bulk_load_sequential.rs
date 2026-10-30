@@ -7,19 +7,24 @@ use crate::point::Point;
 #[cfg(not(test))]
 use alloc::{vec, vec::Vec};
 
-#[allow(unused_imports)] // Import is required when building without std
-use num_traits::Float;
+use super::cluster_group_iterator::{
+    calculate_number_of_clusters_per_node, calculate_number_of_slabs, ClusterGroupIterator,
+};
 
-use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
-
-fn bulk_load_recursive<T, Params>(mut elements: Vec<T>) -> ParentNode<T>
+/// Builds a node with `height` levels (a leaf node has height 1) and `number_of_clusters`
+/// children. Each node below it has `clusters_per_node` children.
+fn bulk_load_recursive<T, Params>(
+    mut elements: Vec<T>,
+    height: usize,
+    number_of_clusters: usize,
+    clusters_per_node: usize,
+) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    let m = Params::MAX_SIZE;
-    if elements.len() <= m {
+    if height <= 1 {
         // Reached leaf level. Shrink excess capacity so the in-place collect
         // (which reuses the allocation when size_of::<T> == size_of::<RTreeNode<T>>)
         // doesn't preserve a massively over-sized buffer in the final tree node.
@@ -27,15 +32,14 @@ where
         let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
         return ParentNode::new_parent(elements);
     }
-    let number_of_clusters_on_axis =
-        calculate_number_of_clusters_on_axis::<T, Params>(elements.len()).max(2);
-
     let iterator = PartitioningTask::<_, Params> {
-        number_of_clusters_on_axis,
         work_queue: vec![PartitioningState {
             current_axis: <T::Envelope as Envelope>::Point::DIMENSIONS,
+            number_of_clusters,
             elements,
         }],
+        subtree_height: height - 1,
+        clusters_per_node,
         _params: Default::default(),
     };
     ParentNode::new_parent(iterator.collect())
@@ -44,16 +48,18 @@ where
 /// Represents a partitioning task that still needs to be done.
 ///
 /// A partitioning iterator will take this item from its work queue and start partitioning "elements"
-/// along "current_axis" .
+/// into "number_of_clusters" clusters along "current_axis".
 struct PartitioningState<T: RTreeObject> {
     elements: Vec<T>,
     current_axis: usize,
+    number_of_clusters: usize,
 }
 
 /// Successively partitions the given elements into  cluster groups and finally into clusters.
 struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
     work_queue: Vec<PartitioningState<T>>,
-    number_of_clusters_on_axis: usize,
+    subtree_height: usize,
+    clusters_per_node: usize,
     _params: core::marker::PhantomData<Params>,
 }
 
@@ -65,27 +71,75 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
             let PartitioningState {
                 elements,
                 current_axis,
+                number_of_clusters,
             } = next;
-            if current_axis == 0 {
-                // Partitioning finished successfully on all axis. The remaining cluster forms a new node
-                let data = bulk_load_recursive::<_, Params>(elements);
+            if number_of_clusters == 1 {
+                // Partitioning finished successfully. The remaining cluster forms a new node
+                let data = bulk_load_recursive::<_, Params>(
+                    elements,
+                    self.subtree_height,
+                    self.clusters_per_node,
+                    self.clusters_per_node,
+                );
                 return RTreeNode::Parent(data).into();
             } else {
                 // The cluster group needs to be partitioned further along the next axis
+                let number_of_slabs = calculate_number_of_slabs(number_of_clusters, current_axis);
                 let iterator = ClusterGroupIterator::new(
                     elements,
-                    self.number_of_clusters_on_axis,
+                    number_of_clusters,
+                    number_of_slabs,
                     current_axis - 1,
                 );
                 self.work_queue
-                    .extend(iterator.map(|slab| PartitioningState {
-                        elements: slab,
-                        current_axis: current_axis - 1,
-                    }));
+                    .extend(
+                        iterator.map(|(slab, number_of_clusters)| PartitioningState {
+                            elements: slab,
+                            current_axis: current_axis - 1,
+                            number_of_clusters,
+                        }),
+                    );
             }
         }
         None
     }
+}
+
+/// Calculates the height of the tree and the number of children of the root.
+///
+/// All nodes below the root have `clusters_per_node` children, and all leaf nodes hold between
+/// `MIN_SIZE` and `MAX_SIZE` elements. The root takes as many children as possible, up to
+/// `clusters_per_node`.
+fn calculate_root_layout<Params: RTreeParams>(
+    number_of_elements: usize,
+    clusters_per_node: usize,
+) -> (usize, usize) {
+    let (min_size, max_size) = (Params::MIN_SIZE, Params::MAX_SIZE);
+    if number_of_elements <= max_size {
+        return (1, 1);
+    }
+    // The number of leaf nodes below each child of the root
+    let mut leaves_per_cluster = 1;
+    let mut height = 2;
+    while number_of_elements
+        > max_size
+            .saturating_mul(clusters_per_node)
+            .saturating_mul(leaves_per_cluster)
+    {
+        leaves_per_cluster *= clusters_per_node;
+        height += 1;
+    }
+    let number_of_clusters =
+        (number_of_elements / (min_size * leaves_per_cluster)).min(clusters_per_node);
+    if number_of_clusters >= 2 {
+        return (height, number_of_clusters);
+    }
+    // If MIN_SIZE is more than half of MAX_SIZE, two full children of a lower root can hold
+    // fewer elements than two children of this root at minimum fill. Use a lower root with more
+    // than `clusters_per_node` children.
+    leaves_per_cluster /= clusters_per_node;
+    let number_of_clusters = number_of_elements.div_ceil(max_size * leaves_per_cluster);
+    (height - 1, number_of_clusters)
 }
 
 /// A multi dimensional implementation of the OMT bulk loading algorithm.
@@ -97,13 +151,16 @@ where
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    bulk_load_recursive::<_, Params>(elements)
+    let clusters_per_node = calculate_number_of_clusters_per_node::<T, Params>();
+    let (height, number_of_clusters) =
+        calculate_root_layout::<Params>(elements.len(), clusters_per_node);
+    bulk_load_recursive::<_, Params>(elements, height, number_of_clusters, clusters_per_node)
 }
 
 #[cfg(test)]
 mod test {
     use crate::test_utilities::*;
-    use crate::{Point, RTree, RTreeObject};
+    use crate::{DefaultParams, Point, RTree, RTreeObject, RTreeParams};
     use std::collections::HashSet;
     use std::fmt::Debug;
     use std::hash::Hash;
@@ -127,6 +184,52 @@ mod test {
             test_bulk_load_with_size_and_dimension::<[i32; 3]>(size);
             test_bulk_load_with_size_and_dimension::<[i32; 4]>(size);
         }
+    }
+
+    struct OddParams;
+
+    impl RTreeParams for OddParams {
+        const MIN_SIZE: usize = 3;
+        const MAX_SIZE: usize = 5;
+        const REINSERTION_COUNT: usize = 1;
+        type DefaultInsertionStrategy = crate::RStarInsertionStrategy;
+    }
+
+    struct LargeParams;
+
+    impl RTreeParams for LargeParams {
+        const MIN_SIZE: usize = 10;
+        const MAX_SIZE: usize = 20;
+        const REINSERTION_COUNT: usize = 5;
+        type DefaultInsertionStrategy = crate::RStarInsertionStrategy;
+    }
+
+    /// Verify that all leaves are at the same depth, and that all nodes below the root have at
+    /// least MIN_SIZE children.
+    #[test]
+    fn test_bulk_load_balanced() {
+        let sizes = (0..600).chain((0..22).map(|i| (1.25f64.powi(i) * 600.) as usize));
+        for size in sizes {
+            check_balanced::<[i32; 2], DefaultParams>(size);
+            check_balanced::<[i32; 3], DefaultParams>(size);
+            check_balanced::<[i32; 4], DefaultParams>(size);
+            check_balanced::<[i32; 2], OddParams>(size);
+            check_balanced::<[i32; 3], OddParams>(size);
+            check_balanced::<[i32; 2], LargeParams>(size);
+            check_balanced::<[i32; 3], LargeParams>(size);
+        }
+    }
+
+    fn check_balanced<P, Params>(size: usize)
+    where
+        P: Point<Scalar = i32> + RTreeObject + Send + Sync + Eq + Clone + Debug + Hash + 'static,
+        P::Envelope: Send + Sync,
+        Params: RTreeParams,
+    {
+        let points = create_random_integers::<P>(size, SEED_1);
+        let tree = RTree::<P, Params>::bulk_load_with_params(points);
+        assert_eq!(tree.size(), size);
+        tree.root().sanity_check::<Params>(false);
     }
 
     fn test_bulk_load_with_size_and_dimension<P>(size: usize)
