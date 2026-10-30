@@ -23,9 +23,8 @@
 - Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
 - Envelopes no longer panic on `NaN` inputs, and a `NaN` coordinate no longer strands finite points.
   ([PR](https://github.com/georust/rstar/pull/237))
-- `bulk_load` builds trees whose leaves are all at the same depth, and whose nodes below the root have at least
-  `MIN_SIZE` children. Previously, some sizes gave unbalanced trees, which could make a later `insert` or `remove`
-  panic. Where the previous trees were balanced and nodes were at or above `MIN_SIZE`, the trees do not change.
+- Fixed `bulk_load` building unbalanced trees for some sizes, which made a later `insert` or `remove` panic. In 2D this
+  was a regression in 0.13.0. ([#256](https://github.com/georust/rstar/issues/256))
 
 [`ordered_float::OrderedFloat`]: https://docs.rs/ordered-float/latest/ordered_float/struct.OrderedFloat.html
 [`ordered_float::NotNan`]: https://docs.rs/ordered-float/latest/ordered_float/struct.NotNan.html
