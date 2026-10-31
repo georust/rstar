@@ -20,6 +20,7 @@
   ([PR](https://github.com/georust/rstar/pull/237))
 
 ## Fixed
+- Insertion no longer merges the envelope of a node split off during insertion into its parent a second time. This was harmless for bounding boxes, but made envelope types that also aggregate their elements, e.g. count them, wrong ([#84](https://github.com/georust/rstar/issues/84)).
 - Fixed `bulk_load` building trees with leaves on different levels for some sizes, which made later insertions panic ([#256](https://github.com/georust/rstar/issues/256)). With the default parameters these are e.g. 25–27 and 97–111 elements in 2D, a regression in 0.13.0 ([#221](https://github.com/georust/rstar/pull/221)), and 49–54 elements in 3D. The partitioning is unchanged and the trees are the same as before for all other sizes; for these sizes, the deeper clusters become nodes with a few more than `MAX_SIZE` children instead.
 - Documented that the nodes of a bulk loaded tree may have fewer than `MIN_SIZE` or more than `MAX_SIZE` children, and made the internal `sanity_check` accept such trees ([#243](https://github.com/georust/rstar/issues/243)).
 - Fixed `drain_within_distance` panicking with an arithmetic overflow on an empty tree with integer coordinates. `locate_within_distance` was already guarded against this, its draining counterpart was not.
