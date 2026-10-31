@@ -54,7 +54,13 @@ where
     if depth <= 1 || elements.len() < PARALLEL_THRESHOLD {
         return bulk_load_recursive::<_, Params>(elements, depth);
     }
-    let clusters: Vec<_> = PartitioningTask::<_, Params>::new(elements).collect();
+    let number_of_clusters_on_axis =
+        calculate_number_of_clusters_on_axis::<T, Params>(elements.len()).max(2);
+    let clusters = partition_parallel(
+        elements,
+        number_of_clusters_on_axis,
+        <T::Envelope as Envelope>::Point::DIMENSIONS,
+    );
     let children = clusters
         .into_par_iter()
         .map(|cluster| {
@@ -65,6 +71,33 @@ where
         })
         .collect();
     ParentNode::new_parent(children)
+}
+
+/// Partitions the elements into clusters like [`PartitioningTask`], in the same order, but
+/// partitions the slabs of each axis along the remaining axes in parallel.
+#[cfg(feature = "rayon")]
+fn partition_parallel<T>(
+    elements: Vec<T>,
+    number_of_clusters_on_axis: usize,
+    current_axis: usize,
+) -> Vec<Vec<T>>
+where
+    T: RTreeObject + Send,
+{
+    use rayon::prelude::*;
+
+    if current_axis == 0 {
+        return vec![elements];
+    }
+    let slabs: Vec<_> =
+        ClusterGroupIterator::new(elements, number_of_clusters_on_axis, current_axis - 1).collect();
+    // `PartitioningTask` works through its queue from the back, so the last slab comes first
+    let clusters: Vec<Vec<Vec<T>>> = slabs
+        .into_par_iter()
+        .rev()
+        .map(|slab| partition_parallel(slab, number_of_clusters_on_axis, current_axis - 1))
+        .collect();
+    clusters.into_iter().flatten().collect()
 }
 
 /// Represents a partitioning task that still needs to be done.
