@@ -356,6 +356,12 @@ where
     /// Usually, an envelope is an [axis aligned bounding box](crate::AABB). This
     /// method can be used to retrieve all elements that are fully contained within an envelope.
     ///
+    /// This is not the method to find the elements that contain a point or overlap an envelope:
+    /// an element is only returned if its envelope lies completely inside `envelope`, so
+    /// querying with the envelope of a point finds nothing but points. Use
+    /// [`locate_all_at_point`](Self::locate_all_at_point) or
+    /// [`locate_in_envelope_intersecting`](Self::locate_in_envelope_intersecting) for that.
+    ///
     /// # Example
     /// ```
     /// use rstar::{RTree, AABB};
@@ -370,6 +376,17 @@ where
     /// let elements_in_unit_square = tree.locate_in_envelope(unit_square);
     /// assert_eq!(elements_in_half_unit_square.count(), 2);
     /// assert_eq!(elements_in_unit_square.count(), 3);
+    /// ```
+    ///
+    /// A rectangle is not contained in the envelope of a point inside it:
+    /// ```
+    /// use rstar::{RTree, AABB};
+    /// use rstar::primitives::Rectangle;
+    /// let tree = RTree::bulk_load(vec![Rectangle::from_corners([0.0, 0.0], [1.0, 1.0])]);
+    /// let point = AABB::from_point([0.5, 0.5]);
+    /// assert_eq!(tree.locate_in_envelope(point).count(), 0);
+    /// assert_eq!(tree.locate_in_envelope_intersecting(point).count(), 1);
+    /// assert_eq!(tree.locate_all_at_point([0.5, 0.5]).count(), 1);
     /// ```
     pub fn locate_in_envelope(&self, envelope: T::Envelope) -> LocateInEnvelope<'_, T> {
         LocateInEnvelope::new(&self.root, SelectInEnvelopeFunction::new(envelope))
