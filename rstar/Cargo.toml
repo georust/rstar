@@ -13,8 +13,8 @@ keywords = ["rtree", "r-tree", "spatial", "spatial-index", "nearest-neighbor"]
 categories = ["data-structures", "algorithms", "science::geo"]
 
 [package.metadata.docs.rs]
-# Show the `mint` module and the `serde` implementations
-features = ["mint", "serde"]
+# Show the `mint` module, the parallel bulk loading and the `serde` implementations
+features = ["mint", "rayon", "serde"]
 
 [badges]
 maintenance = { status = "actively-developed" }
