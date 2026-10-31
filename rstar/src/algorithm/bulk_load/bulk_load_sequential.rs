@@ -30,19 +30,41 @@ where
         let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
         return ParentNode::new_parent(elements);
     }
-    let number_of_clusters_on_axis =
-        calculate_number_of_clusters_on_axis::<T, Params>(elements.len()).max(2);
+    let children = PartitioningTask::<_, Params>::new(elements)
+        .map(|cluster| RTreeNode::Parent(bulk_load_recursive::<_, Params>(cluster, depth - 1)))
+        .collect();
+    ParentNode::new_parent(children)
+}
 
-    let iterator = PartitioningTask::<_, Params> {
-        number_of_clusters_on_axis,
-        subtree_depth: depth - 1,
-        work_queue: vec![PartitioningState {
-            current_axis: <T::Envelope as Envelope>::Point::DIMENSIONS,
-            elements,
-        }],
-        _params: Default::default(),
-    };
-    ParentNode::new_parent(iterator.collect())
+/// The same as [`bulk_load_recursive`], but builds the subtrees of the clusters in parallel as long
+/// as they are large enough. The clusters keep their order, so the tree is the same.
+#[cfg(feature = "rayon")]
+fn bulk_load_recursive_parallel<T, Params>(elements: Vec<T>, depth: usize) -> ParentNode<T>
+where
+    T: RTreeObject + Send,
+    T::Envelope: Send,
+    <T::Envelope as Envelope>::Point: Point,
+    Params: RTreeParams,
+{
+    use rayon::prelude::*;
+
+    /// Below this many elements, a subtree is built sequentially.
+    const PARALLEL_THRESHOLD: usize = 4096;
+
+    if depth <= 1 || elements.len() < PARALLEL_THRESHOLD {
+        return bulk_load_recursive::<_, Params>(elements, depth);
+    }
+    let clusters: Vec<_> = PartitioningTask::<_, Params>::new(elements).collect();
+    let children = clusters
+        .into_par_iter()
+        .map(|cluster| {
+            RTreeNode::Parent(bulk_load_recursive_parallel::<_, Params>(
+                cluster,
+                depth - 1,
+            ))
+        })
+        .collect();
+    ParentNode::new_parent(children)
 }
 
 /// Represents a partitioning task that still needs to be done.
@@ -54,16 +76,37 @@ struct PartitioningState<T: RTreeObject> {
     current_axis: usize,
 }
 
-/// Successively partitions the given elements into  cluster groups and finally into clusters.
+/// Successively partitions the given elements into  cluster groups and finally into clusters,
+/// each of which becomes a child of the node.
 struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
     work_queue: Vec<PartitioningState<T>>,
     number_of_clusters_on_axis: usize,
-    subtree_depth: usize,
     _params: core::marker::PhantomData<Params>,
 }
 
+impl<T, Params> PartitioningTask<T, Params>
+where
+    T: RTreeObject,
+    <T::Envelope as Envelope>::Point: Point,
+    Params: RTreeParams,
+{
+    fn new(elements: Vec<T>) -> Self {
+        PartitioningTask {
+            number_of_clusters_on_axis: calculate_number_of_clusters_on_axis::<T, Params>(
+                elements.len(),
+            )
+            .max(2),
+            work_queue: vec![PartitioningState {
+                current_axis: <T::Envelope as Envelope>::Point::DIMENSIONS,
+                elements,
+            }],
+            _params: Default::default(),
+        }
+    }
+}
+
 impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Params> {
-    type Item = RTreeNode<T>;
+    type Item = Vec<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(next) = self.work_queue.pop() {
@@ -73,8 +116,7 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
             } = next;
             if current_axis == 0 {
                 // Partitioning finished successfully on all axis. The remaining cluster forms a new node
-                let data = bulk_load_recursive::<_, Params>(elements, self.subtree_depth);
-                return RTreeNode::Parent(data).into();
+                return Some(elements);
             } else {
                 // The cluster group needs to be partitioned further along the next axis
                 let iterator = ClusterGroupIterator::new(
@@ -104,6 +146,20 @@ where
 {
     let depth = shallowest_leaf_depth::<T, Params>(elements.len());
     bulk_load_recursive::<_, Params>(elements, depth)
+}
+
+/// The same as [`bulk_load_sequential`], but builds independent subtrees in parallel on the
+/// current Rayon thread pool. The resulting tree is the same.
+#[cfg(feature = "rayon")]
+pub fn bulk_load_parallel<T, Params>(elements: Vec<T>) -> ParentNode<T>
+where
+    T: RTreeObject + Send,
+    T::Envelope: Send,
+    <T::Envelope as Envelope>::Point: Point,
+    Params: RTreeParams,
+{
+    let depth = shallowest_leaf_depth::<T, Params>(elements.len());
+    bulk_load_recursive_parallel::<_, Params>(elements, depth)
 }
 
 /// The depth of the shallowest leaf of the tree the partitioning builds from `len` elements when
@@ -178,6 +234,44 @@ mod test {
             test_bulk_load_with_size_and_dimension::<[i32; 3]>(size);
             test_bulk_load_with_size_and_dimension::<[i32; 4]>(size);
         }
+    }
+
+    /// The parallel bulk load must build exactly the same tree as the sequential one.
+    #[cfg(feature = "rayon")]
+    #[test]
+    fn test_bulk_load_parallel_builds_the_same_tree() {
+        use crate::node::{ParentNode, RTreeNode};
+        use crate::params::DefaultParams;
+
+        fn assert_same<P: PartialEq + Debug + RTreeObject>(a: &ParentNode<P>, b: &ParentNode<P>)
+        where
+            P::Envelope: PartialEq,
+        {
+            assert_eq!(a.envelope(), b.envelope());
+            assert_eq!(a.children().len(), b.children().len());
+            for (a, b) in a.children().iter().zip(b.children()) {
+                match (a, b) {
+                    (RTreeNode::Leaf(a), RTreeNode::Leaf(b)) => assert_eq!(a, b),
+                    (RTreeNode::Parent(a), RTreeNode::Parent(b)) => assert_same(a, b),
+                    _ => panic!("a leaf and a parent at the same place"),
+                }
+            }
+        }
+
+        for size in [0, 1, 6, 7, 100, 4095, 4096, 25_000, 100_003] {
+            let points = create_random_integers::<[i32; 2]>(size, SEED_1);
+            let sequential = RTree::<_, DefaultParams>::bulk_load_with_params(points.clone());
+            let parallel = RTree::<_, DefaultParams>::bulk_load_with_params_parallel(points);
+            assert_eq!(sequential.size(), parallel.size());
+            assert_same(sequential.root(), parallel.root());
+        }
+        let points: Vec<[f64; 3]> = create_random_integers::<[i32; 3]>(50_000, SEED_2)
+            .into_iter()
+            .map(|p| p.map(f64::from))
+            .collect();
+        let sequential = RTree::<_, DefaultParams>::bulk_load_with_params(points.clone());
+        let parallel = RTree::<_, DefaultParams>::bulk_load_with_params_parallel(points);
+        assert_same(sequential.root(), parallel.root());
     }
 
     /// All leaves must be on the same level, for any size: the clusters of a node used to
