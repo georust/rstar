@@ -667,7 +667,7 @@ where
     ///         parent_env
     ///     }
     ///
-    ///     // Start traversal from the root, borrowing the tree instead of cloning it
+    ///     // Start traversal from the root
     ///     visit_bottom_up(tree.root(), &mut results);
     ///     
     ///     results
