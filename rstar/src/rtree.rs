@@ -266,6 +266,11 @@ where
     /// Bulk loading runs in `O(n * log(n))`, where `n` is the number of loaded
     /// elements.
     ///
+    /// # Node sizes
+    /// All leaves of the tree are on the same level, but its nodes may have fewer than
+    /// [`RTreeParams::MIN_SIZE`] or more than [`RTreeParams::MAX_SIZE`] children, depending
+    /// on the number of elements. Insertions and removals work on such a tree as usual.
+    ///
     /// # Note
     /// The envelope of each element will be accessed many times during loading. If that computation
     /// is expensive, **consider memoizing it** using [`CachedEnvelope`][crate::primitives::CachedEnvelope].
@@ -1421,8 +1426,8 @@ mod test {
         ];
         let mut tree = RTree::bulk_load(bulk_nodes);
         for node in nodes {
-            // Bulk loading will create nodes larger than Params::MAX_SIZE,
-            // which is intentional and not harmful.
+            // Bulk loading will create nodes larger than Params::MAX_SIZE or smaller than
+            // Params::MIN_SIZE, which is intentional and not harmful.
             tree.insert(node);
             tree.root().sanity_check::<DefaultParams>(false);
         }

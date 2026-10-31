@@ -228,6 +228,21 @@ mod test {
         }
     }
 
+    /// Bulk loaded trees pass the sanity check without the node sizes, which they don't keep to
+    /// (#243), also for identical elements.
+    #[test]
+    fn test_bulk_load_sanity_check() {
+        use crate::params::DefaultParams;
+
+        for size in 0..300 {
+            let tree = RTree::bulk_load(vec![[0.0f64, 0.0]; size]);
+            tree.root().sanity_check::<DefaultParams>(false);
+            let points = create_random_integers::<[i32; 3]>(size, SEED_1);
+            let tree = RTree::bulk_load(points);
+            tree.root().sanity_check::<DefaultParams>(false);
+        }
+    }
+
     #[test]
     fn test_insert_and_remove_after_bulk_load() {
         // Sizes that used to put leaves on different levels, where the inserts panicked

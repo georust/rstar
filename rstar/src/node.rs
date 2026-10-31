@@ -101,9 +101,11 @@ where
         ParentNode { envelope, children }
     }
 
+    /// Checks that all leaves are on the same level and all envelopes are tight, and, with
+    /// `check_node_sizes`, that every node but the root has `MIN_SIZE..=MAX_SIZE` children.
+    /// Bulk loaded trees don't keep to these sizes, see [`crate::RTree::bulk_load`].
     #[cfg(test)]
-    #[allow(missing_docs)]
-    pub(crate) fn sanity_check<Params>(&self, check_max_size: bool) -> Option<usize>
+    pub(crate) fn sanity_check<Params>(&self, check_node_sizes: bool) -> Option<usize>
     where
         Params: RTreeParams,
     {
@@ -111,7 +113,7 @@ where
             Some(0)
         } else {
             let mut result = None;
-            self.sanity_check_inner::<Params>(check_max_size, 1, &mut result);
+            self.sanity_check_inner::<Params>(check_node_sizes, 1, &mut result);
             result
         }
     }
@@ -119,21 +121,19 @@ where
     #[cfg(test)]
     fn sanity_check_inner<Params>(
         &self,
-        check_max_size: bool,
+        check_node_sizes: bool,
         height: usize,
         leaf_height: &mut Option<usize>,
     ) where
         Params: RTreeParams,
     {
-        if height > 1 {
-            let min_size = Params::MIN_SIZE;
-            assert!(self.children.len() >= min_size);
+        if check_node_sizes {
+            if height > 1 {
+                assert!(self.children.len() >= Params::MIN_SIZE);
+            }
+            assert!(self.children.len() <= Params::MAX_SIZE);
         }
         let mut envelope = T::Envelope::new_empty();
-        if check_max_size {
-            let max_size = Params::MAX_SIZE;
-            assert!(self.children.len() <= max_size);
-        }
 
         for child in &self.children {
             match child {
@@ -147,7 +147,7 @@ where
                 }
                 RTreeNode::Parent(ref data) => {
                     envelope.merge(&data.envelope);
-                    data.sanity_check_inner::<Params>(check_max_size, height + 1, leaf_height);
+                    data.sanity_check_inner::<Params>(check_node_sizes, height + 1, leaf_height);
                 }
             }
         }
