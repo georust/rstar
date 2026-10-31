@@ -637,42 +637,38 @@ where
     ///     use rstar::{Envelope, AABB, RTreeObject};
     ///     let mut results = Vec::new();
     ///     
-    ///     // Returns the envelope computed from this node's children
+    ///     // Returns this parent's envelope, computed as the union of its children's envelopes
     ///     fn visit_bottom_up(
-    ///         node: &RTreeNode<PointWithLabel>,
+    ///         parent: &ParentNode<PointWithLabel>,
     ///         results: &mut Vec<(String, f32, f32)>
     ///     ) -> AABB<[f32; 2]> {
-    ///         match node {
-    ///             RTreeNode::Leaf(item) => {
-    ///                 // Leaf envelope is just the item's point
-    ///                 let env = item.envelope();
-    ///                 let lower = env.lower();
-    ///                 let upper = env.upper();
-    ///                 results.push((format!("Leaf({})", item.data), lower[0], upper[0]));
-    ///                 env
-    ///             }
-    ///             RTreeNode::Parent(parent) => {
-    ///                 // Compute this parent's envelope as union of children's envelopes
-    ///                 let mut parent_env = AABB::new_empty();
-    ///                 
-    ///                 // Merge all children's envelopes
-    ///                 for child in parent.children() {
-    ///                     let child_env = visit_bottom_up(child, results);
-    ///                     parent_env.merge(&child_env);
+    ///         let mut parent_env = AABB::new_empty();
+    ///
+    ///         // Visit all children first, merging their envelopes
+    ///         for child in parent.children() {
+    ///             let child_env = match child {
+    ///                 RTreeNode::Leaf(item) => {
+    ///                     // Leaf envelope is just the item's point
+    ///                     let env = item.envelope();
+    ///                     let lower = env.lower();
+    ///                     let upper = env.upper();
+    ///                     results.push((format!("Leaf({})", item.data), lower[0], upper[0]));
+    ///                     env
     ///                 }
-    ///                 
-    ///                 let lower = parent_env.lower();
-    ///                 let upper = parent_env.upper();
-    ///                 results.push((String::from("Parent"), lower[0], upper[0]));
-    ///                 
-    ///                 parent_env
-    ///             }
+    ///                 RTreeNode::Parent(child_parent) => visit_bottom_up(child_parent, results),
+    ///             };
+    ///             parent_env.merge(&child_env);
     ///         }
+    ///
+    ///         let lower = parent_env.lower();
+    ///         let upper = parent_env.upper();
+    ///         results.push((String::from("Parent"), lower[0], upper[0]));
+    ///
+    ///         parent_env
     ///     }
-    ///     
-    ///     // Start traversal from root wrapped as RTreeNode
-    ///     let root_node = RTreeNode::Parent(tree.root().clone());
-    ///     visit_bottom_up(&root_node, &mut results);
+    ///
+    ///     // Start traversal from the root
+    ///     visit_bottom_up(tree.root(), &mut results);
     ///     
     ///     results
     /// }
