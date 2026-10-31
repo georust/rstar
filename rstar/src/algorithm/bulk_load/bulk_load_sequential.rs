@@ -108,8 +108,7 @@ where
 
 /// The depth of the shallowest leaf of the tree the partitioning builds from `len` elements when
 /// every cluster decides on its own whether it is a leaf (`len <= MAX_SIZE`). The sizes of the
-/// clusters depend on the number of elements only, so this needs no elements, and only the few
-/// distinct cluster sizes of every node are visited.
+/// clusters depend on the number of elements only, so this needs no elements.
 fn shallowest_leaf_depth<T, Params>(len: usize) -> usize
 where
     T: RTreeObject,
@@ -119,26 +118,37 @@ where
         return 1;
     }
     let clusters_on_axis = calculate_number_of_clusters_on_axis::<T, Params>(len).max(2);
-    // Sizes of the clusters along every axis, as `ClusterGroupIterator` slices them: slabs of
-    // `ceil(size / clusters_on_axis)` elements and a last one with the rest.
-    let mut sizes = vec![len];
-    for _ in 0..<T::Envelope as Envelope>::Point::DIMENSIONS {
-        let mut next = Vec::new();
-        for size in sizes {
-            let slab = size.div_ceil(clusters_on_axis);
-            let full = size.div_ceil(slab) - 1;
-            next.push(slab);
-            next.push(size - full * slab);
-        }
-        next.sort_unstable();
-        next.dedup();
-        sizes = next;
+    let axes = <T::Envelope as Envelope>::Point::DIMENSIONS;
+    1 + shallowest_leaf_depth_of_slabs::<T, Params>(len, clusters_on_axis, axes)
+}
+
+/// The same for the clusters `ClusterGroupIterator` slices `len` elements into along the
+/// remaining `axes`: slabs of `ceil(len / clusters_on_axis)` elements and a last one with the
+/// rest. All but the last slab have the same size, so it suffices to look at one of them.
+fn shallowest_leaf_depth_of_slabs<T, Params>(
+    len: usize,
+    clusters_on_axis: usize,
+    axes: usize,
+) -> usize
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    if axes == 0 {
+        return shallowest_leaf_depth::<T, Params>(len);
     }
-    1 + sizes
-        .into_iter()
-        .map(shallowest_leaf_depth::<T, Params>)
-        .min()
-        .unwrap_or(0)
+    let slab = len.div_ceil(clusters_on_axis);
+    let rest = len - (len.div_ceil(slab) - 1) * slab;
+    let depth = shallowest_leaf_depth_of_slabs::<T, Params>(slab, clusters_on_axis, axes - 1);
+    if rest == slab {
+        depth
+    } else {
+        depth.min(shallowest_leaf_depth_of_slabs::<T, Params>(
+            rest,
+            clusters_on_axis,
+            axes - 1,
+        ))
+    }
 }
 
 #[cfg(test)]
