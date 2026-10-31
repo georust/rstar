@@ -12,14 +12,17 @@ use num_traits::Float;
 
 use super::cluster_group_iterator::{calculate_number_of_clusters_on_axis, ClusterGroupIterator};
 
-fn bulk_load_recursive<T, Params>(mut elements: Vec<T>) -> ParentNode<T>
+/// Builds a subtree whose leaves are `depth` levels below it. Where the clusters of a node get
+/// different depths on their own (some just above `MAX_SIZE` elements, others not), the depth
+/// passed down keeps all leaves on the same level; the deeper clusters end up as nodes with a
+/// few more than `MAX_SIZE` children instead.
+fn bulk_load_recursive<T, Params>(mut elements: Vec<T>, depth: usize) -> ParentNode<T>
 where
     T: RTreeObject,
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    let m = Params::MAX_SIZE;
-    if elements.len() <= m {
+    if depth <= 1 {
         // Reached leaf level. Shrink excess capacity so the in-place collect
         // (which reuses the allocation when size_of::<T> == size_of::<RTreeNode<T>>)
         // doesn't preserve a massively over-sized buffer in the final tree node.
@@ -32,6 +35,7 @@ where
 
     let iterator = PartitioningTask::<_, Params> {
         number_of_clusters_on_axis,
+        subtree_depth: depth - 1,
         work_queue: vec![PartitioningState {
             current_axis: <T::Envelope as Envelope>::Point::DIMENSIONS,
             elements,
@@ -54,6 +58,7 @@ struct PartitioningState<T: RTreeObject> {
 struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
     work_queue: Vec<PartitioningState<T>>,
     number_of_clusters_on_axis: usize,
+    subtree_depth: usize,
     _params: core::marker::PhantomData<Params>,
 }
 
@@ -68,7 +73,7 @@ impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Param
             } = next;
             if current_axis == 0 {
                 // Partitioning finished successfully on all axis. The remaining cluster forms a new node
-                let data = bulk_load_recursive::<_, Params>(elements);
+                let data = bulk_load_recursive::<_, Params>(elements, self.subtree_depth);
                 return RTreeNode::Parent(data).into();
             } else {
                 // The cluster group needs to be partitioned further along the next axis
@@ -97,7 +102,53 @@ where
     <T::Envelope as Envelope>::Point: Point,
     Params: RTreeParams,
 {
-    bulk_load_recursive::<_, Params>(elements)
+    let depth = shallowest_leaf_depth::<T, Params>(elements.len());
+    bulk_load_recursive::<_, Params>(elements, depth)
+}
+
+/// The depth of the shallowest leaf of the tree the partitioning builds from `len` elements when
+/// every cluster decides on its own whether it is a leaf (`len <= MAX_SIZE`). The sizes of the
+/// clusters depend on the number of elements only, so this needs no elements.
+fn shallowest_leaf_depth<T, Params>(len: usize) -> usize
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    if len <= Params::MAX_SIZE {
+        return 1;
+    }
+    let clusters_on_axis = calculate_number_of_clusters_on_axis::<T, Params>(len).max(2);
+    let axes = <T::Envelope as Envelope>::Point::DIMENSIONS;
+    1 + shallowest_leaf_depth_of_slabs::<T, Params>(len, clusters_on_axis, axes)
+}
+
+/// The same for the clusters `ClusterGroupIterator` slices `len` elements into along the
+/// remaining `axes`: slabs of `ceil(len / clusters_on_axis)` elements and a last one with the
+/// rest. All but the last slab have the same size, so it suffices to look at one of them.
+fn shallowest_leaf_depth_of_slabs<T, Params>(
+    len: usize,
+    clusters_on_axis: usize,
+    axes: usize,
+) -> usize
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    if axes == 0 {
+        return shallowest_leaf_depth::<T, Params>(len);
+    }
+    let slab = len.div_ceil(clusters_on_axis);
+    let rest = len - (len.div_ceil(slab) - 1) * slab;
+    let depth = shallowest_leaf_depth_of_slabs::<T, Params>(slab, clusters_on_axis, axes - 1);
+    if rest == slab {
+        depth
+    } else {
+        depth.min(shallowest_leaf_depth_of_slabs::<T, Params>(
+            rest,
+            clusters_on_axis,
+            axes - 1,
+        ))
+    }
 }
 
 #[cfg(test)]
@@ -126,6 +177,88 @@ mod test {
             test_bulk_load_with_size_and_dimension::<[i32; 2]>(size);
             test_bulk_load_with_size_and_dimension::<[i32; 3]>(size);
             test_bulk_load_with_size_and_dimension::<[i32; 4]>(size);
+        }
+    }
+
+    /// All leaves must be on the same level, for any size: the clusters of a node used to
+    /// decide their depth on their own, which put leaves of e.g. 25 elements in 2D onto
+    /// different levels and made later insertions panic.
+    #[test]
+    fn test_bulk_load_leaves_on_one_level() {
+        use crate::node::{ParentNode, RTreeNode};
+        use crate::params::{DefaultParams, RTreeParams};
+        use crate::RStarInsertionStrategy;
+
+        struct SmallParams;
+        impl RTreeParams for SmallParams {
+            const MIN_SIZE: usize = 2;
+            const MAX_SIZE: usize = 4;
+            const REINSERTION_COUNT: usize = 1;
+            type DefaultInsertionStrategy = RStarInsertionStrategy;
+        }
+
+        fn leaf_depths<T: RTreeObject>(node: &ParentNode<T>, depth: usize, out: &mut Vec<usize>) {
+            for child in &node.children {
+                match child {
+                    RTreeNode::Leaf(_) => out.push(depth),
+                    RTreeNode::Parent(p) => leaf_depths(p, depth + 1, out),
+                }
+            }
+        }
+
+        fn check<P, Params>(size: usize)
+        where
+            P: Point<Scalar = i32> + RTreeObject,
+            Params: RTreeParams,
+        {
+            let points = create_random_integers::<P>(size, SEED_1);
+            let tree = RTree::<P, Params>::bulk_load_with_params(points);
+            assert_eq!(tree.size(), size);
+            let mut depths = Vec::new();
+            leaf_depths(tree.root(), 0, &mut depths);
+            assert!(depths.windows(2).all(|w| w[0] == w[1]), "size {size}");
+        }
+
+        let sizes = (0..1300).chain([1537, 1791, 6145, 7167, 7777, 25_000, 100_003]);
+        for size in sizes {
+            check::<[i32; 2], DefaultParams>(size);
+            check::<[i32; 3], DefaultParams>(size);
+            check::<[i32; 4], DefaultParams>(size);
+            check::<[i32; 2], SmallParams>(size);
+        }
+    }
+
+    #[test]
+    fn test_insert_and_remove_after_bulk_load() {
+        // Sizes that used to put leaves on different levels, where the inserts panicked
+        for size in [25, 27, 97, 111, 385, 447] {
+            let rectangles = create_random_rectangles(size, SEED_1);
+            let more_rectangles = create_random_rectangles(size, SEED_2);
+            let mut tree = RTree::bulk_load(rectangles.clone());
+            for (old, new) in rectangles.iter().zip(&more_rectangles) {
+                assert!(tree.remove(old).is_some());
+                tree.insert(*new);
+            }
+            assert_eq!(tree.size(), size);
+            assert!(more_rectangles.iter().all(|r| tree.contains(r)));
+        }
+        for size in [388, 400, 444] {
+            let to_f64 = |p: [i32; 3]| p.map(f64::from);
+            let points: Vec<_> = create_random_integers::<[i32; 3]>(size, SEED_1)
+                .into_iter()
+                .map(to_f64)
+                .collect();
+            let more_points: Vec<_> = create_random_integers::<[i32; 3]>(size, SEED_2)
+                .into_iter()
+                .map(to_f64)
+                .collect();
+            let mut tree = RTree::bulk_load(points.clone());
+            for (old, new) in points.iter().zip(&more_points) {
+                assert!(tree.remove(old).is_some());
+                tree.insert(*new);
+            }
+            assert_eq!(tree.size(), size);
+            assert!(more_points.iter().all(|p| tree.contains(p)));
         }
     }
 
