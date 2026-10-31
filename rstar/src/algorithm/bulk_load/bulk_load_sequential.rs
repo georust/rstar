@@ -45,6 +45,44 @@ where
     ParentNode::new_parent(children)
 }
 
+/// The same as [`bulk_load_recursive`], but builds the subtrees of the clusters in parallel as long
+/// as they are large enough. The clusters keep their order, so the tree is the same.
+#[cfg(feature = "rayon")]
+fn bulk_load_recursive_parallel<T, Params>(elements: Vec<T>, depth: usize) -> ParentNode<T>
+where
+    T: RTreeObject + Send,
+    T::Envelope: Send,
+    <T::Envelope as Envelope>::Point: Point,
+    Params: RTreeParams,
+{
+    use rayon::prelude::*;
+
+    /// Below this many elements, a subtree is built sequentially.
+    const PARALLEL_THRESHOLD: usize = 4096;
+
+    if depth <= 1 || elements.len() < PARALLEL_THRESHOLD {
+        return bulk_load_recursive::<_, Params>(elements, depth);
+    }
+    let clusters_on_axis = calculate_number_of_clusters_on_axis::<T, Params>(elements.len()).max(2);
+    let mut clusters = Vec::new();
+    partition(
+        elements,
+        clusters_on_axis,
+        <T::Envelope as Envelope>::Point::DIMENSIONS,
+        &mut clusters,
+    );
+    let children = clusters
+        .into_par_iter()
+        .map(|cluster| {
+            RTreeNode::Parent(bulk_load_recursive_parallel::<_, Params>(
+                cluster,
+                depth - 1,
+            ))
+        })
+        .collect();
+    ParentNode::new_parent(children)
+}
+
 /// Successively partitions the given elements into cluster groups and finally into clusters,
 /// each of which becomes a child of the node: into slabs along the axis before `current_axis`,
 /// each slab along the axis before that, and so on. Recurses once per axis, so at most
@@ -77,6 +115,20 @@ where
 {
     let depth = shallowest_leaf_depth::<T, Params>(elements.len());
     bulk_load_recursive::<_, Params>(elements, depth)
+}
+
+/// The same as [`bulk_load_sequential`], but builds independent subtrees in parallel on the
+/// current Rayon thread pool. The resulting tree is the same.
+#[cfg(feature = "rayon")]
+pub fn bulk_load_parallel<T, Params>(elements: Vec<T>) -> ParentNode<T>
+where
+    T: RTreeObject + Send,
+    T::Envelope: Send,
+    <T::Envelope as Envelope>::Point: Point,
+    Params: RTreeParams,
+{
+    let depth = shallowest_leaf_depth::<T, Params>(elements.len());
+    bulk_load_recursive_parallel::<_, Params>(elements, depth)
 }
 
 /// The depth of the shallowest leaf of the tree the partitioning builds from `len` elements when
@@ -151,6 +203,44 @@ mod test {
             test_bulk_load_with_size_and_dimension::<[i32; 3]>(size);
             test_bulk_load_with_size_and_dimension::<[i32; 4]>(size);
         }
+    }
+
+    /// The parallel bulk load must build exactly the same tree as the sequential one.
+    #[cfg(feature = "rayon")]
+    #[test]
+    fn test_bulk_load_parallel_builds_the_same_tree() {
+        use crate::node::{ParentNode, RTreeNode};
+        use crate::params::DefaultParams;
+
+        fn assert_same<P: PartialEq + Debug + RTreeObject>(a: &ParentNode<P>, b: &ParentNode<P>)
+        where
+            P::Envelope: PartialEq,
+        {
+            assert_eq!(a.envelope(), b.envelope());
+            assert_eq!(a.children().len(), b.children().len());
+            for (a, b) in a.children().iter().zip(b.children()) {
+                match (a, b) {
+                    (RTreeNode::Leaf(a), RTreeNode::Leaf(b)) => assert_eq!(a, b),
+                    (RTreeNode::Parent(a), RTreeNode::Parent(b)) => assert_same(a, b),
+                    _ => panic!("a leaf and a parent at the same place"),
+                }
+            }
+        }
+
+        for size in [0, 1, 6, 7, 100, 4095, 4096, 25_000, 100_003] {
+            let points = create_random_integers::<[i32; 2]>(size, SEED_1);
+            let sequential = RTree::<_, DefaultParams>::bulk_load_with_params(points.clone());
+            let parallel = RTree::<_, DefaultParams>::bulk_load_with_params_parallel(points);
+            assert_eq!(sequential.size(), parallel.size());
+            assert_same(sequential.root(), parallel.root());
+        }
+        let points: Vec<[f64; 3]> = create_random_integers::<[i32; 3]>(50_000, SEED_2)
+            .into_iter()
+            .map(|p| p.map(f64::from))
+            .collect();
+        let sequential = RTree::<_, DefaultParams>::bulk_load_with_params(points.clone());
+        let parallel = RTree::<_, DefaultParams>::bulk_load_with_params_parallel(points);
+        assert_same(sequential.root(), parallel.root());
     }
 
     /// All leaves must be on the same level, for any size: the clusters of a node used to
