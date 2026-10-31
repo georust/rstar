@@ -83,7 +83,7 @@ where
 /// ```
 ///
 /// ## Supported point types
-/// All types implementing the [Point] trait can be used as underlying point type.
+/// All types implementing the [Point](crate::Point) trait can be used as underlying point type.
 /// By default, fixed size arrays can be used as points.
 ///
 /// # Associating Data with Geometries

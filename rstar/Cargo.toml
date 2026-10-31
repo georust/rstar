@@ -12,6 +12,10 @@ rust-version = "1.90"
 keywords = ["rtree", "r-tree", "spatial", "spatial-index", "nearest-neighbor"]
 categories = ["data-structures", "algorithms", "science::geo"]
 
+[package.metadata.docs.rs]
+# Show the `mint` module and the `serde` implementations
+features = ["mint", "serde"]
+
 [badges]
 maintenance = { status = "actively-developed" }
 

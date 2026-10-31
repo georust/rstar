@@ -5,7 +5,7 @@ use core::ops::Deref;
 
 /// An [RTreeObject] that is a possibly short-lived reference to another object.
 ///
-/// Sometimes it can be useful to build an [RTree] that does not own its constituent
+/// Sometimes it can be useful to build an [RTree](crate::RTree) that does not own its constituent
 /// objects but references them from elsewhere. Wrapping the bare references with this
 /// combinator makes this possible.
 ///
