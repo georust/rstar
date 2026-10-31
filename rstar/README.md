@@ -20,6 +20,7 @@ A flexible, n-dimensional [r*-tree](https://en.wikipedia.org/wiki/R*_tree) imple
    - Rectangles
  - Small number of dependencies
  - Serde support with the `serde` feature
+ - Parallel bulk loading with the `rayon` feature
  - `no_std` compatible (but requires [`alloc`](https://doc.rust-lang.org/alloc/))
 
 ## Geometries
