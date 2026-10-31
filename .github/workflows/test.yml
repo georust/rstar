@@ -48,6 +48,10 @@ jobs:
         run: cargo fmt --all --check
       - name: Lint using Clippy
         run: cargo clippy --workspace --exclude rstar-demo --tests
+      - name: Check documentation using Rustdoc
+        run: cargo doc --package rstar --no-deps --features serde,mint
+        env:
+          RUSTDOCFLAGS: -D warnings
 
   check_aux:
     # Informational only: these crates aren't published, and their dependencies

@@ -26,7 +26,7 @@
 //! # Mint compatibility with other crates
 //! Enable the `mint` feature for
 //! [`mint`](https://crates.io/crates/mint) support. See the
-//! documentation on the `mint` module for an example of an
+//! documentation on the [mint] module for an example of an
 //! integration with the
 //! [`nalgebra`](https://crates.io/crates/nalgebra) crate.
 #![deny(missing_docs)]
