@@ -20,6 +20,10 @@
 //! For use with the wider Georust ecosystem, the primitives in the [`geo`](https://docs.rs/geo/latest/geo/#types) crate
 //! can also be used.
 //!
+//! # Parallel bulk loading
+//! Enable the `rayon` feature for [`RTree::bulk_load_parallel`], which builds the same tree as
+//! [`RTree::bulk_load`] on the current [Rayon](https://crates.io/crates/rayon) thread pool.
+//!
 //! # (De)Serialization
 //! Enable the `serde` feature for [serde](https://crates.io/crates/serde) support.
 //!
