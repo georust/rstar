@@ -1258,6 +1258,32 @@ where
     }
 }
 
+/// Bulk loads the elements, like [`RTree::bulk_load_with_params`].
+///
+/// Bulk loading needs all elements in one contiguous slice, so they are collected into a `Vec`
+/// first, just as when calling [`RTree::bulk_load`] on a collected iterator.
+///
+/// # Example
+/// ```
+/// use rstar::RTree;
+///
+/// let tree: RTree<[f64; 2]> = (0..100).map(|i| [i as f64, (i % 10) as f64]).collect();
+/// assert_eq!(tree.size(), 100);
+///
+/// // A tree of some of the elements of another one
+/// let left: RTree<_> = tree.iter().copied().filter(|p| p[0] < 50.0).collect();
+/// assert_eq!(left.size(), 50);
+/// ```
+impl<T, Params> FromIterator<T> for RTree<T, Params>
+where
+    T: RTreeObject,
+    Params: RTreeParams,
+{
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        Self::bulk_load_with_params(iter.into_iter().collect())
+    }
+}
+
 impl<'a, T, Params> IntoIterator for &'a RTree<T, Params>
 where
     T: RTreeObject,
