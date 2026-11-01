@@ -15,15 +15,16 @@ use core::mem::replace;
 use heapless::binary_heap as static_heap;
 use num_traits::Bounded;
 
-struct RTreeNodeDistanceWrapper<'a, T>
+/// A node of the tree, by shared or mutable reference `N`, with its distance to the query point.
+struct RTreeNodeDistanceWrapper<N, T>
 where
-    T: PointDistance + 'a,
+    T: PointDistance,
 {
-    node: &'a RTreeNode<T>,
+    node: N,
     distance: Distance<T>,
 }
 
-impl<T> PartialEq for RTreeNodeDistanceWrapper<'_, T>
+impl<N, T> PartialEq for RTreeNodeDistanceWrapper<N, T>
 where
     T: PointDistance,
 {
@@ -34,7 +35,7 @@ where
     }
 }
 
-impl<T> PartialOrd for RTreeNodeDistanceWrapper<'_, T>
+impl<N, T> PartialOrd for RTreeNodeDistanceWrapper<N, T>
 where
     T: PointDistance,
 {
@@ -43,9 +44,9 @@ where
     }
 }
 
-impl<T> Eq for RTreeNodeDistanceWrapper<'_, T> where T: PointDistance {}
+impl<N, T> Eq for RTreeNodeDistanceWrapper<N, T> where T: PointDistance {}
 
-impl<T> Ord for RTreeNodeDistanceWrapper<'_, T>
+impl<N, T> Ord for RTreeNodeDistanceWrapper<N, T>
 where
     T: PointDistance,
 {
@@ -117,12 +118,48 @@ where
     }
 }
 
+/// Returns the element nearest to `query_point` mutably, searching the nodes closest first.
+pub fn nearest_neighbor_mut<T>(
+    root: &mut ParentNode<T>,
+    query_point: <T::Envelope as Envelope>::Point,
+) -> Option<&mut T>
+where
+    T: PointDistance,
+{
+    fn push_children<'a, T: PointDistance>(
+        heap: &mut BinaryHeap<RTreeNodeDistanceWrapper<&'a mut RTreeNode<T>, T>>,
+        children: &'a mut [RTreeNode<T>],
+        query_point: &<T::Envelope as Envelope>::Point,
+    ) {
+        heap.extend(children.iter_mut().map(|child| {
+            let distance = match child {
+                RTreeNode::Parent(ref data) => data.envelope.distance_2(query_point),
+                RTreeNode::Leaf(ref t) => t.distance_2(query_point),
+            };
+            RTreeNodeDistanceWrapper {
+                node: child,
+                distance,
+            }
+        }));
+    }
+
+    let mut heap = BinaryHeap::new();
+    push_children(&mut heap, &mut root.children, &query_point);
+    while let Some(RTreeNodeDistanceWrapper { node, .. }) = heap.pop() {
+        match node {
+            RTreeNode::Leaf(t) => return Some(t),
+            RTreeNode::Parent(data) => push_children(&mut heap, &mut data.children, &query_point),
+        }
+    }
+    None
+}
+
 /// Iterator returned by [`RTree::nearest_neighbor_iter_with_distance_2`].
 pub struct NearestNeighborDistance2Iterator<'a, T>
 where
     T: PointDistance + 'a,
 {
-    nodes: SmallHeap<RTreeNodeDistanceWrapper<'a, T>>,
+    nodes: SmallHeap<RTreeNodeDistanceWrapper<&'a RTreeNode<T>, T>>,
     query_point: <T::Envelope as Envelope>::Point,
 }
 
@@ -239,7 +276,7 @@ where
     T: PointDistance,
 {
     fn extend_heap<'a, T>(
-        nodes: &mut SmallHeap<RTreeNodeDistanceWrapper<'a, T>>,
+        nodes: &mut SmallHeap<RTreeNodeDistanceWrapper<&'a RTreeNode<T>, T>>,
         node: &'a ParentNode<T>,
         query_point: &<T::Envelope as Envelope>::Point,
         min_max_distance: &mut Distance<T>,
@@ -327,6 +364,37 @@ mod test {
     use crate::object::PointDistance;
     use crate::rtree::RTree;
     use crate::test_utilities::*;
+
+    #[test]
+    fn test_nearest_neighbor_mut() {
+        use crate::primitives::GeomWithData;
+
+        let mut empty: RTree<[f64; 2]> = RTree::new();
+        assert!(empty.nearest_neighbor_mut([0.0, 0.0]).is_none());
+
+        let points = create_random_points(1000, SEED_1);
+        let mut tree = RTree::bulk_load(
+            points
+                .iter()
+                .map(|p| GeomWithData::new(*p, 0))
+                .collect::<Vec<_>>(),
+        );
+        let queries = create_random_points(200, SEED_2);
+        for query in &queries {
+            let expected = points
+                .iter()
+                .map(|p| p.distance_2(query))
+                .fold(f64::INFINITY, f64::min);
+            let nearest = tree.nearest_neighbor_mut(*query).unwrap();
+            assert_eq!(nearest.geom().distance_2(query), expected);
+            nearest.data += 1;
+        }
+        // Every query counted once, at an element the immutable search finds as well
+        assert_eq!(tree.iter().map(|p| p.data).sum::<usize>(), queries.len());
+        for query in &queries {
+            assert!(tree.nearest_neighbor(*query).unwrap().data > 0);
+        }
+    }
 
     #[test]
     fn test_nearest_neighbor_empty() {

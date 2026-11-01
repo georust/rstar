@@ -398,6 +398,10 @@ where
     }
 
     /// Mutable variant of [locate_in_envelope](#method.locate_in_envelope).
+    ///
+    /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_in_envelope_mut(&mut self, envelope: T::Envelope) -> LocateInEnvelopeMut<'_, T> {
         LocateInEnvelopeMut::new(&mut self.root, SelectInEnvelopeFunction::new(envelope))
     }
@@ -419,6 +423,10 @@ where
     }
 
     /// Mutable variant of [`locate_in_envelope_mut`][Self::locate_in_envelope_mut].
+    ///
+    /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_in_envelope_int_mut<'a, V, B>(
         &'a mut self,
         envelope: T::Envelope,
@@ -500,6 +508,10 @@ where
     }
 
     /// Mutable variant of [locate_in_envelope_intersecting](#method.locate_in_envelope_intersecting)
+    ///
+    /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_in_envelope_intersecting_mut(
         &mut self,
         envelope: T::Envelope,
@@ -527,6 +539,10 @@ where
     }
 
     /// Mutable variant of [`locate_in_envelope_intersecting_int`][Self::locate_in_envelope_intersecting_int].
+    ///
+    /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_in_envelope_intersecting_int_mut<'a, V, B>(
         &'a mut self,
         envelope: T::Envelope,
@@ -557,6 +573,10 @@ where
     }
 
     /// Mutable variant of [`locate_with_selection_function`](#method.locate_with_selection_function).
+    ///
+    /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_with_selection_function_mut<S: SelectionFunction<T>>(
         &mut self,
         selection_function: S,
@@ -796,6 +816,10 @@ where
     }
 
     /// Mutable variant of [RTree::locate_at_point].
+    ///
+    /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_at_point_mut(
         &mut self,
         point: <T::Envelope as Envelope>::Point,
@@ -812,6 +836,10 @@ where
     }
 
     /// Mutable variant of [`locate_at_point_int`][Self::locate_at_point_int].
+    ///
+    /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_at_point_int_mut(
         &mut self,
         point: <T::Envelope as Envelope>::Point,
@@ -848,6 +876,10 @@ where
     }
 
     /// Mutable variant of [`locate_all_at_point`][Self::locate_all_at_point].
+    ///
+    /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_all_at_point_mut(
         &mut self,
         point: <T::Envelope as Envelope>::Point,
@@ -868,6 +900,10 @@ where
     }
 
     /// Mutable variant of [`locate_all_at_point_int`][Self::locate_all_at_point_int].
+    ///
+    /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_all_at_point_int_mut<'a, V, B>(
         &'a mut self,
         point: <T::Envelope as Envelope>::Point,
@@ -985,6 +1021,35 @@ where
     pub fn nearest_neighbor(&self, query_point: <T::Envelope as Envelope>::Point) -> Option<&T> {
         self.nearest_neighbor_with_distance_2(query_point)
             .map(|(neighbor, _)| neighbor)
+    }
+
+    /// Mutable variant of [`nearest_neighbor`](Self::nearest_neighbor).
+    ///
+    /// This allows changing the data of the nearest element in place, e.g. a counter stored
+    /// alongside its geometry. As with [`iter_mut`](Self::iter_mut), it is a logic error to change
+    /// its envelope, including by changing its geometry; to do that, [remove](Self::remove) and
+    /// re-[insert](Self::insert) it.
+    ///
+    /// # Example
+    /// ```
+    /// use rstar::RTree;
+    /// use rstar::primitives::GeomWithData;
+    ///
+    /// let mut tree = RTree::bulk_load(vec![
+    ///   GeomWithData::new([0.0, 0.0], 0),
+    ///   GeomWithData::new([0.0, 1.0], 0),
+    /// ]);
+    /// for query_point in [[-1.0, 0.0], [0.0, 2.0], [0.1, -0.1]] {
+    ///     tree.nearest_neighbor_mut(query_point).unwrap().data += 1;
+    /// }
+    /// assert_eq!(tree.nearest_neighbor([0.0, 0.0]).unwrap().data, 2);
+    /// assert_eq!(tree.nearest_neighbor([0.0, 1.0]).unwrap().data, 1);
+    /// ```
+    pub fn nearest_neighbor_mut(
+        &mut self,
+        query_point: <T::Envelope as Envelope>::Point,
+    ) -> Option<&mut T> {
+        nearest_neighbor::nearest_neighbor_mut(&mut self.root, query_point)
     }
 
     /// Returns the nearest neighbor for a given point with distance squared.
