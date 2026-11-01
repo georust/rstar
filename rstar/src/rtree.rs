@@ -1445,4 +1445,45 @@ mod test {
             tree.root().sanity_check::<DefaultParams>(false);
         }
     }
+
+    /// The largest spans of `i32` coordinates the docs of `RTreeNum` promise, with many points on
+    /// the corners; the debug build of the tests panics on any overflow.
+    #[test]
+    fn test_i32_coordinates_at_the_documented_spans() {
+        fn coordinate(state: &mut u64, span: i32) -> i32 {
+            *state ^= *state << 13;
+            *state ^= *state >> 7;
+            *state ^= *state << 17;
+            match *state % 3 {
+                0 => 0,
+                1 => span,
+                _ => ((*state >> 2) % (span as u64 + 1)) as i32,
+            }
+        }
+
+        let mut state = 0x9E37_79B9_7F4A_7C15;
+        let span = 32_767;
+        let mut tree = RTree::new();
+        for _ in 0..2000 {
+            tree.insert([coordinate(&mut state, span), coordinate(&mut state, span)]);
+        }
+        for _ in 0..200 {
+            let query = [coordinate(&mut state, span), coordinate(&mut state, span)];
+            assert!(tree.nearest_neighbor_iter(query).take(5).count() == 5);
+        }
+
+        let span = 1_023;
+        let points: Vec<[i32; 3]> = (0..2000)
+            .map(|_| [0; 3].map(|_| coordinate(&mut state, span)))
+            .collect();
+        let mut tree = RTree::bulk_load(points.clone());
+        for point in &points[..500] {
+            tree.remove(point);
+            tree.insert(*point);
+        }
+        for _ in 0..200 {
+            let query = [0; 3].map(|_| coordinate(&mut state, span));
+            assert!(tree.nearest_neighbor_iter(query).take(5).count() == 5);
+        }
+    }
 }

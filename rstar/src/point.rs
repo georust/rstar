@@ -14,6 +14,19 @@ use ordered_float::{NotNan, OrderedFloat};
 /// [`RTreeNum::OrdType`] supplies that ordering. Integral types, which are already Ord,
 /// are their own OrdType. `f32` and `f64` use [`ordered_float::OrderedFloat`].
 ///
+/// # Integer scalars
+/// The r-tree computes squared distances and areas in the scalar type itself. For coordinates
+/// (of the elements and of the queries) spanning `s` in `D` dimensions, these reach `D·s²` and,
+/// when two areas are added, `2·sᴰ`. Both must fit into the type, otherwise debug builds panic
+/// and release builds silently return wrong nearest neighbors and build worse trees:
+///
+/// | | 2D | 3D |
+/// |---|---|---|
+/// | `i32` | span up to 32 767 | span up to 1 023 |
+/// | `i64` | span up to about 2·10⁹ | span up to about 1.6·10⁶ |
+///
+/// For larger ranges, use a wider integer type or a floating point type.
+///
 /// # Example
 /// ```
 /// # extern crate num_traits;
