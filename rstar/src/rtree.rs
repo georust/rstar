@@ -400,7 +400,8 @@ where
     /// Mutable variant of [locate_in_envelope](#method.locate_in_envelope).
     ///
     /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
-    /// element through the returned references.
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_in_envelope_mut(&mut self, envelope: T::Envelope) -> LocateInEnvelopeMut<'_, T> {
         LocateInEnvelopeMut::new(&mut self.root, SelectInEnvelopeFunction::new(envelope))
     }
@@ -424,7 +425,8 @@ where
     /// Mutable variant of [`locate_in_envelope_mut`][Self::locate_in_envelope_mut].
     ///
     /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
-    /// element through the returned references.
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_in_envelope_int_mut<'a, V, B>(
         &'a mut self,
         envelope: T::Envelope,
@@ -508,7 +510,8 @@ where
     /// Mutable variant of [locate_in_envelope_intersecting](#method.locate_in_envelope_intersecting)
     ///
     /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
-    /// element through the returned references.
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_in_envelope_intersecting_mut(
         &mut self,
         envelope: T::Envelope,
@@ -538,7 +541,8 @@ where
     /// Mutable variant of [`locate_in_envelope_intersecting_int`][Self::locate_in_envelope_intersecting_int].
     ///
     /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
-    /// element through the returned references.
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_in_envelope_intersecting_int_mut<'a, V, B>(
         &'a mut self,
         envelope: T::Envelope,
@@ -571,7 +575,8 @@ where
     /// Mutable variant of [`locate_with_selection_function`](#method.locate_with_selection_function).
     ///
     /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
-    /// element through the returned references.
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_with_selection_function_mut<S: SelectionFunction<T>>(
         &mut self,
         selection_function: S,
@@ -817,7 +822,8 @@ where
     /// Mutable variant of [RTree::locate_at_point].
     ///
     /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
-    /// element through the returned references.
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_at_point_mut(
         &mut self,
         point: <T::Envelope as Envelope>::Point,
@@ -836,7 +842,8 @@ where
     /// Mutable variant of [`locate_at_point_int`][Self::locate_at_point_int].
     ///
     /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
-    /// element through the returned references.
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_at_point_int_mut(
         &mut self,
         point: <T::Envelope as Envelope>::Point,
@@ -875,7 +882,8 @@ where
     /// Mutable variant of [`locate_all_at_point`][Self::locate_all_at_point].
     ///
     /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
-    /// element through the returned references.
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_all_at_point_mut(
         &mut self,
         point: <T::Envelope as Envelope>::Point,
@@ -898,7 +906,8 @@ where
     /// Mutable variant of [`locate_all_at_point_int`][Self::locate_all_at_point_int].
     ///
     /// As with [`iter_mut`](Self::iter_mut), it is a logic error to change the envelope of an
-    /// element through the returned references.
+    /// element through the returned references, including by changing its geometry; to do that,
+    /// [remove](Self::remove) and re-[insert](Self::insert) it.
     pub fn locate_all_at_point_int_mut<'a, V, B>(
         &'a mut self,
         point: <T::Envelope as Envelope>::Point,
@@ -1022,7 +1031,8 @@ where
     ///
     /// This allows changing the data of the nearest element in place, e.g. a counter stored
     /// alongside its geometry. As with [`iter_mut`](Self::iter_mut), it is a logic error to change
-    /// its envelope; to move an element, [remove](Self::remove) and reinsert it.
+    /// its envelope, including by changing its geometry; to do that, [remove](Self::remove) and
+    /// re-[insert](Self::insert) it.
     ///
     /// # Example
     /// ```
