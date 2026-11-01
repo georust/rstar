@@ -2600,7 +2600,7 @@ dependencies = [
 
 [[package]]
 name = "rstar"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "approx",
  "heapless",
@@ -2622,7 +2622,7 @@ dependencies = [
  "geo-types",
  "rand 0.10.1",
  "rand_hc 0.5.0",
- "rstar 0.13.0",
+ "rstar 0.13.1",
 ]
 
 [[package]]
@@ -2632,7 +2632,7 @@ dependencies = [
  "kiss3d",
  "nalgebra 0.30.1",
  "rand 0.7.3",
- "rstar 0.13.0",
+ "rstar 0.13.1",
 ]
 
 [[package]]
