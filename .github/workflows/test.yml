@@ -31,6 +31,7 @@ jobs:
         with:
           key: test
       - run: cargo test --package rstar
+      - run: cargo test --package rstar --features rayon --lib bulk_load
 
   check:
     name: Rustfmt and Clippy check
@@ -49,7 +50,7 @@ jobs:
       - name: Lint using Clippy
         run: cargo clippy --workspace --exclude rstar-demo --tests
       - name: Check documentation using Rustdoc
-        run: cargo doc --package rstar --no-deps --features serde,mint
+        run: cargo doc --package rstar --no-deps --features serde,mint,rayon
         env:
           RUSTDOCFLAGS: -D warnings
 
