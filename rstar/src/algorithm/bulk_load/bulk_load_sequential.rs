@@ -5,7 +5,7 @@ use crate::params::RTreeParams;
 use crate::point::Point;
 
 #[cfg(not(test))]
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 
 #[allow(unused_imports)] // Import is required when building without std
 use num_traits::Float;
@@ -31,10 +31,12 @@ where
         return ParentNode::new_parent(elements);
     }
     let clusters_on_axis = calculate_number_of_clusters_on_axis::<T, Params>(elements.len()).max(2);
-    let clusters = partition(
+    let mut clusters = Vec::new();
+    partition(
         elements,
         clusters_on_axis,
         <T::Envelope as Envelope>::Point::DIMENSIONS,
+        &mut clusters,
     );
     let children = clusters
         .into_iter()
@@ -43,23 +45,25 @@ where
     ParentNode::new_parent(children)
 }
 
-/// Partitions the elements of a node into the clusters that become its children: into slabs
-/// along the last of the remaining `axes`, each slab along the next axis, and so on.
+/// Successively partitions the given elements into cluster groups and finally into clusters,
+/// each of which becomes a child of the node: into slabs along the axis before `current_axis`,
+/// each slab along the axis before that, and so on. Recurses once per axis, so at most
+/// `Point::DIMENSIONS` levels deep.
 fn partition<T: RTreeObject>(
     elements: Vec<T>,
     clusters_on_axis: usize,
-    axes: usize,
-) -> Vec<Vec<T>> {
-    if axes == 0 {
-        return vec![elements];
+    current_axis: usize,
+    clusters: &mut Vec<Vec<T>>,
+) {
+    if current_axis == 0 {
+        // Partitioning finished successfully on all axis. The remaining cluster forms a new node
+        clusters.push(elements);
+        return;
     }
-    let slabs: Vec<_> = ClusterGroupIterator::new(elements, clusters_on_axis, axes - 1).collect();
-    // The last slab first, the order the bulk loading has always produced
-    slabs
-        .into_iter()
-        .rev()
-        .flat_map(|slab| partition(slab, clusters_on_axis, axes - 1))
-        .collect()
+    // The cluster group needs to be partitioned further along the next axis
+    for slab in ClusterGroupIterator::new(elements, clusters_on_axis, current_axis - 1) {
+        partition(slab, clusters_on_axis, current_axis - 1, clusters);
+    }
 }
 
 /// A multi dimensional implementation of the OMT bulk loading algorithm.
