@@ -30,8 +30,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           key: test
-      - run: cargo test --package rstar
-      - run: cargo test --package rstar --features rayon --lib bulk_load
+      - run: cargo test --package rstar --features rayon
 
   check:
     name: Rustfmt and Clippy check
