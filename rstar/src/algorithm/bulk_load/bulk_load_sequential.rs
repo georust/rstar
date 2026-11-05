@@ -5,7 +5,7 @@ use crate::params::RTreeParams;
 use crate::point::Point;
 
 #[cfg(not(test))]
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 
 #[allow(unused_imports)] // Import is required when building without std
 use num_traits::Float;
@@ -30,66 +30,39 @@ where
         let elements: Vec<_> = elements.into_iter().map(RTreeNode::Leaf).collect();
         return ParentNode::new_parent(elements);
     }
-    let number_of_clusters_on_axis =
-        calculate_number_of_clusters_on_axis::<T, Params>(elements.len()).max(2);
-
-    let iterator = PartitioningTask::<_, Params> {
-        number_of_clusters_on_axis,
-        subtree_depth: depth - 1,
-        work_queue: vec![PartitioningState {
-            current_axis: <T::Envelope as Envelope>::Point::DIMENSIONS,
-            elements,
-        }],
-        _params: Default::default(),
-    };
-    ParentNode::new_parent(iterator.collect())
+    let clusters_on_axis = calculate_number_of_clusters_on_axis::<T, Params>(elements.len()).max(2);
+    let mut clusters = Vec::new();
+    partition(
+        elements,
+        clusters_on_axis,
+        <T::Envelope as Envelope>::Point::DIMENSIONS,
+        &mut clusters,
+    );
+    let children = clusters
+        .into_iter()
+        .map(|cluster| RTreeNode::Parent(bulk_load_recursive::<_, Params>(cluster, depth - 1)))
+        .collect();
+    ParentNode::new_parent(children)
 }
 
-/// Represents a partitioning task that still needs to be done.
-///
-/// A partitioning iterator will take this item from its work queue and start partitioning "elements"
-/// along "current_axis" .
-struct PartitioningState<T: RTreeObject> {
+/// Successively partitions the given elements into cluster groups and finally into clusters,
+/// each of which becomes a child of the node: into slabs along the axis before `current_axis`,
+/// each slab along the axis before that, and so on. Recurses once per axis, so at most
+/// `Point::DIMENSIONS` levels deep.
+fn partition<T: RTreeObject>(
     elements: Vec<T>,
+    clusters_on_axis: usize,
     current_axis: usize,
-}
-
-/// Successively partitions the given elements into  cluster groups and finally into clusters.
-struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
-    work_queue: Vec<PartitioningState<T>>,
-    number_of_clusters_on_axis: usize,
-    subtree_depth: usize,
-    _params: core::marker::PhantomData<Params>,
-}
-
-impl<T: RTreeObject, Params: RTreeParams> Iterator for PartitioningTask<T, Params> {
-    type Item = RTreeNode<T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(next) = self.work_queue.pop() {
-            let PartitioningState {
-                elements,
-                current_axis,
-            } = next;
-            if current_axis == 0 {
-                // Partitioning finished successfully on all axis. The remaining cluster forms a new node
-                let data = bulk_load_recursive::<_, Params>(elements, self.subtree_depth);
-                return RTreeNode::Parent(data).into();
-            } else {
-                // The cluster group needs to be partitioned further along the next axis
-                let iterator = ClusterGroupIterator::new(
-                    elements,
-                    self.number_of_clusters_on_axis,
-                    current_axis - 1,
-                );
-                self.work_queue
-                    .extend(iterator.map(|slab| PartitioningState {
-                        elements: slab,
-                        current_axis: current_axis - 1,
-                    }));
-            }
-        }
-        None
+    clusters: &mut Vec<Vec<T>>,
+) {
+    if current_axis == 0 {
+        // Partitioning finished successfully on all axis. The remaining cluster forms a new node
+        clusters.push(elements);
+        return;
+    }
+    // The cluster group needs to be partitioned further along the next axis
+    for slab in ClusterGroupIterator::new(elements, clusters_on_axis, current_axis - 1) {
+        partition(slab, clusters_on_axis, current_axis - 1, clusters);
     }
 }
 
