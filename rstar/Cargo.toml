@@ -13,8 +13,8 @@ keywords = ["rtree", "r-tree", "spatial", "spatial-index", "nearest-neighbor"]
 categories = ["data-structures", "algorithms", "science::geo"]
 
 [package.metadata.docs.rs]
-# Show the `mint` module and the `serde` implementations
-features = ["mint", "serde"]
+# Show the `mint` module, the parallel bulk loading and the `serde` implementations
+features = ["mint", "rayon", "serde"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -25,11 +25,14 @@ num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 serde = { version = "1.0", optional = true, default-features = false, features = ["alloc", "derive"] }
 smallvec = "1.6"
 mint = { version = "0.5.9", optional = true }
+rayon = { version = "1.10", optional = true }
 ordered-float = { workspace = true }
 
 [features]
 default = []
 debug = []
+# Parallel bulk loading on the current Rayon thread pool
+rayon = ["dep:rayon"]
 
 [dev-dependencies]
 rand = "0.10"

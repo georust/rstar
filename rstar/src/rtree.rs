@@ -279,6 +279,22 @@ where
     }
 }
 
+#[cfg(feature = "rayon")]
+impl<T> RTree<T>
+where
+    T: RTreeObject + Send,
+    T::Envelope: Send,
+{
+    /// Creates a new r-tree with some elements already inserted, building independent subtrees
+    /// in parallel on the current [Rayon](https://docs.rs/rayon) thread pool.
+    ///
+    /// The tree is the same as the one [`RTree::bulk_load`] builds. This pays off for large
+    /// numbers of elements; small subtrees are built sequentially. Requires the `rayon` feature.
+    pub fn bulk_load_parallel(elements: Vec<T>) -> Self {
+        Self::bulk_load_with_params_parallel(elements)
+    }
+}
+
 impl<T, Params> RTree<T, Params>
 where
     Params: RTreeParams,
@@ -777,6 +793,22 @@ where
     ) -> DrainIterator<'_, T, SelectInEnvelopeFuncIntersecting<T>, Params> {
         let selection_function = SelectInEnvelopeFuncIntersecting::new(envelope);
         self.drain_with_selection_function(selection_function)
+    }
+}
+
+#[cfg(feature = "rayon")]
+impl<T, Params> RTree<T, Params>
+where
+    Params: RTreeParams,
+    T: RTreeObject + Send,
+    T::Envelope: Send,
+{
+    /// Creates a new r-tree with some given elements and configurable parameters, building
+    /// independent subtrees in parallel.
+    ///
+    /// For more information refer to [`RTree::bulk_load_parallel`] and [`RTreeParams`].
+    pub fn bulk_load_with_params_parallel(elements: Vec<T>) -> Self {
+        Self::new_from_bulk_loading(elements, bulk_load::bulk_load_parallel::<_, Params>)
     }
 }
 
