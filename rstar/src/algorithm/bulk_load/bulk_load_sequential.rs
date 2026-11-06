@@ -76,7 +76,7 @@ struct PartitioningState<T: RTreeObject> {
     current_axis: usize,
 }
 
-/// Successively partitions the given elements into  cluster groups and finally into clusters,
+/// Successively partitions the given elements into cluster groups and finally into clusters,
 /// each of which becomes a child of the node.
 struct PartitioningTask<T: RTreeObject, Params: RTreeParams> {
     work_queue: Vec<PartitioningState<T>>,
