@@ -102,7 +102,7 @@ where
     if let RTreeNode::Parent(ref mut follow) = node.children[expand_index] {
         match forced_insertion::<_, Params>(follow, t, target_height - 1) {
             InsertionResult::Split(child) => {
-                node.envelope.merge(&child.envelope());
+                // The node's envelope already covers the split off child
                 node.children.push(child);
                 resolve_overflow_without_reinsertion::<_, Params>(node)
             }
@@ -139,7 +139,7 @@ where
 
     match expand {
         InsertionResult::Split(child) => {
-            node.envelope.merge(&child.envelope());
+            // The node's envelope already covers the split off child
             node.children.push(child);
             resolve_overflow::<_, Params>(node, current_height)
         }
@@ -346,4 +346,124 @@ where
         .split_off(num_children - Params::REINSERTION_COUNT);
     node.envelope = envelope_for_children(&node.children);
     result
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{Envelope, ParentNode, RTree, RTreeNode, RTreeObject, AABB};
+
+    /// An envelope that also counts the elements below it, which is only right if every
+    /// element is merged into the envelope of each of its ancestors exactly once.
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    struct Counted {
+        aabb: AABB<[i32; 2]>,
+        count: usize,
+    }
+
+    impl Envelope for Counted {
+        type Point = [i32; 2];
+
+        fn new_empty() -> Self {
+            Counted {
+                aabb: AABB::new_empty(),
+                count: 0,
+            }
+        }
+        fn merge(&mut self, other: &Self) {
+            self.aabb.merge(&other.aabb);
+            self.count += other.count;
+        }
+        fn merged(&self, other: &Self) -> Self {
+            let mut merged = *self;
+            merged.merge(other);
+            merged
+        }
+        fn contains_point(&self, point: &[i32; 2]) -> bool {
+            self.aabb.contains_point(point)
+        }
+        fn contains_envelope(&self, other: &Self) -> bool {
+            self.aabb.contains_envelope(&other.aabb)
+        }
+        fn intersects(&self, other: &Self) -> bool {
+            self.aabb.intersects(&other.aabb)
+        }
+        fn intersection_area(&self, other: &Self) -> i32 {
+            self.aabb.intersection_area(&other.aabb)
+        }
+        fn area(&self) -> i32 {
+            self.aabb.area()
+        }
+        fn distance_2(&self, point: &[i32; 2]) -> i32 {
+            self.aabb.distance_2(point)
+        }
+        fn min_max_dist_2(&self, point: &[i32; 2]) -> i32 {
+            self.aabb.min_max_dist_2(point)
+        }
+        fn center(&self) -> [i32; 2] {
+            self.aabb.center()
+        }
+        fn perimeter_value(&self) -> i32 {
+            self.aabb.perimeter_value()
+        }
+        fn sort_envelopes<T: RTreeObject<Envelope = Self>>(axis: usize, envelopes: &mut [T]) {
+            envelopes.sort_unstable_by_key(|e| e.envelope().aabb.lower()[axis]);
+        }
+        fn partition_envelopes<T: RTreeObject<Envelope = Self>>(
+            axis: usize,
+            envelopes: &mut [T],
+            selection_size: usize,
+        ) {
+            envelopes
+                .select_nth_unstable_by_key(selection_size, |e| e.envelope().aabb.lower()[axis]);
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    struct CountedPoint([i32; 2]);
+
+    impl RTreeObject for CountedPoint {
+        type Envelope = Counted;
+
+        fn envelope(&self) -> Counted {
+            Counted {
+                aabb: AABB::from_point(self.0),
+                count: 1,
+            }
+        }
+    }
+
+    /// Checks the count of every node against the leaves below it, and returns that number.
+    fn check_counts(node: &ParentNode<CountedPoint>) -> usize {
+        let leaves = node
+            .children()
+            .iter()
+            .map(|child| match child {
+                RTreeNode::Leaf(_) => 1,
+                RTreeNode::Parent(parent) => check_counts(parent),
+            })
+            .sum();
+        assert_eq!(node.envelope().count, leaves);
+        leaves
+    }
+
+    #[test]
+    fn test_envelopes_merge_every_element_once() {
+        let points: Vec<_> = crate::test_utilities::create_random_integers::<[i32; 2]>(
+            2000,
+            crate::test_utilities::SEED_1,
+        )
+        .into_iter()
+        // Small coordinates, so that the areas fit into `i32`
+        .map(|[x, y]| CountedPoint([x % 1000, y % 1000]))
+        .collect();
+        let mut tree = RTree::bulk_load(points[..500].to_vec());
+        for point in &points[500..] {
+            tree.insert(*point);
+        }
+        assert_eq!(check_counts(tree.root()), 2000);
+        for point in &points[..1000] {
+            tree.remove(point);
+        }
+        assert_eq!(check_counts(tree.root()), 1000);
+    }
 }

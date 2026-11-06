@@ -1,6 +1,6 @@
 [package]
 name = "rstar"
-version = "0.13.0"
+version = "0.14.0"
 authors = ["Stefan Altmayer <stoeoef@gmail.com>", "The Georust Developers <mods@georust.org>"]
 description = "An R*-tree spatial index"
 documentation = "https://docs.rs/rstar/"
@@ -20,7 +20,7 @@ features = ["mint", "rayon", "serde"]
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-heapless = { version = "0.8", default-features = false }
+heapless = { version = "0.9", default-features = false }
 num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 serde = { version = "1.0", optional = true, default-features = false, features = ["alloc", "derive"] }
 smallvec = "1.6"

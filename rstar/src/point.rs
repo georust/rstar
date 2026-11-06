@@ -406,7 +406,7 @@ pub trait Point: Clone + PartialEq + Debug {
 impl<T> PointExt for T where T: Point {}
 
 /// Utility functions for Point
-pub trait PointExt: Point {
+pub(crate) trait PointExt: Point {
     /// Returns a new Point with all components set to zero.
     fn new() -> Self {
         Self::from_value(Zero::zero())
