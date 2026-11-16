@@ -111,6 +111,7 @@ where
     }
 
     /// Returns the squared distance to the AABB's [min_point](AABB::min_point)
+    #[inline]
     pub fn distance_2(&self, point: &P) -> P::Scalar {
         if self.contains_point(point) {
             Zero::zero()
@@ -182,20 +183,19 @@ where
         diag.fold(one, |acc, cur| max_inline(cur, zero) * acc)
     }
 
+    #[inline]
     fn distance_2(&self, point: &P) -> P::Scalar {
         self.distance_2(point)
     }
 
     fn min_max_dist_2(&self, point: &P) -> <P as Point>::Scalar {
-        let l = self.lower.sub(point);
-        let u = self.upper.sub(point);
         // diff, min, index
         let mut max_diff: (P::Scalar, P::Scalar, usize) = (Zero::zero(), Zero::zero(), 0);
         let mut result = P::new();
 
         for i in 0..P::DIMENSIONS {
-            let mut min = l.nth(i);
-            let mut max = u.nth(i);
+            let mut min = self.lower.nth(i) - point.nth(i);
+            let mut max = self.upper.nth(i) - point.nth(i);
             max = max * max;
             min = min * min;
             if max.ord() < min.ord() {

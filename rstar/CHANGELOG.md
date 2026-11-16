@@ -1,5 +1,9 @@
 # Unreleased
 
+## Changed
+- `Point::generate` for arrays uses `core::array::from_fn`. In release builds, the compiler did not always inline the old implementation, which made insertion, removal and bulk loading slower.
+- `AABB::min_max_dist_2` and the point `distance_2` compute their result without temporary points, and `AABB::distance_2` is marked `#[inline]`, so nearest-neighbor queries stay as fast as before. The results are unchanged.
+
 # 0.14.0
 
 ## Changed

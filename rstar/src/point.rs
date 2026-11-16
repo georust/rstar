@@ -489,7 +489,10 @@ pub(crate) trait PointExt: Point {
 
     /// Returns the squared distance between `self` and `other`.
     fn distance_2(&self, other: &Self) -> Self::Scalar {
-        self.sub(other).length_2()
+        (0..Self::DIMENSIONS).fold(Zero::zero(), |acc, i| {
+            let diff = self.nth(i) - other.nth(i);
+            diff * diff + acc
+        })
     }
 }
 
@@ -525,15 +528,9 @@ where
 
     const DIMENSIONS: usize = N;
 
-    fn generate(mut generator: impl FnMut(usize) -> S) -> Self {
-        // The same implementation used in std::array::from_fn
-        // Since this is a const generic it gets unrolled
-        let mut idx = 0;
-        [(); N].map(|_| {
-            let res = generator(idx);
-            idx += 1;
-            res
-        })
+    #[inline]
+    fn generate(generator: impl FnMut(usize) -> S) -> Self {
+        core::array::from_fn(generator)
     }
 
     #[inline]
