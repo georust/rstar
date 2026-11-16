@@ -30,6 +30,7 @@ where
     P: Clone,
 {
     /// Returns the AABB encompassing a single point.
+    #[inline]
     pub fn from_point(p: P) -> Self {
         AABB {
             lower: p.clone(),
@@ -41,6 +42,7 @@ where
     ///
     /// This is the point contained within the AABB with the smallest coordinate value in each
     /// dimension.
+    #[inline]
     pub fn lower(&self) -> P {
         self.lower.clone()
     }
@@ -49,6 +51,7 @@ where
     ///
     /// This is the point contained within the AABB with the largest coordinate value in each
     /// dimension.
+    #[inline]
     pub fn upper(&self) -> P {
         self.upper.clone()
     }
@@ -59,6 +62,7 @@ where
     P: Point,
 {
     /// Creates a new AABB encompassing two points.
+    #[inline]
     pub fn from_corners(p1: P, p2: P) -> Self {
         Self {
             lower: p1.min_point(&p2),
@@ -67,6 +71,7 @@ where
     }
 
     /// Returns the AABB from already known lower/upper bounds.
+    #[inline]
     pub fn from_bounds(lower: P, upper: P) -> Self {
         debug_assert_eq!(lower.min_point(&upper), lower);
         debug_assert_eq!(lower.max_point(&upper), upper);
@@ -76,6 +81,7 @@ where
     /// Creates a new AABB from a center and a distance.
     ///
     /// Creates the smallest AABB which includes all points within `distance` of `center`.
+    #[inline]
     pub fn from_center(center: P, distance: P::Scalar) -> Self {
         let distance = P::from_value(distance);
 
@@ -106,6 +112,7 @@ where
     /// Returns the point within this AABB closest to a given point.
     ///
     /// If `point` is contained within the AABB, `point` will be returned.
+    #[inline]
     pub fn min_point(&self, point: &P) -> P {
         self.upper.min_point(&self.lower.max_point(point))
     }
@@ -127,6 +134,7 @@ where
 {
     type Point = P;
 
+    #[inline]
     fn new_empty() -> Self {
         let max = P::Scalar::max_value();
         let min = P::Scalar::min_value();
@@ -136,10 +144,12 @@ where
         }
     }
 
+    #[inline]
     fn is_empty(&self) -> bool {
         self.lower.nth(0).ord() > self.upper.nth(0).ord()
     }
 
+    #[inline]
     fn contains_point(&self, point: &P) -> bool {
         self.lower
             .all_component_wise(point, |x, y| x.ord() <= y.ord())
@@ -148,6 +158,7 @@ where
                 .all_component_wise(point, |x, y| x.ord() >= y.ord())
     }
 
+    #[inline]
     fn contains_envelope(&self, other: &Self) -> bool {
         self.lower
             .all_component_wise(&other.lower, |l, r| l.ord() <= r.ord())
@@ -156,11 +167,13 @@ where
                 .all_component_wise(&other.upper, |l, r| l.ord() >= r.ord())
     }
 
+    #[inline]
     fn merge(&mut self, other: &Self) {
         self.lower = self.lower.min_point(&other.lower);
         self.upper = self.upper.max_point(&other.upper);
     }
 
+    #[inline]
     fn merged(&self, other: &Self) -> Self {
         AABB {
             lower: self.lower.min_point(&other.lower),
@@ -168,6 +181,7 @@ where
         }
     }
 
+    #[inline]
     fn intersects(&self, other: &Self) -> bool {
         self.lower
             .all_component_wise(&other.upper, |l, r| l.ord() <= r.ord())
@@ -176,6 +190,7 @@ where
                 .all_component_wise(&other.lower, |l, r| l.ord() >= r.ord())
     }
 
+    #[inline]
     fn area(&self) -> P::Scalar {
         let zero = P::Scalar::zero();
         let one = P::Scalar::one();
@@ -214,12 +229,14 @@ where
         result.fold(Zero::zero(), |acc, curr| acc + curr)
     }
 
+    #[inline]
     fn center(&self) -> Self::Point {
         let one = <Self::Point as Point>::Scalar::one();
         let two = one + one;
         self.lower.component_wise(&self.upper, |x, y| (x + y) / two)
     }
 
+    #[inline]
     fn intersection_area(&self, other: &Self) -> <Self::Point as Point>::Scalar {
         AABB {
             lower: self.lower.max_point(&other.lower),
@@ -228,12 +245,14 @@ where
         .area()
     }
 
+    #[inline]
     fn perimeter_value(&self) -> P::Scalar {
         let diag = self.upper.sub(&self.lower);
         let zero = P::Scalar::zero();
         max_inline(diag.fold(zero, |acc, value| acc + value), zero)
     }
 
+    #[inline]
     fn sort_envelopes<T: RTreeObject<Envelope = Self>>(axis: usize, envelopes: &mut [T]) {
         envelopes.sort_unstable_by(|l, r| {
             l.envelope()
@@ -244,6 +263,7 @@ where
         });
     }
 
+    #[inline]
     fn partition_envelopes<T: RTreeObject<Envelope = Self>>(
         axis: usize,
         envelopes: &mut [T],
