@@ -408,11 +408,13 @@ impl<T> PointExt for T where T: Point {}
 /// Utility functions for Point
 pub(crate) trait PointExt: Point {
     /// Returns a new Point with all components set to zero.
+    #[inline]
     fn new() -> Self {
         Self::from_value(Zero::zero())
     }
 
     /// Applies `f` to each pair of components of `self` and `other`.
+    #[inline]
     fn component_wise(
         &self,
         other: &Self,
@@ -431,6 +433,7 @@ pub(crate) trait PointExt: Point {
     }
 
     /// Returns the dot product of `self` and `rhs`.
+    #[inline]
     fn dot(&self, rhs: &Self) -> Self::Scalar {
         self.component_wise(rhs, |l, r| l * r)
             .fold(Zero::zero(), |acc, val| acc + val)
@@ -443,51 +446,61 @@ pub(crate) trait PointExt: Point {
     /// The `start_value` is the value the accumulator will have on the first call of the closure.
     ///
     /// After applying the closure to every component of the Point, fold() returns the accumulator.
+    #[inline]
     fn fold<T>(&self, start_value: T, mut f: impl FnMut(T, Self::Scalar) -> T) -> T {
         (0..Self::DIMENSIONS).fold(start_value, |accumulated, i| f(accumulated, self.nth(i)))
     }
 
     /// Returns a Point with every component set to `value`.
+    #[inline]
     fn from_value(value: Self::Scalar) -> Self {
         Self::generate(|_| value)
     }
 
     /// Returns a Point with each component set to the smallest of each component pair of `self` and `other`.
+    #[inline]
     fn min_point(&self, other: &Self) -> Self {
         self.component_wise(other, min_inline)
     }
 
     /// Returns a Point with each component set to the biggest of each component pair of `self` and `other`.
+    #[inline]
     fn max_point(&self, other: &Self) -> Self {
         self.component_wise(other, max_inline)
     }
 
     /// Returns the squared length of this Point as if it was a vector.
+    #[inline]
     fn length_2(&self) -> Self::Scalar {
         self.fold(Zero::zero(), |acc, cur| cur * cur + acc)
     }
 
     /// Substracts `other` from `self` component wise.
+    #[inline]
     fn sub(&self, other: &Self) -> Self {
         self.component_wise(other, |l, r| l - r)
     }
 
     /// Adds `other` to `self` component wise.
+    #[inline]
     fn add(&self, other: &Self) -> Self {
         self.component_wise(other, |l, r| l + r)
     }
 
     /// Multiplies `self` with `scalar` component wise.
+    #[inline]
     fn mul(&self, scalar: Self::Scalar) -> Self {
         self.map(|coordinate| coordinate * scalar)
     }
 
     /// Applies `f` to `self` component wise.
+    #[inline]
     fn map(&self, mut f: impl FnMut(Self::Scalar) -> Self::Scalar) -> Self {
         Self::generate(|i| f(self.nth(i)))
     }
 
     /// Returns the squared distance between `self` and `other`.
+    #[inline]
     fn distance_2(&self, other: &Self) -> Self::Scalar {
         self.sub(other).length_2()
     }
@@ -525,15 +538,9 @@ where
 
     const DIMENSIONS: usize = N;
 
-    fn generate(mut generator: impl FnMut(usize) -> S) -> Self {
-        // The same implementation used in std::array::from_fn
-        // Since this is a const generic it gets unrolled
-        let mut idx = 0;
-        [(); N].map(|_| {
-            let res = generator(idx);
-            idx += 1;
-            res
-        })
+    #[inline]
+    fn generate(generator: impl FnMut(usize) -> S) -> Self {
+        core::array::from_fn(generator)
     }
 
     #[inline]
@@ -569,6 +576,7 @@ macro_rules! impl_point_for_tuple {
 
             const DIMENSIONS: usize = count_exprs!($($index),*);
 
+            #[inline]
             fn generate(mut generator: impl FnMut(usize) -> S) -> Self {
                 ($(generator($index),)+)
             }
