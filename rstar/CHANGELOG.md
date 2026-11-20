@@ -1,5 +1,9 @@
 # Unreleased
 
+## Changed
+- Bump `heapless` to 0.9, so that dependents no longer see the unsoundness advisories against older `heapless` releases in `cargo audit` ([#273](https://github.com/georust/rstar/issues/273)).
+- Increase our MSRV to Rust 1.88 following that of `heapless` 0.9 (0.9.4).
+
 # 0.13.1
 
 ## Fixed
