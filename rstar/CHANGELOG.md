@@ -1,5 +1,7 @@
 # Unreleased
 
+- Added new `RTree::clear` method to remove all elements.
+
 # 0.14.0
 
 ## Changed
