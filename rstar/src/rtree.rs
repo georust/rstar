@@ -470,6 +470,14 @@ where
         self.drain_with_selection_function(sel)
     }
 
+    /// Removes all elements from the tree.
+    ///
+    /// The tree is reset to the same state as a newly created empty r-tree.
+    pub fn clear(&mut self) {
+        self.root = ParentNode::new_root::<Params>();
+        self.size = 0;
+    }
+
     /// Returns all elements whose envelope intersects a given envelope.
     ///
     /// Any element fully contained within an envelope is also returned by this method. Two
@@ -1379,6 +1387,14 @@ mod test {
         for p in &points {
             assert!(tree.contains(p));
         }
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut tree = RTree::bulk_load(vec![[-10.0, -10.0], [0.0, 0.0], [10.0, 10.0]]);
+        assert_eq!(tree.size(), 3);
+        tree.clear();
+        assert_eq!(tree.size(), 0);
     }
 
     #[test]
