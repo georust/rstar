@@ -33,7 +33,8 @@ where
 /// Represents an internal parent node.
 ///
 /// For most applications, using this type should not be required. Allows read access to this
-/// node's envelope and its children.
+/// node's envelope and its children, and reordering its children with
+/// [`children_mut`](ParentNode::children_mut).
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ParentNode<T>
@@ -78,6 +79,25 @@ where
     /// Returns this node's children
     pub fn children(&self) -> &[RTreeNode<T>] {
         &self.children
+    }
+
+    /// Returns this node's children for in-place mutation.
+    ///
+    /// This is mostly meant for reordering children, as the `locate_*` methods of
+    /// [`RTree`](crate::RTree) visit children in order. Modifying the tree may change this order.
+    /// See [`RTree::root_mut`](crate::RTree::root_mut) for an example.
+    ///
+    /// *Note*: It is a logic error to break the invariants of the tree:
+    ///
+    /// - every parent node's envelope is the smallest envelope that encompasses all its children
+    /// - all leaves are on the same level
+    /// - [`RTree::size`](crate::RTree::size) returns the number of objects in the tree
+    ///
+    /// Reordering children or changing an object without changing its envelope maintains these
+    /// invariants, but operations such as moving a node to another parent or replacing a parent
+    /// node would not.
+    pub fn children_mut(&mut self) -> &mut [RTreeNode<T>] {
+        &mut self.children
     }
 
     /// Returns the smallest envelope that encompasses all children.

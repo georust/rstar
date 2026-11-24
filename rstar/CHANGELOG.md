@@ -1,5 +1,11 @@
 # Unreleased
 
+## Added
+- `RTree::root_mut` and `ParentNode::children_mut` provide mutable access to the internal structure of a tree, e.g. to sort the children of its nodes so that queries visit them in a custom order. Breaking the invariants of the tree through them is a logic error ([#276](https://github.com/georust/rstar/issues/276)).
+
+## Changed
+- The iterators returned by `iter`, `iter_mut`, `into_iter` and the `locate_*` methods now visit the children of each node from first to last, matching the internal iteration (`_int`) variants. They used to visit them from last to first.
+
 # 0.14.0
 
 ## Changed
