@@ -68,6 +68,9 @@ where
 
     /// Pushes the children that may have to be unpacked.
     ///
+    /// They are pushed in reverse, so that they are popped and visited in order, like in
+    /// [`select_nodes`].
+    ///
     /// Parents are tested before they are pushed, which keeps the rejected ones off the stack.
     /// Leaves are pushed untested and only tested once they are popped: `should_unpack_leaf`
     /// can be far more expensive than testing an envelope, and it must not be called for
@@ -75,7 +78,7 @@ where
     fn push_children(&mut self, children: &'a [RTreeNode<T>]) {
         let func = &self.func;
         self.current_nodes
-            .extend(children.iter().filter(|child| match child {
+            .extend(children.iter().rev().filter(|child| match child {
                 RTreeNode::Leaf(_) => true,
                 RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
             }));
@@ -184,7 +187,7 @@ where
     fn push_children(&mut self, children: &'a mut [RTreeNode<T>]) {
         let func = &self.func;
         self.current_nodes
-            .extend(children.iter_mut().filter(|child| match child {
+            .extend(children.iter_mut().rev().filter(|child| match child {
                 RTreeNode::Leaf(_) => true,
                 RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
             }));
@@ -431,6 +434,28 @@ mod test {
             assert!(tree.iter().any(|q| q == p));
             assert!(tree.iter_mut().any(|q| q == p));
         }
+    }
+
+    #[test]
+    fn test_iteration_follows_child_order() {
+        use crate::node::{ParentNode, RTreeNode};
+
+        fn leaves_in_order(parent: &ParentNode<[f64; 2]>, leaves: &mut Vec<[f64; 2]>) {
+            for child in parent.children() {
+                match child {
+                    RTreeNode::Leaf(point) => leaves.push(*point),
+                    RTreeNode::Parent(child) => leaves_in_order(child, leaves),
+                }
+            }
+        }
+
+        let mut tree = RTree::bulk_load(create_random_points(1000, SEED_1));
+        let mut leaves = Vec::new();
+        leaves_in_order(tree.root(), &mut leaves);
+
+        assert_eq!(tree.iter().copied().collect::<Vec<_>>(), leaves);
+        assert_eq!(tree.iter_mut().map(|p| *p).collect::<Vec<_>>(), leaves);
+        assert_eq!(tree.into_iter().collect::<Vec<_>>(), leaves);
     }
 
     #[test]

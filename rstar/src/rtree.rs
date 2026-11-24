@@ -728,7 +728,43 @@ where
         &self.root
     }
 
-    pub(crate) fn root_mut(&mut self) -> &mut ParentNode<T> {
+    /// Returns the tree's root node for in-place mutation.
+    ///
+    /// *Note*: It is a logic error to break the invariants of the tree, which are listed in
+    /// [`ParentNode::children_mut`].
+    ///
+    /// # Example
+    ///
+    /// Sort the children of every node in descending area order, so that queries visit larger
+    /// rectangles first and a hit test can stop at the first hit:
+    ///
+    /// ```
+    /// use rstar::primitives::Rectangle;
+    /// use rstar::{Envelope, ParentNode, RTree, RTreeNode, RTreeObject, AABB};
+    ///
+    /// type Rect = Rectangle<[f64; 2]>;
+    ///
+    /// fn sort_by_area_descending(parent: &mut ParentNode<Rect>) {
+    ///     let children = parent.children_mut();
+    ///     children.sort_unstable_by(|a, b| b.envelope().area().total_cmp(&a.envelope().area()));
+    ///     for child in children {
+    ///         if let RTreeNode::Parent(child) = child {
+    ///             sort_by_area_descending(child);
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// let small = Rect::from_corners([0.0, 0.0], [1.0, 1.0]);
+    /// let medium = Rect::from_corners([0.0, 0.0], [2.0, 2.0]);
+    /// let large = Rect::from_corners([5.0, 5.0], [9.0, 9.0]);
+    /// let mut tree = RTree::bulk_load(vec![small, medium, large]);
+    /// sort_by_area_descending(tree.root_mut());
+    ///
+    /// // `large` doesn't contain the point, `medium` is the largest rectangle that does.
+    /// let mut hits = tree.locate_in_envelope_intersecting(AABB::from_point([0.5, 0.5]));
+    /// assert_eq!(hits.next(), Some(&medium));
+    /// ```
+    pub fn root_mut(&mut self) -> &mut ParentNode<T> {
         &mut self.root
     }
 
@@ -1321,7 +1357,7 @@ mod test {
     use super::RTree;
     use crate::algorithm::rstar::RStarInsertionStrategy;
     use crate::params::RTreeParams;
-    use crate::test_utilities::{create_random_points, SEED_1};
+    use crate::test_utilities::{create_random_points, create_random_rectangles, SEED_1, SEED_2};
     use crate::DefaultParams;
 
     struct TestParams;
@@ -1476,5 +1512,77 @@ mod test {
             tree.insert(node);
             tree.root().sanity_check::<DefaultParams>(false);
         }
+    }
+
+    #[test]
+    fn test_root_mut_sort_children() {
+        use crate::node::{ParentNode, RTreeNode};
+        use crate::primitives::Rectangle;
+        use crate::{Envelope, PointDistance, RTreeObject, AABB};
+
+        type Rect = Rectangle<[f64; 2]>;
+
+        fn area(node: &RTreeNode<Rect>) -> f64 {
+            node.envelope().area()
+        }
+
+        fn sort_by_area_descending(parent: &mut ParentNode<Rect>) {
+            let children = parent.children_mut();
+            children.sort_unstable_by(|a, b| area(b).total_cmp(&area(a)));
+            for child in children {
+                if let RTreeNode::Parent(child) = child {
+                    sort_by_area_descending(child);
+                }
+            }
+        }
+
+        fn assert_sorted(parent: &ParentNode<Rect>) {
+            assert!(parent.children().is_sorted_by(|a, b| area(a) >= area(b)));
+            for child in parent.children() {
+                if let RTreeNode::Parent(child) = child {
+                    assert_sorted(child);
+                }
+            }
+        }
+
+        // The corners of the rectangles intersecting `query`, sorted by lower corner and then by
+        // upper corner, so that the result doesn't depend on child order.
+        fn intersecting(tree: &RTree<Rect>, query: AABB<[f64; 2]>) -> Vec<([f64; 2], [f64; 2])> {
+            let mut corners: Vec<_> = tree
+                .locate_in_envelope_intersecting(query)
+                .map(|rectangle| (rectangle.lower(), rectangle.upper()))
+                .collect();
+            corners.sort_unstable_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap());
+            corners
+        }
+
+        let rectangles = create_random_rectangles(1000, SEED_1);
+        let more_rectangles = create_random_rectangles(1000, SEED_2);
+        let unsorted = RTree::bulk_load(rectangles.clone());
+        let mut tree = unsorted.clone();
+
+        sort_by_area_descending(tree.root_mut());
+        assert_sorted(tree.root());
+        tree.root().sanity_check::<DefaultParams>(false);
+
+        // Queries find the same elements regardless of child order.
+        let query_points = create_random_points(100, SEED_2);
+        for p in query_points {
+            let query = AABB::from_corners(p, [p[0] + 0.1, p[1] + 0.1]);
+            assert_eq!(intersecting(&tree, query), intersecting(&unsorted, query));
+            let nearest = |t: &RTree<Rect>| t.nearest_neighbor(p).map(|r| r.distance_2(&p));
+            assert_eq!(nearest(&tree), nearest(&unsorted));
+        }
+
+        // Insertion and removal work regardless of child order.
+        for rectangle in &more_rectangles {
+            tree.insert(*rectangle);
+        }
+        for rectangle in &rectangles {
+            assert_eq!(tree.remove(rectangle), Some(*rectangle));
+        }
+        tree.root().sanity_check::<DefaultParams>(false);
+        assert_eq!(tree.size(), more_rectangles.len());
+        assert!(more_rectangles.iter().all(|r| tree.contains(r)));
     }
 }

@@ -9,6 +9,10 @@ use crate::{envelope::Envelope, object::Distance};
 use alloc::vec::Vec;
 use num_traits::{Bounded, Zero};
 
+/// Panic message for finding a leaf where insertion expects a parent node.
+const BUG_OR_BROKEN_INVARIANTS: &str =
+    "This is a bug in rstar, or the invariants of the tree were broken.";
+
 /// Inserts points according to the r-star heuristic.
 ///
 /// The r*-heuristic focusses on good insertion quality at the costs of
@@ -109,7 +113,7 @@ where
             other => other,
         }
     } else {
-        unreachable!("This is a bug in rstar.")
+        panic!("{BUG_OR_BROKEN_INVARIANTS}")
     }
 }
 
@@ -134,7 +138,7 @@ where
     let expand = if let RTreeNode::Parent(ref mut follow) = node.children[expand_index] {
         recursive_insert::<_, Params>(follow, t, current_height + 1)
     } else {
-        panic!("This is a bug in rstar.")
+        panic!("{BUG_OR_BROKEN_INVARIANTS}")
     };
 
     match expand {
@@ -465,5 +469,17 @@ mod test {
             tree.remove(point);
         }
         assert_eq!(check_counts(tree.root()), 1000);
+    }
+
+    #[test]
+    #[should_panic(expected = "the invariants of the tree were broken")]
+    fn test_insert_panics_on_leaves_on_different_levels() {
+        let points =
+            crate::test_utilities::create_random_points(100, crate::test_utilities::SEED_1);
+        let mut tree = RTree::bulk_load(points);
+
+        // Put a leaf next to the parent nodes below the root.
+        *tree.root_mut().children_mut().last_mut().unwrap() = RTreeNode::Leaf([10.0, 10.0]);
+        tree.insert([10.0, 10.0]);
     }
 }

@@ -43,7 +43,10 @@ where
         while let Some(node) = self.node_stack.pop() {
             match node {
                 RTreeNode::Leaf(object) => return Some(object),
-                RTreeNode::Parent(parent) => self.node_stack.extend(parent.children),
+                // Pushed in reverse, so that children are popped in order.
+                RTreeNode::Parent(parent) => {
+                    self.node_stack.extend(parent.children.into_iter().rev())
+                }
             }
         }
 
