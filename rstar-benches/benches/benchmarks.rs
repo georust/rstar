@@ -105,7 +105,7 @@ fn locate_unsuccessful_internal_not_nan(c: &mut Criterion) {
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     let query_point = not_nan([0.7, 0.7]);
     c.bench_function("locate_at_point_int (unsuccessful, NotNan)", move |b| {
-        b.iter(|| tree.locate_at_point(query_point).is_none())
+        b.iter(|| tree.locate_at_point_int(query_point).is_none())
     });
 }
 
@@ -193,7 +193,7 @@ fn locate_unsuccessful_internal(c: &mut Criterion) {
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     let query_point = [0.7, 0.7];
     c.bench_function("locate_at_point_int (unsuccessful)", move |b| {
-        b.iter(|| tree.locate_at_point(query_point).is_none())
+        b.iter(|| tree.locate_at_point_int(query_point).is_none())
     });
 }
 
