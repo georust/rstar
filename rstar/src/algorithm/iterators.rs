@@ -1,7 +1,9 @@
 use crate::algorithm::selection_functions::*;
 use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
+use core::mem::{replace, take};
 use core::ops::ControlFlow;
+use core::slice::{Iter, IterMut};
 
 #[cfg(doc)]
 use crate::RTree;
@@ -38,6 +40,9 @@ pub type RTreeIteratorMut<'a, T> = SelectionIteratorMut<'a, T, SelectAllFunc>;
 pub type LocateWithinDistanceIterator<'a, T> =
     SelectionIterator<'a, T, SelectWithinDistanceFunction<T>>;
 
+/// The number of ancestors of the current node that the selection iterators store inline.
+const INLINE_ANCESTORS: usize = 11;
+
 /// Iterator returned by `RTree::locate_*` methods.
 pub struct SelectionIterator<'a, T, Func>
 where
@@ -45,7 +50,14 @@ where
     Func: SelectionFunction<T>,
 {
     func: Func,
-    current_nodes: SmallVec<[&'a RTreeNode<T>; 24]>,
+    /// The remaining children of the current node.
+    ///
+    /// Each child is only tested when the iterator reaches it. `should_unpack_leaf` can be far more
+    /// expensive than testing an envelope, and it must not be called for elements that the iterator
+    /// never reaches (for example, because it's dropped before the end).
+    current: Iter<'a, RTreeNode<T>>,
+    /// The remaining children of each ancestor of the current node.
+    ancestors: SmallVec<[Iter<'a, RTreeNode<T>>; INLINE_ANCESTORS]>,
 }
 
 impl<'a, T, Func> SelectionIterator<'a, T, Func>
@@ -53,32 +65,21 @@ where
     T: RTreeObject,
     Func: SelectionFunction<T>,
 {
+    #[inline]
     pub(crate) fn new(root: &'a ParentNode<T>, func: Func) -> Self {
-        let mut result = SelectionIterator {
-            func,
-            current_nodes: SmallVec::new(),
-        };
         // Do not call `should_unpack_parent` on an empty root as
         // its AABB is pathological and might make that function panic.
-        if !root.children.is_empty() && result.func.should_unpack_parent(&root.envelope) {
-            result.push_children(&root.children);
-        }
-        result
-    }
+        let current = if !root.children.is_empty() && func.should_unpack_parent(&root.envelope) {
+            root.children.iter()
+        } else {
+            Default::default()
+        };
 
-    /// Pushes the children that may have to be unpacked.
-    ///
-    /// Parents are tested before they are pushed, which keeps the rejected ones off the stack.
-    /// Leaves are pushed untested and only tested once they are popped: `should_unpack_leaf`
-    /// can be far more expensive than testing an envelope, and it must not be called for
-    /// elements that an iterator which is not consumed to its end never reaches.
-    fn push_children(&mut self, children: &'a [RTreeNode<T>]) {
-        let func = &self.func;
-        self.current_nodes
-            .extend(children.iter().filter(|child| match child {
-                RTreeNode::Leaf(_) => true,
-                RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
-            }));
+        Self {
+            func,
+            current,
+            ancestors: SmallVec::new(),
+        }
     }
 }
 
@@ -89,18 +90,31 @@ where
 {
     type Item = &'a T;
 
+    #[inline]
     fn next(&mut self) -> Option<&'a T> {
-        while let Some(next) = self.current_nodes.pop() {
-            match next {
-                RTreeNode::Leaf(ref t) => {
-                    if self.func.should_unpack_leaf(t) {
-                        return Some(t);
+        // Taken out of `self` so the compiler can keep it in registers, and put back on return. If
+        // a selection function panics, the iterator then skips the rest of the current node.
+        let mut current = take(&mut self.current);
+        loop {
+            while let Some(child) = current.next() {
+                match child {
+                    RTreeNode::Leaf(t) => {
+                        if self.func.should_unpack_leaf(t) {
+                            self.current = current;
+                            return Some(t);
+                        }
+                    }
+                    RTreeNode::Parent(data) => {
+                        if self.func.should_unpack_parent(&data.envelope) {
+                            let siblings = replace(&mut current, data.children.iter());
+                            self.ancestors.push(siblings);
+                        }
                     }
                 }
-                RTreeNode::Parent(ref data) => self.push_children(&data.children),
             }
+
+            current = self.ancestors.pop()?;
         }
-        None
     }
 }
 
@@ -161,7 +175,10 @@ where
     Func: SelectionFunction<T>,
 {
     func: Func,
-    current_nodes: SmallVec<[&'a mut RTreeNode<T>; 32]>,
+    /// See [`SelectionIterator::current`].
+    current: IterMut<'a, RTreeNode<T>>,
+    /// See [`SelectionIterator::ancestors`].
+    ancestors: SmallVec<[IterMut<'a, RTreeNode<T>>; INLINE_ANCESTORS]>,
 }
 
 impl<'a, T, Func> SelectionIteratorMut<'a, T, Func>
@@ -169,25 +186,19 @@ where
     T: RTreeObject,
     Func: SelectionFunction<T>,
 {
+    #[inline]
     pub(crate) fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
-        let mut result = SelectionIteratorMut {
-            func,
-            current_nodes: SmallVec::new(),
+        let current = if !root.children.is_empty() && func.should_unpack_parent(&root.envelope) {
+            root.children.iter_mut()
+        } else {
+            Default::default()
         };
-        if !root.children.is_empty() && result.func.should_unpack_parent(&root.envelope) {
-            result.push_children(&mut root.children);
-        }
-        result
-    }
 
-    /// See [`SelectionIterator::push_children`].
-    fn push_children(&mut self, children: &'a mut [RTreeNode<T>]) {
-        let func = &self.func;
-        self.current_nodes
-            .extend(children.iter_mut().filter(|child| match child {
-                RTreeNode::Leaf(_) => true,
-                RTreeNode::Parent(ref data) => func.should_unpack_parent(&data.envelope),
-            }));
+        Self {
+            func,
+            current,
+            ancestors: SmallVec::new(),
+        }
     }
 }
 
@@ -198,18 +209,30 @@ where
 {
     type Item = &'a mut T;
 
+    #[inline]
     fn next(&mut self) -> Option<&'a mut T> {
-        while let Some(next) = self.current_nodes.pop() {
-            match next {
-                RTreeNode::Leaf(ref mut t) => {
-                    if self.func.should_unpack_leaf(t) {
-                        return Some(t);
+        // Like in `SelectionIterator::next`.
+        let mut current = take(&mut self.current);
+        loop {
+            while let Some(child) = current.next() {
+                match child {
+                    RTreeNode::Leaf(t) => {
+                        if self.func.should_unpack_leaf(t) {
+                            self.current = current;
+                            return Some(t);
+                        }
+                    }
+                    RTreeNode::Parent(data) => {
+                        if self.func.should_unpack_parent(&data.envelope) {
+                            let siblings = replace(&mut current, data.children.iter_mut());
+                            self.ancestors.push(siblings);
+                        }
                     }
                 }
-                RTreeNode::Parent(ref mut data) => self.push_children(&mut data.children),
             }
+
+            current = self.ancestors.pop()?;
         }
-        None
     }
 }
 
@@ -431,6 +454,112 @@ mod test {
             assert!(tree.iter().any(|q| q == p));
             assert!(tree.iter_mut().any(|q| q == p));
         }
+    }
+
+    /// The iterators test the children of each node in order.
+    #[test]
+    fn test_children_are_tested_in_order() {
+        use crate::node::{ParentNode, RTreeNode};
+        use core::cell::RefCell;
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        enum Call {
+            Parent(AABB<[f64; 2]>),
+            Leaf([f64; 2]),
+        }
+
+        /// Selects every element, and records the calls it gets.
+        struct RecordingFunc<'a>(&'a RefCell<Vec<Call>>);
+
+        impl SelectionFunction<[f64; 2]> for RecordingFunc<'_> {
+            fn should_unpack_parent(&self, envelope: &AABB<[f64; 2]>) -> bool {
+                self.0.borrow_mut().push(Call::Parent(*envelope));
+                true
+            }
+
+            fn should_unpack_leaf(&self, point: &[f64; 2]) -> bool {
+                self.0.borrow_mut().push(Call::Leaf(*point));
+                true
+            }
+        }
+
+        /// Checks that `calls` tests the children of `parent`, and of each node below it, in order.
+        fn assert_tested_in_order(parent: &ParentNode<[f64; 2]>, calls: &[Call]) {
+            let children: Vec<_> = parent
+                .children()
+                .iter()
+                .map(|child| match child {
+                    RTreeNode::Leaf(point) => Call::Leaf(*point),
+                    RTreeNode::Parent(data) => Call::Parent(data.envelope()),
+                })
+                .collect();
+            let tested: Vec<_> = calls
+                .iter()
+                .copied()
+                .filter(|call| children.contains(call))
+                .collect();
+            assert_eq!(tested, children);
+
+            for child in parent.children() {
+                if let RTreeNode::Parent(data) = child {
+                    assert_tested_in_order(data, calls);
+                }
+            }
+        }
+
+        let mut tree = RTree::bulk_load(create_random_points(1000, SEED_1));
+        let calls = RefCell::new(Vec::new());
+
+        tree.locate_with_selection_function(RecordingFunc(&calls))
+            .for_each(|_| {});
+        assert_tested_in_order(tree.root(), &calls.take());
+
+        tree.locate_with_selection_function_mut(RecordingFunc(&calls))
+            .for_each(|_| {});
+        assert_tested_in_order(tree.root(), &calls.take());
+    }
+
+    /// After a selection function panics, the iterators may skip elements. They never return an
+    /// element twice.
+    #[test]
+    fn test_no_element_is_returned_twice_after_a_panic() {
+        use core::cell::Cell;
+        use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+
+        /// Panics when it tests its first leaf.
+        struct PanicOnceFunc(Cell<bool>);
+
+        impl SelectionFunction<[f64; 2]> for PanicOnceFunc {
+            fn should_unpack_parent(&self, _: &AABB<[f64; 2]>) -> bool {
+                true
+            }
+
+            fn should_unpack_leaf(&self, _: &[f64; 2]) -> bool {
+                if self.0.replace(false) {
+                    // Unlike `panic!`, this doesn't print a message.
+                    resume_unwind(Box::new(()));
+                }
+
+                true
+            }
+        }
+
+        fn assert_distinct(mut points: Vec<[f64; 2]>) {
+            let len = points.len();
+            points.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            points.dedup();
+            assert_eq!(points.len(), len);
+        }
+
+        let mut tree = RTree::bulk_load(create_random_points(1000, SEED_1));
+
+        let mut iter = tree.locate_with_selection_function(PanicOnceFunc(Cell::new(true)));
+        assert!(catch_unwind(AssertUnwindSafe(|| iter.next().is_some())).is_err());
+        assert_distinct(iter.copied().collect());
+
+        let mut iter = tree.locate_with_selection_function_mut(PanicOnceFunc(Cell::new(true)));
+        assert!(catch_unwind(AssertUnwindSafe(|| iter.next().is_some())).is_err());
+        assert_distinct(iter.map(|p| *p).collect());
     }
 
     #[test]

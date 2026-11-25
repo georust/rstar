@@ -19,16 +19,21 @@ pub struct IntoIter<T>
 where
     T: RTreeObject,
 {
-    node_stack: Vec<RTreeNode<T>>,
+    /// The remaining children of the current node.
+    current: alloc::vec::IntoIter<RTreeNode<T>>,
+    /// The remaining children of each ancestor of the current node.
+    ancestors: Vec<alloc::vec::IntoIter<RTreeNode<T>>>,
 }
 
 impl<T> IntoIter<T>
 where
     T: RTreeObject,
 {
+    #[inline]
     pub(crate) fn new(root: ParentNode<T>) -> Self {
         Self {
-            node_stack: vec![RTreeNode::Parent(root)],
+            current: root.children.into_iter(),
+            ancestors: Vec::new(),
         }
     }
 }
@@ -39,15 +44,21 @@ where
 {
     type Item = T;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(node) = self.node_stack.pop() {
-            match node {
-                RTreeNode::Leaf(object) => return Some(object),
-                RTreeNode::Parent(parent) => self.node_stack.extend(parent.children),
+        loop {
+            while let Some(child) = self.current.next() {
+                match child {
+                    RTreeNode::Leaf(object) => return Some(object),
+                    RTreeNode::Parent(parent) => {
+                        let siblings = replace(&mut self.current, parent.children.into_iter());
+                        self.ancestors.push(siblings);
+                    }
+                }
             }
-        }
 
-        None
+            self.current = self.ancestors.pop()?;
+        }
     }
 }
 
@@ -472,5 +483,37 @@ mod test {
         vec.sort_unstable_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap());
 
         assert_eq!(points, vec);
+    }
+
+    /// `into_iter` returns the leaves of each node in order.
+    #[test]
+    fn test_into_iter_returns_leaves_in_order() {
+        /// Checks that `elements` has the leaves of `parent`, and of each node below it, in order.
+        fn assert_returned_in_order(parent: &ParentNode<[f64; 2]>, elements: &[[f64; 2]]) {
+            let leaves: Vec<_> = parent
+                .children()
+                .iter()
+                .filter_map(|child| match child {
+                    RTreeNode::Leaf(point) => Some(*point),
+                    RTreeNode::Parent(_) => None,
+                })
+                .collect();
+            let returned: Vec<_> = elements
+                .iter()
+                .copied()
+                .filter(|element| leaves.contains(element))
+                .collect();
+            assert_eq!(returned, leaves);
+
+            for child in parent.children() {
+                if let RTreeNode::Parent(data) = child {
+                    assert_returned_in_order(data, elements);
+                }
+            }
+        }
+
+        let tree = RTree::bulk_load(create_random_points(1000, SEED_1));
+        let elements: Vec<_> = tree.clone().into_iter().collect();
+        assert_returned_in_order(tree.root(), &elements);
     }
 }
