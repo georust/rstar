@@ -10,7 +10,9 @@ use rand::{RngExt, SeedableRng};
 use rand_hc::Hc128Rng;
 
 use rstar::primitives::CachedEnvelope;
-use rstar::{RStarInsertionStrategy, RTree, RTreeObject, RTreeParams, AABB};
+use rstar::{
+    Envelope, PointDistance, RStarInsertionStrategy, RTree, RTreeObject, RTreeParams, AABB,
+};
 
 use criterion::Criterion;
 use ordered_float::NotNan;
@@ -78,7 +80,7 @@ fn locate_successful_internal_not_nan(c: &mut Criterion) {
     let query_point = points[500];
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     c.bench_function("locate_at_point_int (successful, NotNan)", move |b| {
-        b.iter(|| tree.locate_at_point_int(query_point).is_some())
+        b.iter(|| locate_at_point_int(&tree, query_point))
     });
 }
 
@@ -87,7 +89,7 @@ fn locate_successful_not_nan(c: &mut Criterion) {
     let query_point = points[500];
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     c.bench_function("locate_at_point (successful, NotNan)", move |b| {
-        b.iter(|| tree.locate_at_point(query_point).is_some())
+        b.iter(|| locate_at_point(&tree, query_point))
     });
 }
 
@@ -96,7 +98,7 @@ fn locate_unsuccessful_not_nan(c: &mut Criterion) {
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     let query_point = not_nan([0.7, 0.7]);
     c.bench_function("locate_at_point (unsuccessful, NotNan)", move |b| {
-        b.iter(|| tree.locate_at_point(query_point).is_none())
+        b.iter(|| locate_at_point(&tree, query_point))
     });
 }
 
@@ -105,7 +107,7 @@ fn locate_unsuccessful_internal_not_nan(c: &mut Criterion) {
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     let query_point = not_nan([0.7, 0.7]);
     c.bench_function("locate_at_point_int (unsuccessful, NotNan)", move |b| {
-        b.iter(|| tree.locate_at_point_int(query_point).is_none())
+        b.iter(|| locate_at_point_int(&tree, query_point))
     });
 }
 
@@ -166,7 +168,7 @@ fn locate_successful(c: &mut Criterion) {
     let query_point = points[500];
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     c.bench_function("locate_at_point (successful)", move |b| {
-        b.iter(|| tree.locate_at_point(query_point).is_some())
+        b.iter(|| locate_at_point(&tree, query_point))
     });
 }
 
@@ -175,7 +177,7 @@ fn locate_unsuccessful(c: &mut Criterion) {
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     let query_point = [0.7, 0.7];
     c.bench_function("locate_at_point (unsuccessful)", move |b| {
-        b.iter(|| tree.locate_at_point(query_point).is_none())
+        b.iter(|| locate_at_point(&tree, query_point))
     });
 }
 
@@ -184,7 +186,7 @@ fn locate_successful_internal(c: &mut Criterion) {
     let query_point = points[500];
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     c.bench_function("locate_at_point_int (successful)", move |b| {
-        b.iter(|| tree.locate_at_point_int(query_point).is_some())
+        b.iter(|| locate_at_point_int(&tree, query_point))
     });
 }
 
@@ -193,7 +195,7 @@ fn locate_unsuccessful_internal(c: &mut Criterion) {
     let tree = RTree::<_, Params>::bulk_load_with_params(points);
     let query_point = [0.7, 0.7];
     c.bench_function("locate_at_point_int (unsuccessful)", move |b| {
-        b.iter(|| tree.locate_at_point_int(query_point).is_none())
+        b.iter(|| locate_at_point_int(&tree, query_point))
     });
 }
 
@@ -230,31 +232,67 @@ fn query_benchmarks<P>(
     let nearest_queries = query_points.clone();
     c.bench_function(&format!("nearest_neighbor ({scalar})"), {
         let tree = &tree;
-        move |b| {
-            b.iter(|| {
-                for query_point in &nearest_queries {
-                    tree.nearest_neighbor(*query_point).unwrap();
-                }
-            })
-        }
+        move |b| b.iter(|| nearest_neighbors(tree, &nearest_queries))
     });
 
     c.bench_function(&format!("nearest_neighbor_iter, 10 nearest ({scalar})"), {
         let tree = &tree;
         let query_point = query_points[0];
-        move |b| b.iter(|| tree.nearest_neighbor_iter(query_point).take(10).count())
+        move |b| b.iter(|| count(tree.nearest_neighbor_iter(query_point).take(10)))
     });
 
     c.bench_function(&format!("locate_in_envelope_intersecting ({scalar})"), {
         let tree = &tree;
-        move |b| b.iter(|| tree.locate_in_envelope_intersecting(envelope).count())
+        move |b| b.iter(|| count(tree.locate_in_envelope_intersecting(envelope)))
     });
 
     c.bench_function(&format!("locate_within_distance ({scalar})"), {
         let tree = &tree;
         let query_point = query_points[0];
-        move |b| b.iter(|| tree.locate_within_distance(query_point, radius_2).count())
+        move |b| b.iter(|| count(tree.locate_within_distance(query_point, radius_2)))
     });
+}
+
+#[inline(never)]
+fn count(iter: impl Iterator) -> usize {
+    iter.count()
+}
+
+#[inline(never)]
+fn locate_at_point<T, Params>(
+    tree: &RTree<T, Params>,
+    point: <T::Envelope as Envelope>::Point,
+) -> bool
+where
+    T: PointDistance,
+    Params: RTreeParams,
+{
+    tree.locate_at_point(point).is_some()
+}
+
+#[inline(never)]
+fn locate_at_point_int<T, Params>(
+    tree: &RTree<T, Params>,
+    point: <T::Envelope as Envelope>::Point,
+) -> bool
+where
+    T: PointDistance,
+    Params: RTreeParams,
+{
+    tree.locate_at_point_int(point).is_some()
+}
+
+#[inline(never)]
+fn nearest_neighbors<T, Params>(
+    tree: &RTree<T, Params>,
+    query_points: &[<T::Envelope as Envelope>::Point],
+) where
+    T: PointDistance,
+    Params: RTreeParams,
+{
+    for query_point in query_points {
+        tree.nearest_neighbor(query_point.clone()).unwrap();
+    }
 }
 
 fn query_benchmarks_f64(c: &mut Criterion) {
