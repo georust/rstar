@@ -14,12 +14,13 @@ use rstar::{
     Envelope, PointDistance, RStarInsertionStrategy, RTree, RTreeObject, RTreeParams, AABB,
 };
 
-use criterion::Criterion;
+use criterion::{BatchSize, Criterion};
 use ordered_float::NotNan;
 
 const SEED_1: &[u8; 32] = b"Gv0aHMtHkBGsUXNspGU9fLRuCWkZWHZx";
 const SEED_2: &[u8; 32] = b"km7DO4GeaFZfTcDXVpnO7ZJlgUY7hZiS";
 
+#[derive(Clone)]
 struct Params;
 
 impl RTreeParams for Params {
@@ -199,6 +200,26 @@ fn locate_unsuccessful_internal(c: &mut Criterion) {
     });
 }
 
+fn into_iter_benchmarks(c: &mut Criterion) {
+    let points: Vec<_> = create_random_points(100_000, SEED_1);
+    let tree = RTree::<_, Params>::bulk_load_with_params(points);
+    c.bench_function("into_iter (count)", |b| {
+        b.iter_batched(
+            || tree.clone(),
+            |tree| count(tree.into_iter()),
+            BatchSize::LargeInput,
+        )
+    });
+
+    c.bench_function("into_iter (collect)", |b| {
+        b.iter_batched(
+            || tree.clone(),
+            |tree| collect(tree.into_iter()),
+            BatchSize::LargeInput,
+        )
+    });
+}
+
 /// The query-heavy benchmarks, run once per scalar type.
 ///
 /// A point lookup descends one root-to-leaf path and returns at the first hit; these visit many
@@ -251,11 +272,21 @@ fn query_benchmarks<P>(
         let query_point = query_points[0];
         move |b| b.iter(|| count(tree.locate_within_distance(query_point, radius_2)))
     });
+
+    c.bench_function(&format!("iter ({scalar})"), {
+        let tree = &tree;
+        move |b| b.iter(|| count(tree.iter()))
+    });
 }
 
 #[inline(never)]
 fn count(iter: impl Iterator) -> usize {
     iter.count()
+}
+
+#[inline(never)]
+fn collect<T>(iter: impl Iterator<Item = T>) -> Vec<T> {
+    iter.collect()
 }
 
 #[inline(never)]
@@ -322,6 +353,7 @@ criterion_group!(
     locate_unsuccessful_internal_not_nan,
     query_benchmarks_f64,
     query_benchmarks_not_nan,
+    into_iter_benchmarks,
 );
 criterion_main!(benches);
 
