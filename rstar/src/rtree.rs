@@ -355,7 +355,7 @@ where
     /// }
     /// ```
     pub fn iter(&self) -> RTreeIterator<'_, T> {
-        RTreeIterator::new(&self.root, SelectAllFunc)
+        RTreeIterator::new(&self.root, self.size, SelectAllFunc)
     }
 
     /// Returns an iterator over all mutable elements contained in the tree.
@@ -369,7 +369,7 @@ where
     /// and reinsert it.
     ///
     pub fn iter_mut(&mut self) -> RTreeIteratorMut<'_, T> {
-        RTreeIteratorMut::new(&mut self.root, SelectAllFunc)
+        RTreeIteratorMut::new(&mut self.root, self.size, SelectAllFunc)
     }
 
     /// Returns all elements contained in an [Envelope].
@@ -410,12 +410,20 @@ where
     /// assert_eq!(tree.locate_all_at_point([0.5, 0.5]).count(), 1);
     /// ```
     pub fn locate_in_envelope(&self, envelope: T::Envelope) -> LocateInEnvelope<'_, T> {
-        LocateInEnvelope::new(&self.root, SelectInEnvelopeFunction::new(envelope))
+        LocateInEnvelope::new(
+            &self.root,
+            self.size,
+            SelectInEnvelopeFunction::new(envelope),
+        )
     }
 
     /// Mutable variant of [locate_in_envelope](#method.locate_in_envelope).
     pub fn locate_in_envelope_mut(&mut self, envelope: T::Envelope) -> LocateInEnvelopeMut<'_, T> {
-        LocateInEnvelopeMut::new(&mut self.root, SelectInEnvelopeFunction::new(envelope))
+        LocateInEnvelopeMut::new(
+            &mut self.root,
+            self.size,
+            SelectInEnvelopeFunction::new(envelope),
+        )
     }
 
     /// Variant of [`locate_in_envelope`][Self::locate_in_envelope] using internal iteration.
@@ -428,7 +436,7 @@ where
         V: FnMut(&'a T) -> ControlFlow<B>,
     {
         select_nodes(
-            self.root(),
+            &self.root,
             &SelectInEnvelopeFunction::new(envelope),
             &mut visitor,
         )
@@ -444,7 +452,7 @@ where
         V: FnMut(&'a mut T) -> ControlFlow<B>,
     {
         select_nodes_mut(
-            self.root_mut(),
+            &mut self.root,
             &SelectInEnvelopeFunction::new(envelope),
             &mut visitor,
         )
@@ -511,6 +519,7 @@ where
     ) -> LocateInEnvelopeIntersecting<'_, T> {
         LocateInEnvelopeIntersecting::new(
             &self.root,
+            self.size,
             SelectInEnvelopeFuncIntersecting::new(envelope),
         )
     }
@@ -522,6 +531,7 @@ where
     ) -> LocateInEnvelopeIntersectingMut<'_, T> {
         LocateInEnvelopeIntersectingMut::new(
             &mut self.root,
+            self.size,
             SelectInEnvelopeFuncIntersecting::new(envelope),
         )
     }
@@ -536,7 +546,7 @@ where
         V: FnMut(&'a T) -> ControlFlow<B>,
     {
         select_nodes(
-            self.root(),
+            &self.root,
             &SelectInEnvelopeFuncIntersecting::new(envelope),
             &mut visitor,
         )
@@ -552,7 +562,7 @@ where
         V: FnMut(&'a mut T) -> ControlFlow<B>,
     {
         select_nodes_mut(
-            self.root_mut(),
+            &mut self.root,
             &SelectInEnvelopeFuncIntersecting::new(envelope),
             &mut visitor,
         )
@@ -569,7 +579,7 @@ where
         &self,
         selection_function: S,
     ) -> SelectionIterator<'_, T, S> {
-        SelectionIterator::new(&self.root, selection_function)
+        SelectionIterator::new(&self.root, self.size, selection_function)
     }
 
     /// Mutable variant of [`locate_with_selection_function`](#method.locate_with_selection_function).
@@ -577,7 +587,7 @@ where
         &mut self,
         selection_function: S,
     ) -> SelectionIteratorMut<'_, T, S> {
-        SelectionIteratorMut::new(&mut self.root, selection_function)
+        SelectionIteratorMut::new(&mut self.root, self.size, selection_function)
     }
 
     /// Returns all possible intersecting objects of this and another tree.
@@ -591,7 +601,7 @@ where
     where
         U: RTreeObject<Envelope = T::Envelope>,
     {
-        IntersectionIterator::new(self.root(), other.root())
+        IntersectionIterator::new(&self.root, self.size, &other.root, other.size)
     }
 
     /// Returns the tree's root node.
@@ -876,7 +886,7 @@ where
         &self,
         point: <T::Envelope as Envelope>::Point,
     ) -> LocateAllAtPoint<'_, T> {
-        LocateAllAtPoint::new(&self.root, SelectAtPointFunction::new(point))
+        LocateAllAtPoint::new(&self.root, self.size, SelectAtPointFunction::new(point))
     }
 
     /// Mutable variant of [`locate_all_at_point`][Self::locate_all_at_point].
@@ -884,7 +894,7 @@ where
         &mut self,
         point: <T::Envelope as Envelope>::Point,
     ) -> LocateAllAtPointMut<'_, T> {
-        LocateAllAtPointMut::new(&mut self.root, SelectAtPointFunction::new(point))
+        LocateAllAtPointMut::new(&mut self.root, self.size, SelectAtPointFunction::new(point))
     }
 
     /// Variant of [`locate_all_at_point`][Self::locate_all_at_point] using internal iteration.
@@ -1125,7 +1135,11 @@ where
         &self,
         query_point: &<T::Envelope as Envelope>::Point,
     ) -> Option<(Vec<&T>, Distance<T>)> {
-        nearest_neighbor::nearest_neighbors_with_distance_2(&self.root, query_point.clone())
+        nearest_neighbor::nearest_neighbors_with_distance_2(
+            &self.root,
+            self.size,
+            query_point.clone(),
+        )
     }
 
     /// Returns all elements of the tree within a certain distance.
@@ -1142,7 +1156,7 @@ where
         max_squared_radius: Distance<T>,
     ) -> LocateWithinDistanceIterator<'_, T> {
         let selection_function = SelectWithinDistanceFunction::new(query_point, max_squared_radius);
-        LocateWithinDistanceIterator::new(self.root(), selection_function)
+        LocateWithinDistanceIterator::new(&self.root, self.size, selection_function)
     }
 
     /// Drain all elements of the tree within a certain distance.
@@ -1203,7 +1217,7 @@ where
         &self,
         query_point: <T::Envelope as Envelope>::Point,
     ) -> NearestNeighborIterator<'_, T> {
-        nearest_neighbor::NearestNeighborIterator::new(&self.root, query_point)
+        nearest_neighbor::NearestNeighborIterator::new(&self.root, self.size, query_point)
     }
 
     /// Returns `(element, distance^2)` tuples of the tree sorted by their distance to a given point.
@@ -1215,7 +1229,7 @@ where
         &self,
         query_point: <T::Envelope as Envelope>::Point,
     ) -> NearestNeighborDistance2Iterator<'_, T> {
-        nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, query_point)
+        nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, self.size, query_point)
     }
 
     /// Returns `(element, distance^2)` tuples of the tree sorted by their distance to a given point.
@@ -1226,7 +1240,7 @@ where
         &self,
         query_point: <T::Envelope as Envelope>::Point,
     ) -> NearestNeighborDistance2Iterator<'_, T> {
-        nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, query_point)
+        nearest_neighbor::NearestNeighborDistance2Iterator::new(&self.root, self.size, query_point)
     }
 
     /// Removes the nearest neighbor for a given point and returns it.
@@ -1286,7 +1300,7 @@ where
     type Item = T;
 
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter::new(self.root)
+        IntoIter::new(self.root, self.size)
     }
 }
 

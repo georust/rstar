@@ -1,3 +1,6 @@
+use core::iter::FusedIterator;
+use core::mem::take;
+
 use crate::node::ParentNode;
 use crate::Envelope;
 use crate::RTreeNode;
@@ -6,7 +9,6 @@ use crate::RTreeObject;
 
 #[cfg(not(test))]
 use alloc::vec::Vec;
-use core::mem::take;
 
 #[cfg(doc)]
 use crate::RTree;
@@ -17,6 +19,7 @@ where
     T: RTreeObject,
     U: RTreeObject,
 {
+    size: usize,
     todo_list: Vec<(&'a RTreeNode<T>, &'a RTreeNode<U>)>,
     candidates: Vec<&'a RTreeNode<U>>,
 }
@@ -26,8 +29,14 @@ where
     T: RTreeObject,
     U: RTreeObject<Envelope = T::Envelope>,
 {
-    pub(crate) fn new(root1: &'a ParentNode<T>, root2: &'a ParentNode<U>) -> Self {
-        let mut intersections = IntersectionIterator {
+    pub(crate) fn new(
+        root1: &'a ParentNode<T>,
+        size1: usize,
+        root2: &'a ParentNode<U>,
+        size2: usize,
+    ) -> Self {
+        let mut intersections = Self {
+            size: size1 * size2,
             todo_list: Vec::new(),
             candidates: Vec::new(),
         };
@@ -83,7 +92,10 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(next) = self.todo_list.pop() {
             match next {
-                (Leaf(t1), Leaf(t2)) => return Some((t1, t2)),
+                (Leaf(t1), Leaf(t2)) => {
+                    self.size -= 1;
+                    return Some((t1, t2));
+                }
                 (leaf @ Leaf(_), Parent(p)) => {
                     p.children()
                         .iter()
@@ -101,6 +113,17 @@ where
         }
         None
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, Some(self.size))
+    }
+}
+
+impl<T, U> FusedIterator for IntersectionIterator<'_, T, U>
+where
+    T: RTreeObject,
+    U: RTreeObject<Envelope = T::Envelope>,
+{
 }
 
 #[cfg(test)]
