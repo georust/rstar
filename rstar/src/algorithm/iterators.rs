@@ -1,6 +1,7 @@
 use crate::algorithm::selection_functions::*;
 use crate::node::{ParentNode, RTreeNode};
 use crate::object::RTreeObject;
+use core::iter::FusedIterator;
 use core::mem::{replace, take};
 use core::ops::ControlFlow;
 use core::slice::{Iter, IterMut};
@@ -49,6 +50,7 @@ where
     T: RTreeObject + 'a,
     Func: SelectionFunction<T>,
 {
+    size: usize,
     func: Func,
     /// The remaining children of the current node.
     ///
@@ -66,7 +68,7 @@ where
     Func: SelectionFunction<T>,
 {
     #[inline]
-    pub(crate) fn new(root: &'a ParentNode<T>, func: Func) -> Self {
+    pub(crate) fn new(root: &'a ParentNode<T>, size: usize, func: Func) -> Self {
         // Do not call `should_unpack_parent` on an empty root as
         // its AABB is pathological and might make that function panic.
         let current = if !root.children.is_empty() && func.should_unpack_parent(&root.envelope) {
@@ -76,6 +78,7 @@ where
         };
 
         Self {
+            size,
             func,
             current,
             ancestors: SmallVec::new(),
@@ -99,6 +102,7 @@ where
             while let Some(child) = current.next() {
                 match child {
                     RTreeNode::Leaf(t) => {
+                        self.size -= 1;
                         if self.func.should_unpack_leaf(t) {
                             self.current = current;
                             return Some(t);
@@ -116,6 +120,17 @@ where
             current = self.ancestors.pop()?;
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, Some(self.size))
+    }
+}
+
+impl<T, Func> FusedIterator for SelectionIterator<'_, T, Func>
+where
+    T: RTreeObject,
+    Func: SelectionFunction<T>,
+{
 }
 
 /// Internal iteration variant of [`SelectionIterator`]
@@ -174,6 +189,7 @@ where
     T: RTreeObject + 'a,
     Func: SelectionFunction<T>,
 {
+    size: usize,
     func: Func,
     /// See [`SelectionIterator::current`].
     current: IterMut<'a, RTreeNode<T>>,
@@ -187,7 +203,7 @@ where
     Func: SelectionFunction<T>,
 {
     #[inline]
-    pub(crate) fn new(root: &'a mut ParentNode<T>, func: Func) -> Self {
+    pub(crate) fn new(root: &'a mut ParentNode<T>, size: usize, func: Func) -> Self {
         let current = if !root.children.is_empty() && func.should_unpack_parent(&root.envelope) {
             root.children.iter_mut()
         } else {
@@ -195,6 +211,7 @@ where
         };
 
         Self {
+            size,
             func,
             current,
             ancestors: SmallVec::new(),
@@ -217,6 +234,7 @@ where
             while let Some(child) = current.next() {
                 match child {
                     RTreeNode::Leaf(t) => {
+                        self.size -= 1;
                         if self.func.should_unpack_leaf(t) {
                             self.current = current;
                             return Some(t);
@@ -234,6 +252,17 @@ where
             current = self.ancestors.pop()?;
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, Some(self.size))
+    }
+}
+
+impl<T, Func> FusedIterator for SelectionIteratorMut<'_, T, Func>
+where
+    T: RTreeObject,
+    Func: SelectionFunction<T>,
+{
 }
 
 /// Internal iteration variant of [`SelectionIteratorMut`]

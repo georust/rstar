@@ -1,3 +1,4 @@
+use core::iter::FusedIterator;
 use core::mem::replace;
 
 use crate::algorithm::selection_functions::SelectionFunction;
@@ -6,7 +7,6 @@ use crate::object::RTreeObject;
 use crate::params::RTreeParams;
 use crate::{Envelope, RTree};
 
-#[cfg(not(test))]
 use alloc::{vec, vec::Vec};
 
 #[allow(unused_imports)] // Import is required when building without std
@@ -19,10 +19,11 @@ pub struct IntoIter<T>
 where
     T: RTreeObject,
 {
+    size: usize,
     /// The remaining children of the current node.
-    current: alloc::vec::IntoIter<RTreeNode<T>>,
+    current: vec::IntoIter<RTreeNode<T>>,
     /// The remaining children of each ancestor of the current node.
-    ancestors: Vec<alloc::vec::IntoIter<RTreeNode<T>>>,
+    ancestors: Vec<vec::IntoIter<RTreeNode<T>>>,
 }
 
 impl<T> IntoIter<T>
@@ -30,8 +31,9 @@ where
     T: RTreeObject,
 {
     #[inline]
-    pub(crate) fn new(root: ParentNode<T>) -> Self {
+    pub(crate) fn new(root: ParentNode<T>, size: usize) -> Self {
         Self {
+            size,
             current: root.children.into_iter(),
             ancestors: Vec::new(),
         }
@@ -49,7 +51,10 @@ where
         loop {
             while let Some(child) = self.current.next() {
                 match child {
-                    RTreeNode::Leaf(object) => return Some(object),
+                    RTreeNode::Leaf(object) => {
+                        self.size -= 1;
+                        return Some(object);
+                    }
                     RTreeNode::Parent(parent) => {
                         let siblings = replace(&mut self.current, parent.children.into_iter());
                         self.ancestors.push(siblings);
@@ -59,6 +64,21 @@ where
 
             self.current = self.ancestors.pop()?;
         }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len(), Some(self.len()))
+    }
+}
+
+impl<T> FusedIterator for IntoIter<T> where T: RTreeObject {}
+
+impl<T> ExactSizeIterator for IntoIter<T>
+where
+    T: RTreeObject,
+{
+    fn len(&self) -> usize {
+        self.size
     }
 }
 
