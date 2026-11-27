@@ -1,5 +1,8 @@
 # Unreleased
 
+## Changed
+- The iterators returned by `iter`, `iter_mut`, `into_iter` and the `locate_*` methods visit the nodes of a tree in a different order, so `locate_at_point` and `locate_at_point_mut` may return another one of several elements that contain the point.
+
 # 0.14.0
 
 ## Changed
